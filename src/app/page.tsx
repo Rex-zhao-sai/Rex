@@ -203,6 +203,15 @@ export default function Home() {
                           </span>
                         )}
                       </div>
+                      {dish.image && (
+                        <div className="ml-7 mb-2">
+                          <img
+                            src={dish.image}
+                            alt={dish.name}
+                            className="h-40 w-full rounded-lg object-cover"
+                          />
+                        </div>
+                      )}
                       {dish.steps && dish.steps.length > 0 ? (
                         <ol className="ml-7 space-y-1">
                           {dish.steps.map((step, stepIdx) => (
