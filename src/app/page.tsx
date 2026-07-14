@@ -9,7 +9,6 @@ function TagBadge({ tag }: { tag: Dish['tag'] }) {
     '荤': 'bg-[#FDECEA] text-[#C0392B] border-[#F5C6CB]',
     '素': 'bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]',
     '汤': 'bg-[#FFF3E0] text-[#E65100] border-[#FFE0B2]',
-    '主食': 'bg-[#FFF8E1] text-[#F57F17] border-[#FFECB3]',
   };
 
   return (
@@ -41,63 +40,45 @@ function DishItem({ dish }: { dish: Dish }) {
   );
 }
 
-function MealCard({ meal }: { meal: { type: string; dishes: Dish[] } }) {
-  const isLunch = meal.type === '午餐';
-
-  return (
-    <div
-      className={`flex-1 min-w-[280px] rounded-xl border p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
-        isLunch
-          ? 'border-[#F5DEB3] bg-[var(--menu-lunch)]'
-          : 'border-[#C8E6C9] bg-[var(--menu-dinner)]'
-      }`}
-    >
-      <div className="mb-3 flex items-center gap-2">
-        <span className="text-lg">{isLunch ? '☀️' : '🌙'}</span>
-        <h4
-          className={`font-serif text-sm font-semibold tracking-wide ${
-            isLunch ? 'text-[#D2691E]' : 'text-[var(--menu-green)]'
-          }`}
-        >
-          {meal.type}
-        </h4>
-      </div>
-      <div className="divide-y divide-[var(--menu-border)]/50">
-        {meal.dishes.map((dish, i) => (
-          <DishItem key={i} dish={dish} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DaySection({
+function DayCard({
   day,
-  meals,
+  dishes,
   index,
 }: {
   day: string;
-  meals: { type: string; dishes: Dish[] }[];
+  dishes: Dish[];
   index: number;
 }) {
-  const dayEmojis = ['🏮', '🥢', '🍲', '🥬', '🐟', '🏠', '🎊'];
+  const dayEmojis = ['🏮', '🥢', '🍲', '🥬', '🐟'];
 
   return (
-    <section className="mb-10 last:mb-0">
+    <section className="mb-8 last:mb-0">
       {/* 日期标题 */}
       <div className="mb-4 flex items-center gap-3">
         <span className="text-2xl">{dayEmojis[index]}</span>
         <h3 className="font-serif text-xl font-bold text-[var(--menu-primary)]">
           {day}
         </h3>
+        <span className="text-sm text-[var(--menu-gray)]">晚餐</span>
         <div className="h-px flex-1 bg-gradient-to-r from-[var(--menu-border)] to-transparent" />
       </div>
 
-      {/* 午餐 & 晚餐 */}
-      <div className="flex flex-wrap gap-4">
-        {meals.map((meal, i) => (
-          <MealCard key={i} meal={meal} />
-        ))}
+      {/* 菜品卡片 */}
+      <div className="rounded-xl border border-[#C8E6C9] bg-[var(--menu-dinner)] p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-lg">🌙</span>
+          <h4 className="font-serif text-sm font-semibold tracking-wide text-[var(--menu-green)]">
+            晚餐四菜
+          </h4>
+        </div>
+        <div className="divide-y divide-[var(--menu-border)]/50">
+          {dishes.map((dish, i) => (
+            <DishItem key={i} dish={dish} />
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-[var(--menu-border)]/50">
+          <p className="text-sm text-[var(--menu-gray)]">🍚 米饭</p>
+        </div>
       </div>
     </section>
   );
@@ -123,9 +104,9 @@ export default function Home() {
             宝应 · 淮安
           </p>
           <p className="mt-4 text-sm leading-relaxed text-[var(--menu-gray)]/80">
-            水乡人家的日常饭菜，食材易得，做法简单
+            水乡人家的日常晚饭，食材易得，做法简单
             <br />
-            不求精致，只求一家人吃得舒服、健康
+            周一至周五，每天四道菜，配米饭
           </p>
 
           {/* 图例 */}
@@ -142,10 +123,6 @@ export default function Home() {
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#E65100]" />
               汤品
             </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#F57F17]" />
-              主食
-            </span>
           </div>
         </div>
       </header>
@@ -157,16 +134,16 @@ export default function Home() {
           <p className="text-center text-sm leading-relaxed text-[var(--menu-gray)]">
             💡 <strong className="text-[var(--menu-primary)]">小贴士：</strong>
             菜单可根据时令蔬菜灵活调整，宝应藕、茨菇、菱角上市时多吃，长鱼（鳝鱼）以夏季最为肥美。
-            每餐搭配一荤一素一汤，营养均衡。
+            晚餐两荤一素一汤，营养均衡。
           </p>
         </div>
 
         {/* 每日菜单 */}
         {weeklyMenu.map((dayMenu, index) => (
-          <DaySection
+          <DayCard
             key={dayMenu.day}
             day={dayMenu.day}
-            meals={dayMenu.meals}
+            dishes={dayMenu.dishes}
             index={index}
           />
         ))}
