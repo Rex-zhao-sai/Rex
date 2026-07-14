@@ -1,35 +1,188 @@
-import type { Metadata } from 'next';
-import Image from 'next/image';
+'use client';
 
-export const metadata: Metadata = {
-  title: '扣子编程 - AI 开发伙伴',
-  description: '扣子编程，你的 AI 开发伙伴已就位',
-};
+import { weeklyMenu, type Dish } from '@/lib/menu-data';
+
+function TagBadge({ tag }: { tag: Dish['tag'] }) {
+  if (!tag) return null;
+
+  const styles: Record<string, string> = {
+    '荤': 'bg-[#FDECEA] text-[#C0392B] border-[#F5C6CB]',
+    '素': 'bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]',
+    '汤': 'bg-[#FFF3E0] text-[#E65100] border-[#FFE0B2]',
+    '主食': 'bg-[#FFF8E1] text-[#F57F17] border-[#FFECB3]',
+  };
+
+  return (
+    <span
+      className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${styles[tag] || ''}`}
+    >
+      {tag}
+    </span>
+  );
+}
+
+function DishItem({ dish }: { dish: Dish }) {
+  return (
+    <div className="group flex items-start gap-3 py-2.5 transition-all duration-200">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-serif text-base font-semibold text-[var(--menu-ink)]">
+            {dish.name}
+          </span>
+          <TagBadge tag={dish.tag} />
+        </div>
+        {dish.desc && (
+          <p className="mt-0.5 text-sm leading-relaxed text-[var(--menu-gray)]">
+            {dish.desc}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MealCard({ meal }: { meal: { type: string; dishes: Dish[] } }) {
+  const isLunch = meal.type === '午餐';
+
+  return (
+    <div
+      className={`flex-1 min-w-[280px] rounded-xl border p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+        isLunch
+          ? 'border-[#F5DEB3] bg-[var(--menu-lunch)]'
+          : 'border-[#C8E6C9] bg-[var(--menu-dinner)]'
+      }`}
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-lg">{isLunch ? '☀️' : '🌙'}</span>
+        <h4
+          className={`font-serif text-sm font-semibold tracking-wide ${
+            isLunch ? 'text-[#D2691E]' : 'text-[var(--menu-green)]'
+          }`}
+        >
+          {meal.type}
+        </h4>
+      </div>
+      <div className="divide-y divide-[var(--menu-border)]/50">
+        {meal.dishes.map((dish, i) => (
+          <DishItem key={i} dish={dish} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DaySection({
+  day,
+  meals,
+  index,
+}: {
+  day: string;
+  meals: { type: string; dishes: Dish[] }[];
+  index: number;
+}) {
+  const dayEmojis = ['🏮', '🥢', '🍲', '🥬', '🐟', '🏠', '🎊'];
+
+  return (
+    <section className="mb-10 last:mb-0">
+      {/* 日期标题 */}
+      <div className="mb-4 flex items-center gap-3">
+        <span className="text-2xl">{dayEmojis[index]}</span>
+        <h3 className="font-serif text-xl font-bold text-[var(--menu-primary)]">
+          {day}
+        </h3>
+        <div className="h-px flex-1 bg-gradient-to-r from-[var(--menu-border)] to-transparent" />
+      </div>
+
+      {/* 午餐 & 晚餐 */}
+      <div className="flex flex-wrap gap-4">
+        {meals.map((meal, i) => (
+          <MealCard key={i} meal={meal} />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex h-full items-center justify-center bg-background text-foreground transition-colors duration-300 dark:bg-background dark:text-foreground overflow-hidden min-h-screen">
-      {/* 主容器 */}
-      <main className="flex w-full h-full max-w-3xl flex-col items-center justify-center px-16 py-32 sm:items-center">
-        <div className="flex flex-col items-center justify-between gap-4">
-           <Image
-            src="https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze-coding/icon/coze-coding.gif"
-            alt="扣子编程 Logo"
-            width={156}
-            height={130}
-          />
-          <div>
-            <div className="flex flex-col items-center gap-2 text-center sm:items-center sm:text-center">
-              <h1 className="max-w-xl text-base font-semibold leading-tight tracking-tight text-foreground dark:text-foreground">
-                应用开发中
-              </h1>
-              <p className="max-w-2xl text-sm leading-8 text-muted-foreground dark:text-muted-foreground">
-                请稍后，页面即将呈现
-              </p>
-            </div>
+    <div className="min-h-screen bg-[var(--menu-bg)]">
+      {/* 顶部标题区域 */}
+      <header className="relative overflow-hidden border-b border-[var(--menu-border)] bg-gradient-to-b from-[#FFF8F0] to-[var(--menu-bg)]">
+        <div className="mx-auto max-w-4xl px-6 py-12 text-center">
+          {/* 装饰元素 */}
+          <div className="mb-4 flex items-center justify-center gap-3">
+            <span className="h-px w-12 bg-[var(--menu-border)]" />
+            <span className="text-3xl">🍚</span>
+            <span className="h-px w-12 bg-[var(--menu-border)]" />
+          </div>
+
+          <h1 className="font-serif text-3xl font-bold tracking-wide text-[var(--menu-primary)] sm:text-4xl">
+            一周家常菜单
+          </h1>
+          <p className="mt-2 font-serif text-base text-[var(--menu-gray)] sm:text-lg">
+            宝应 · 淮安
+          </p>
+          <p className="mt-4 text-sm leading-relaxed text-[var(--menu-gray)]/80">
+            水乡人家的日常饭菜，食材易得，做法简单
+            <br />
+            不求精致，只求一家人吃得舒服、健康
+          </p>
+
+          {/* 图例 */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs text-[var(--menu-gray)]">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#C0392B]" />
+              荤菜
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#2E7D32]" />
+              素菜
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#E65100]" />
+              汤品
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#F57F17]" />
+              主食
+            </span>
           </div>
         </div>
+      </header>
+
+      {/* 主体内容 */}
+      <main className="mx-auto max-w-4xl px-6 py-10">
+        {/* 温馨提示 */}
+        <div className="mb-8 rounded-lg border border-[var(--menu-gold)]/30 bg-[#FFF8E1]/50 p-4">
+          <p className="text-center text-sm leading-relaxed text-[var(--menu-gray)]">
+            💡 <strong className="text-[var(--menu-primary)]">小贴士：</strong>
+            菜单可根据时令蔬菜灵活调整，宝应藕、茨菇、菱角上市时多吃，长鱼（鳝鱼）以夏季最为肥美。
+            每餐搭配一荤一素一汤，营养均衡。
+          </p>
+        </div>
+
+        {/* 每日菜单 */}
+        {weeklyMenu.map((dayMenu, index) => (
+          <DaySection
+            key={dayMenu.day}
+            day={dayMenu.day}
+            meals={dayMenu.meals}
+            index={index}
+          />
+        ))}
       </main>
+
+      {/* 底部 */}
+      <footer className="border-t border-[var(--menu-border)] bg-[#FFF8F0]/50">
+        <div className="mx-auto max-w-4xl px-6 py-8 text-center">
+          <p className="font-serif text-sm text-[var(--menu-gray)]">
+            好好吃饭，好好生活
+          </p>
+          <p className="mt-1 text-xs text-[var(--menu-gray)]/60">
+            宝应 · 淮安 家常菜单 — 愿每一餐都是家的味道
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
