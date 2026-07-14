@@ -2,6 +2,10 @@
 
 import { weeklyMenu, type Dish } from '@/lib/menu-data';
 
+function handlePrint() {
+  window.print();
+}
+
 function TagBadge({ tag }: { tag: Dish['tag'] }) {
   if (!tag) return null;
 
@@ -123,6 +127,21 @@ export default function Home() {
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#E65100]" />
               汤品
             </span>
+          </div>
+
+          {/* 打印按钮 */}
+          <div className="mt-6 print:hidden">
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-2 rounded-lg bg-[var(--menu-primary)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#6D360F] hover:shadow-md active:scale-95"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect width="12" height="8" x="6" y="14" />
+              </svg>
+              打印 / 导出PDF
+            </button>
           </div>
         </div>
       </header>

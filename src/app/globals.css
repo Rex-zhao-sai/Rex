@@ -125,3 +125,113 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--menu-gray);
 }
+
+/* 打印样式优化 */
+@media print {
+  @page {
+    size: A4;
+    margin: 1.5cm 1.5cm 2cm 1.5cm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+  }
+
+  .print\:hidden,
+  button,
+  footer {
+    display: none !important;
+  }
+
+  header {
+    border-bottom: 2px solid var(--menu-primary) !important;
+    padding: 0 0 1rem 0 !important;
+    background: white !important;
+    page-break-after: avoid;
+  }
+
+  header h1 {
+    font-size: 20pt !important;
+    margin-top: 0.5rem !important;
+  }
+
+  header p {
+    font-size: 10pt !important;
+    margin-top: 0.25rem !important;
+  }
+
+  main {
+    padding: 0.5rem 0 !important;
+  }
+
+  main > div:first-child {
+    margin-bottom: 1rem !important;
+    padding: 0.5rem !important;
+    border: 1px solid var(--menu-gold) !important;
+    background: #FFF8E1 !important;
+    page-break-after: avoid;
+  }
+
+  main > div:first-child p {
+    font-size: 9pt !important;
+  }
+
+  section {
+    margin-bottom: 0.8rem !important;
+    page-break-inside: avoid;
+  }
+
+  section h3 {
+    font-size: 13pt !important;
+    margin-bottom: 0.3rem !important;
+  }
+
+  section > div {
+    border: 1px solid #C8E6C9 !important;
+    background: #F9FCF7 !important;
+    padding: 0.6rem 0.8rem !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+  }
+
+  section > div h4 {
+    font-size: 10pt !important;
+    margin-bottom: 0.3rem !important;
+  }
+
+  section > div > div > div {
+    padding: 0.2rem 0 !important;
+  }
+
+  section > div > div > div span {
+    font-size: 11pt !important;
+  }
+
+  section > div > div > div p {
+    font-size: 9pt !important;
+    margin-top: 0 !important;
+  }
+
+  section > div > div > div span[class*="rounded-full"] {
+    font-size: 8pt !important;
+    padding: 1px 6px !important;
+    border: 1px solid !important;
+  }
+
+  section > div > div:last-child {
+    margin-top: 0.3rem !important;
+    padding-top: 0.3rem !important;
+    font-size: 10pt !important;
+  }
+
+  section > div:first-child {
+    page-break-after: avoid;
+  }
+}
