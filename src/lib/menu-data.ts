@@ -2,7 +2,6 @@ export interface Dish {
   name: string;
   desc: string;
   tag?: '荤' | '素' | '汤';
-  image?: string;
   steps?: string[];
 }
 
@@ -19,7 +18,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '青椒炒鸡蛋',
         desc: '青椒切丝，鸡蛋炒散，微辣鲜香，下饭快手菜',
         tag: '荤',
-        image: '/dishes/01.jpg',
         steps: [
           '青椒2个洗净去籽，切成细丝；鸡蛋3个打入碗中，加少许盐搅散',
           '锅中倒油烧热，倒入蛋液，炒至凝固成块，盛出备用',
@@ -31,7 +29,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '茨菇烧肉',
         desc: '宝应茨菇去皮，与五花肉同烧，软糯鲜甜',
         tag: '荤',
-        image: '/dishes/02.jpg',
         steps: [
           '五花肉300克切麻将块，冷水下锅焯去血沫，捞出洗净',
           '茨菇250克去皮洗净，大的对半切开',
@@ -44,7 +41,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '清炒藕片',
         desc: '宝应莲藕切薄片，大火快炒，脆嫩爽口',
         tag: '素',
-        image: '/dishes/03.jpg',
         steps: [
           '莲藕一节去皮，切成2毫米薄片，泡入清水中防止氧化',
           '锅中烧水，放入藕片焯水30秒，捞出过凉水沥干',
@@ -56,7 +52,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '紫菜蛋花汤',
         desc: '紫菜撕碎，蛋花淋入，几分钟搞定',
         tag: '汤',
-        image: '/dishes/04.jpg',
         steps: [
           '干紫菜一小块撕成小片，鸡蛋1个打散，葱花少许',
           '锅中加清水烧开，放入紫菜煮1分钟',
@@ -73,7 +68,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '红烧长鱼段',
         desc: '淮安长鱼（鳝鱼）切段红烧，肉质细嫩，地方名菜',
         tag: '荤',
-        image: '/dishes/05.jpg',
         steps: [
           '鳝鱼500克请摊主宰杀好，回家洗净去黏液（用盐搓洗），切成6厘米长段',
           '锅中倒油烧热，放姜片、蒜瓣爆香，放入鳝段翻炒至表面微黄',
@@ -86,7 +80,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '蒜苗炒肉丝',
         desc: '里脊肉切丝滑炒，配蒜苗段，下饭快手菜',
         tag: '荤',
-        image: '/dishes/06.jpg',
         steps: [
           '里脊肉200克切细丝，加生抽、料酒、少许淀粉抓匀腌制10分钟',
           '蒜苗一把洗净，切成4厘米长段，蒜白和蒜叶分开',
@@ -99,7 +92,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '凉拌黄瓜',
         desc: '黄瓜拍碎，加蒜泥、醋、香油拌匀，清爽解腻',
         tag: '素',
-        image: '/dishes/07.jpg',
         steps: [
           '黄瓜2根洗净，用刀拍松，切成小段，加少许盐腌5分钟，倒去渗出的水',
           '蒜3瓣切成蒜泥',
@@ -111,7 +103,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '萝卜排骨汤',
         desc: '白萝卜切块，排骨炖至软烂，汤鲜肉嫩',
         tag: '汤',
-        image: '/dishes/08.jpg',
         steps: [
           '排骨400克冷水下锅，加姜片、料酒焯水，捞出洗净浮沫',
           '白萝卜一根去皮，切成滚刀块',
@@ -129,7 +120,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '菱角烧肉',
         desc: '新鲜菱角与五花肉同烧，菱角粉甜，肉香浓郁',
         tag: '荤',
-        image: '/dishes/09.jpg',
         steps: [
           '新鲜菱角500克洗净，用刀在中间横切一刀，便于入味',
           '五花肉300克切块，冷水下锅焯去血沫',
@@ -142,7 +132,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '番茄炒蛋',
         desc: '国民家常菜，番茄炒出汁，蛋块嫩滑',
         tag: '荤',
-        image: '/dishes/10.jpg',
         steps: [
           '番茄2个顶部划十字，开水烫30秒去皮，切成小块',
           '鸡蛋3个打散，加少许盐和几滴水（更嫩滑）',
@@ -155,7 +144,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '清炒豆芽',
         desc: '绿豆芽大火快炒，脆嫩爽口',
         tag: '素',
-        image: '/dishes/11.jpg',
         steps: [
           '绿豆芽400克洗净，沥干水分（水分越少炒出来越脆）',
           '锅中倒油大火烧热，放干辣椒段和蒜末爆香',
@@ -167,7 +155,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '冬瓜蛋汤',
         desc: '冬瓜切片煮汤，淋蛋花，清淡利水',
         tag: '汤',
-        image: '/dishes/12.jpg',
         steps: [
           '冬瓜一块去皮去瓤，切成薄片；鸡蛋1个打散',
           '锅中加清水烧开，放入冬瓜片煮3分钟至半透明',
@@ -184,7 +171,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '油爆河虾',
         desc: '新鲜河虾大火快炒，壳脆肉嫩，淮安水乡家常菜',
         tag: '荤',
-        image: '/dishes/13.jpg',
         steps: [
           '河虾400克剪去虾枪和虾须，洗净沥干水分',
           '葱姜蒜切末，干辣椒2个切段',
@@ -197,7 +183,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '蒜蓉苋菜',
         desc: '夏季红苋菜正当时，蒜末爆香快炒，嫩滑鲜美',
         tag: '素',
-        image: '/dishes/14.jpg',
         steps: [
           '红苋菜一把摘去老梗，洗净沥干，切成大段',
           '蒜4瓣切成蒜末',
@@ -210,7 +195,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '回锅肉',
         desc: '五花肉煮熟切片，配蒜苗豆瓣酱回锅炒，肥而不腻',
         tag: '荤',
-        image: '/dishes/15.jpg',
         steps: [
           '带皮五花肉400克整块冷水下锅，加葱姜、料酒煮20分钟至断生，捞出放凉',
           '五花肉切成薄片（越薄越好），蒜苗切段，青红椒切片',
@@ -223,7 +207,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '丝瓜蛋汤',
         desc: '丝瓜切片煮汤，淋蛋花，清淡鲜美',
         tag: '汤',
-        image: '/dishes/16.jpg',
         steps: [
           '丝瓜一根去皮，切成薄片；鸡蛋1个打散',
           '锅中加清水烧开，放入丝瓜片煮2分钟',
@@ -240,7 +223,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '红烧带鱼',
         desc: '带鱼段煎至两面金黄，加酱油红烧，咸鲜可口',
         tag: '荤',
-        image: '/dishes/17.jpg',
         steps: [
           '带鱼一条去头去内脏，切成6厘米长段，两面抹少许盐和料酒腌10分钟',
           '锅中倒油烧热，放入带鱼段，中小火煎至两面金黄，盛出',
@@ -253,7 +235,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '大煮干丝',
         desc: '淮安经典，豆腐干切细丝，配高汤煮制，鲜美无比',
         tag: '素',
-        image: '/dishes/18.jpg',
         steps: [
           '白色豆腐干（扬州方干）4块，片成薄片后切成细丝',
           '锅中烧开水，放入干丝焯水2遍，去除豆腥味，捞出沥干',
@@ -266,7 +247,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '凉拌木耳',
         desc: '黑木耳焯水，加蒜泥、醋、辣椒油拌匀',
         tag: '素',
-        image: '/dishes/19.jpg',
         steps: [
           '干木耳一小把提前泡发2小时（或温水泡30分钟），去蒂洗净',
           '锅中烧开水，放入木耳焯水3分钟，捞出过凉水沥干',
@@ -279,7 +259,6 @@ export const weeklyMenu: DayMenu[] = [
         name: '平桥豆腐羹',
         desc: '淮安名菜，嫩豆腐切小丁，配虾仁勾薄芡，鲜滑暖胃',
         tag: '汤',
-        image: '/dishes/20.jpg',
         steps: [
           '嫩豆腐一盒切成1厘米小丁，放入淡盐水中浸泡5分钟（防碎）',
           '虾仁50克切小丁，香菇2朵切末，火腿或鸡胸肉少许切末',
