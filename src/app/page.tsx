@@ -167,6 +167,68 @@ export default function Home() {
             index={index}
           />
         ))}
+
+        {/* 做法详解 */}
+        <section className="mt-12">
+          <div className="mb-6 flex items-center gap-3">
+            <span className="text-2xl">📖</span>
+            <h2 className="font-serif text-2xl font-bold text-[var(--menu-primary)]">
+              做法详解
+            </h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-[var(--menu-border)] to-transparent" />
+          </div>
+
+          <div className="space-y-6">
+            {weeklyMenu.map((dayMenu) => (
+              <div
+                key={dayMenu.day}
+                className="rounded-xl border border-[var(--menu-border)] bg-white/60 p-5"
+              >
+                <h3 className="mb-4 font-serif text-lg font-bold text-[var(--menu-primary)]">
+                  {dayMenu.day} · 晚餐
+                </h3>
+                <div className="space-y-5">
+                  {dayMenu.dishes.map((dish, dishIdx) => (
+                    <div key={dishIdx}>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="inline-block h-5 w-5 rounded-full bg-[var(--menu-primary)] text-center text-xs leading-5 text-white">
+                          {dishIdx + 1}
+                        </span>
+                        <span className="font-serif text-base font-semibold text-[var(--menu-ink)]">
+                          {dish.name}
+                        </span>
+                        {dish.tag && (
+                          <span className="text-xs text-[var(--menu-gray)]">
+                            ({dish.tag})
+                          </span>
+                        )}
+                      </div>
+                      {dish.steps && dish.steps.length > 0 ? (
+                        <ol className="ml-7 space-y-1">
+                          {dish.steps.map((step, stepIdx) => (
+                            <li
+                              key={stepIdx}
+                              className="text-sm leading-relaxed text-[var(--menu-gray)]"
+                            >
+                              <span className="mr-1.5 font-medium text-[var(--menu-primary)]/70">
+                                {stepIdx + 1}.
+                              </span>
+                              {step}
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p className="ml-7 text-sm text-[var(--menu-gray)]">
+                          {dish.desc}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
 
       {/* 底部 */}
