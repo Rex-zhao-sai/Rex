@@ -125,3 +125,34 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--menu-gray);
 }
+
+/* 打印/PDF 样式 */
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm 12mm;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 隐藏不需要打印的元素 */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* 避免卡片被分页截断 */
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 打印时去掉 hover 效果 */
+  div[class*="hover:"] {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
