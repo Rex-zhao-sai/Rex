@@ -63,3 +63,24 @@
 
 - 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
 - Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+
+## 电路分析可视化项目
+
+### 功能概述
+- 展示MPS管脚峰值电压问题的电路分析
+- 对比KL30路径（14V）和PS 5V路径的电路差异
+- 可视化电压波形和原因分析
+- 提供解决方案建议
+
+### 关键组件
+- `src/app/page.tsx` - 主页面，包含Tab切换和概览卡片
+- `src/components/CircuitPathComparison.tsx` - 电路路径对比图（SVG）
+- `src/components/VoltageWaveform.tsx` - 电压波形图（Canvas）
+- `src/components/AnalysisPanel.tsx` - 原因分析面板
+- `src/components/SolutionPanel.tsx` - 解决方案面板
+
+### 技术要点
+- 使用SVG绘制电路路径图
+- 使用Canvas API绘制电压波形
+- 使用React状态管理Tab切换
+- 响应式设计，支持移动端访问
