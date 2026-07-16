@@ -1,187 +1,125 @@
 "use client";
 
-import { useState } from "react";
-import CircuitPathComparison from "@/components/CircuitPathComparison";
-import VoltageWaveform from "@/components/VoltageWaveform";
-import AnalysisPanel from "@/components/AnalysisPanel";
-import SolutionPanel from "@/components/SolutionPanel";
+import { useState, useMemo, useCallback } from "react";
+import { EQUIPMENT_LIST } from "@/lib/equipment-data";
+import { getAllRecords, getCurrentMonth, formatMonth } from "@/lib/storage";
+import Link from "next/link";
+import { Search, CheckCircle2, Clock, ChevronRight } from "lucide-react";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"kl30" | "ps5v" | "analysis">("kl30");
+  const [search, setSearch] = useState("");
+  const currentMonth = getCurrentMonth();
+
+  const records = useMemo(() => getAllRecords(), []);
+
+  const filtered = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return EQUIPMENT_LIST;
+    return EQUIPMENT_LIST.filter((e) =>
+      e.name.toLowerCase().includes(keyword)
+    );
+  }, [search]);
+
+  const getRecordStatus = useCallback(
+    (equipmentId: string) => {
+      return records.find(
+        (r) => r.equipmentId === equipmentId && r.month === currentMonth
+      );
+    },
+    [records, currentMonth]
+  );
+
+  const completedCount = records.filter(
+    (r) => r.month === currentMonth && r.photoPairs.length > 0
+  ).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl font-bold text-slate-900">
-            MPS管脚峰值电压分析报告
-          </h1>
-          <p className="mt-2 text-slate-600">
-            Myunghwa Wet DCT C0_1 MQ4 电路问题分析
+      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          <h1 className="text-lg font-bold text-gray-900">设备月度保养</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {formatMonth(currentMonth)} · 已完成 {completedCount}/{EQUIPMENT_LIST.length}
           </p>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">KL30测试</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">14V</p>
-              </div>
-              <div className="text-blue-500">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-slate-600">输入14V，峰值≈14V（无尖峰）</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">PS 5V测试</p>
-                <p className="text-3xl font-bold text-red-600 mt-1">6.5V</p>
-              </div>
-              <div className="text-red-500">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-slate-600">输入5V，峰值6.5V（+30%尖峰）</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">关键发现</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">测量点差异</p>
-              </div>
-              <div className="text-green-500">
-                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-slate-600">KL30在输入端，PS在输出端TP211</p>
-          </div>
+      {/* Search */}
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="搜索设备名称..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+          />
         </div>
+      </div>
 
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-xl shadow-md mb-8">
-          <div className="border-b border-slate-200">
-            <nav className="flex space-x-8 px-6">
-              <button
-                onClick={() => setActiveTab("kl30")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === "kl30"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                KL30路径（14V）
-              </button>
-              <button
-                onClick={() => setActiveTab("ps5v")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === "ps5v"
-                    ? "border-red-500 text-red-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                PS 5V路径
-              </button>
-              <button
-                onClick={() => setActiveTab("analysis")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === "analysis"
-                    ? "border-green-500 text-green-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                原因分析
-              </button>
-            </nav>
-          </div>
-
-          <div className="p-6">
-            {activeTab === "kl30" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                    KL30电路路径（14V输入，无尖峰）
-                  </h3>
-                  <CircuitPathComparison path="kl30" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                    电压波形（KL30输入端测量）
-                  </h3>
-                  <VoltageWaveform type="kl30" />
-                </div>
-              </div>
-            )}
-
-            {activeTab === "ps5v" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                    PS 5V电路路径（输出端TP211，有尖峰）
-                  </h3>
-                  <CircuitPathComparison path="ps5v" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                    电压波形（TP211输出端测量）
-                  </h3>
-                  <VoltageWaveform type="ps5v" />
-                </div>
-              </div>
-            )}
-
-            {activeTab === "analysis" && (
-              <div className="space-y-6">
-                <AnalysisPanel />
-                <SolutionPanel />
-              </div>
-            )}
-          </div>
+      {/* Progress bar */}
+      <div className="max-w-2xl mx-auto px-4 pb-4">
+        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full transition-all duration-500"
+            style={{
+              width: `${(completedCount / EQUIPMENT_LIST.length) * 100}%`,
+            }}
+          />
         </div>
+      </div>
 
-        {/* Key Components */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">
-            关键电路元件
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="border border-slate-200 rounded-lg p-4">
-              <div className="text-sm font-medium text-slate-500">VT100A/B</div>
-              <div className="text-lg font-bold text-slate-900">PUMD2</div>
-              <div className="text-xs text-slate-600 mt-1">双NPN晶体管</div>
-            </div>
-            <div className="border border-slate-200 rounded-lg p-4">
-              <div className="text-sm font-medium text-slate-500">VT101</div>
-              <div className="text-lg font-bold text-slate-900">IPC100N04S5-1R2</div>
-              <div className="text-xs text-slate-600 mt-1">MOSFET开关</div>
-            </div>
-            <div className="border border-red-200 rounded-lg p-4 bg-red-50">
-              <div className="text-sm font-medium text-red-600">V101</div>
-              <div className="text-lg font-bold text-red-900">6V2</div>
-              <div className="text-xs text-red-700 mt-1">6.2V稳压管（关键）</div>
-            </div>
-            <div className="border border-slate-200 rounded-lg p-4">
-              <div className="text-sm font-medium text-slate-500">VS100</div>
-              <div className="text-lg font-bold text-slate-900">SMAJ33CA</div>
-              <div className="text-xs text-slate-600 mt-1">33V TVS保护</div>
-            </div>
+      {/* Equipment List */}
+      <div className="max-w-2xl mx-auto px-4 pb-8">
+        {filtered.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <p>未找到匹配的设备</p>
           </div>
-        </div>
-      </main>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((equipment) => {
+              const record = getRecordStatus(equipment.id);
+              const hasPhotos = record && record.photoPairs.length > 0;
+              const hasAnyPhoto = record?.photoPairs.some(
+                (p) => p.before || p.after
+              );
+
+              return (
+                <Link
+                  key={equipment.id}
+                  href={`/equipment/${equipment.id}`}
+                  className="block bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 active:scale-[0.99]"
+                >
+                  <div className="flex items-center px-4 py-3.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                          {equipment.name}
+                        </span>
+                        {hasAnyPhoto && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700">
+                            <CheckCircle2 className="w-3 h-3" />
+                            {record?.photoPairs.filter((p) => p.before && p.after).length || 0}组
+                          </span>
+                        )}
+                      </div>
+                      {record && (
+                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          上次更新: {new Date(record.updatedAt).toLocaleString("zh-CN")}
+                        </p>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 ml-2" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
