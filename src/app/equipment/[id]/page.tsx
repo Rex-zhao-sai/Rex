@@ -5,6 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import type { PhotoPair, PhotoRecord, MaintenanceRecord } from "@/lib/equipment-data";
 import { generateId, getCurrentMonth } from "@/lib/storage";
+import {
+  fetchRecords,
+  createRecord,
+  updateRecord,
+  isUsingLocalFallback,
+  setLocalFallback,
+} from "@/lib/api-client";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import {
   ArrowLeft,
@@ -16,6 +23,8 @@ import {
   Shield,
   User,
   Lock,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 
 type Role = "admin" | "operator";
@@ -42,16 +51,19 @@ export default function EquipmentDetail() {
   const [loading, setLoading] = useState(true);
   const [existingRecordId, setExistingRecordId] = useState<string | null>(null);
   const [recordRole, setRecordRole] = useState<Role>("operator");
+  const [useLocal, setUseLocal] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Load existing record
   useEffect(() => {
-    const fetchRecord = async () => {
+    const loadRecord = async () => {
       setLoading(true);
+      setConnectionError("");
       try {
-        const res = await fetch(`/api/records?equipmentId=${equipmentId}&month=${currentMonth}`);
-        const json = await res.json();
-        if (json.data && json.data.length > 0) {
-          const record = json.data[0];
+        const records = await fetchRecords(currentMonth);
+        const record = records.find(r => r.equipment_id === equipmentId);
+        if (record) {
           setPhotoPairs(record.photo_pairs || []);
           setTechnician(record.technician || "");
           setNotes(record.notes || "");
@@ -63,16 +75,34 @@ export default function EquipmentDetail() {
             { id: generateId(), before: null, after: null },
           ]);
         }
+        setUseLocal(false);
       } catch (e) {
-        console.error("Failed to fetch record:", e);
-        setPhotoPairs([
-          { id: generateId(), before: null, after: null },
-        ]);
+        console.error("云端获取失败，使用本地模式:", e);
+        setUseLocal(true);
+        setLocalFallback(true);
+        setConnectionError("云端连接不可用，已切换到本地模式");
+        // 使用本地存储
+        import("@/lib/api-client").then(({ fetchRecordsLocal }) => {
+          fetchRecordsLocal(currentMonth).then((localRecords) => {
+            const record = localRecords.find(r => r.equipment_id === equipmentId);
+            if (record) {
+              setPhotoPairs(record.photo_pairs || []);
+              setTechnician(record.technician || "");
+              setNotes(record.notes || "");
+              setExistingRecordId(record.id);
+              setRecordRole(record.role || "operator");
+            } else {
+              setPhotoPairs([
+                { id: generateId(), before: null, after: null },
+              ]);
+            }
+          });
+        });
       } finally {
         setLoading(false);
       }
     };
-    fetchRecord();
+    loadRecord();
   }, [equipmentId, currentMonth]);
 
   const handlePhotoUpload = useCallback(
@@ -115,58 +145,44 @@ export default function EquipmentDetail() {
   );
 
   const handleSave = useCallback(async () => {
-    const now = new Date().toISOString();
+    setSaving(true);
     const recordData = {
       equipment_id: equipmentId,
       month: currentMonth,
       technician,
       notes,
       photo_pairs: photoPairs,
+      role,
     };
 
     try {
-      if (existingRecordId) {
-        // Update existing record
-        const res = await fetch(`/api/records/${existingRecordId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "x-role": role,
-          },
-          body: JSON.stringify(recordData),
-        });
-        const json = await res.json();
-        if (!res.ok) {
-          alert(json.error || "保存失败");
-          return;
+      if (useLocal) {
+        // 本地模式
+        const { createRecordLocal, updateRecordLocal } = await import("@/lib/api-client");
+        if (existingRecordId) {
+          await updateRecordLocal(existingRecordId, recordData, role);
+        } else {
+          const newRecord = await createRecordLocal(recordData, role);
+          setExistingRecordId(newRecord.id);
         }
       } else {
-        // Create new record
-        const res = await fetch("/api/records", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-role": role,
-          },
-          body: JSON.stringify(recordData),
-        });
-        const json = await res.json();
-        if (!res.ok) {
-          alert(json.error || "保存失败");
-          return;
-        }
-        if (json.data) {
-          setExistingRecordId(json.data.id);
-          setRecordRole(role);
+        // 云端模式
+        if (existingRecordId) {
+          await updateRecord(existingRecordId, recordData, role);
+        } else {
+          const newRecord = await createRecord(recordData, role);
+          setExistingRecordId(newRecord.id);
         }
       }
       setSaved(true);
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2000);
-    } catch (e) {
-      alert("网络错误，请重试");
+    } catch (e: any) {
+      alert(e.message || "保存失败，请重试");
+    } finally {
+      setSaving(false);
     }
-  }, [equipmentId, currentMonth, photoPairs, notes, technician, role, existingRecordId]);
+  }, [equipmentId, currentMonth, technician, notes, photoPairs, role, existingRecordId, useLocal]);
 
   // Check if current user can edit
   const canEdit = role === "admin" || recordRole === "operator" || !existingRecordId;
@@ -194,6 +210,16 @@ export default function EquipmentDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Connection Error Banner */}
+      {connectionError && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
+          <div className="max-w-2xl mx-auto flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="text-xs text-amber-700">{connectionError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -220,10 +246,12 @@ export default function EquipmentDetail() {
           </div>
           <button
             onClick={handleSave}
-            disabled={isReadOnly}
+            disabled={isReadOnly || saving}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
               isReadOnly
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : saving
+                ? "bg-blue-400 text-white cursor-wait"
                 : saved
                 ? "bg-green-100 text-green-700"
                 : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
@@ -233,6 +261,11 @@ export default function EquipmentDetail() {
               <>
                 <Lock className="w-4 h-4" />
                 只读
+              </>
+            ) : saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                保存中...
               </>
             ) : saved ? (
               <>

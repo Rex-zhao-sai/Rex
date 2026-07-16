@@ -3,8 +3,15 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { formatMonth } from "@/lib/storage";
+import {
+  fetchEquipment,
+  fetchRecords,
+  addEquipment,
+  isUsingLocalFallback,
+  setLocalFallback,
+} from "@/lib/api-client";
 import Link from "next/link";
-import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2 } from "lucide-react";
+import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -30,6 +37,8 @@ export default function Home() {
   });
   const [loading, setLoading] = useState(true);
   const [equipmentList, setEquipmentList] = useState(EQUIPMENT_LIST);
+  const [useLocal, setUseLocal] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
 
   // Add equipment modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -39,41 +48,54 @@ export default function Home() {
 
   // Fetch records for current month
   useEffect(() => {
-    const fetchRecords = async () => {
+    const loadRecords = async () => {
       setLoading(true);
+      setConnectionError("");
       try {
-        const res = await fetch(`/api/records?month=${currentMonth}&role=${role}`);
-        const json = await res.json();
-        if (json.data) {
-          const map: Record<string, any> = {};
-          json.data.forEach((r: any) => {
-            map[r.equipment_id] = r;
+        const data = await fetchRecords(currentMonth);
+        const map: Record<string, any> = {};
+        data.forEach((r) => {
+          map[r.equipment_id] = r;
+        });
+        setRecords(map);
+        setUseLocal(false);
+      } catch (e: any) {
+        console.error("云端获取失败，使用本地存储:", e);
+        setUseLocal(true);
+        setLocalFallback(true);
+        setConnectionError("云端连接不可用，已切换到本地模式");
+        // 使用本地存储
+        import("@/lib/api-client").then(({ fetchRecordsLocal }) => {
+          fetchRecordsLocal(currentMonth).then((localRecords) => {
+            const map: Record<string, any> = {};
+            localRecords.forEach((r) => {
+              map[r.equipment_id] = r;
+            });
+            setRecords(map);
           });
-          setRecords(map);
-        }
-      } catch (e) {
-        console.error("Failed to fetch records:", e);
+        });
       } finally {
         setLoading(false);
       }
     };
-    fetchRecords();
+    loadRecords();
   }, [currentMonth, role]);
 
   // Fetch equipment list from API
   useEffect(() => {
-    const fetchEquipment = async () => {
+    const loadEquipment = async () => {
       try {
-        const res = await fetch("/api/equipment");
-        const json = await res.json();
-        if (json.data && json.data.length > 0) {
-          setEquipmentList(json.data.map((e: any) => ({ id: e.id, name: e.name })));
+        const data = await fetchEquipment();
+        if (data && data.length > 0) {
+          setEquipmentList(data.map((e) => ({ id: e.id, name: e.name })));
         }
       } catch (e) {
-        console.error("Failed to fetch equipment:", e);
+        console.error("云端设备获取失败，使用内置列表:", e);
+        // 使用内置设备列表作为降级
+        setEquipmentList(EQUIPMENT_LIST);
       }
     };
-    fetchEquipment();
+    loadEquipment();
   }, []);
 
   const handleRoleChange = useCallback((newRole: Role) => {
@@ -92,28 +114,24 @@ export default function Home() {
     setAddError("");
 
     try {
-      const res = await fetch("/api/equipment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const json = await res.json();
-
-      if (!res.ok) {
-        setAddError(json.error || "添加失败");
-        return;
+      if (useLocal) {
+        // 本地模式
+        const { addEquipmentLocal } = await import("@/lib/api-client");
+        const newEquip = await addEquipmentLocal(name);
+        setEquipmentList((prev) => [...prev, newEquip]);
+      } else {
+        // 云端模式
+        const newEquip = await addEquipment(name);
+        setEquipmentList((prev) => [...prev, newEquip]);
       }
-
-      // Add to local list
-      setEquipmentList((prev) => [...prev, json.data]);
       setNewEquipmentName("");
       setShowAddModal(false);
-    } catch (e) {
-      setAddError("网络错误，请重试");
+    } catch (e: any) {
+      setAddError(e.message || "添加失败，请重试");
     } finally {
       setAddingEquipment(false);
     }
-  }, [newEquipmentName]);
+  }, [newEquipmentName, useLocal]);
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -129,6 +147,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Connection Error Banner */}
+      {connectionError && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
+          <div className="max-w-2xl mx-auto flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="text-xs text-amber-700">{connectionError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-3">
