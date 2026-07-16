@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
-import { getAllRecords, getCurrentMonth, formatMonth } from "@/lib/storage";
+import { formatMonth } from "@/lib/storage";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -16,39 +16,70 @@ import {
   FileText,
   Download,
   QrCode,
+  Shield,
+  Trash2,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+
+type Role = "admin" | "operator";
+
+function getStoredRole(): Role {
+  if (typeof window === "undefined") return "operator";
+  return (sessionStorage.getItem("role") as Role) || "operator";
+}
 
 export default function RecordsPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [role, setRole] = useState<Role>(getStoredRole());
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
 
-  const allRecords = useMemo(() => getAllRecords(), []);
+  // Get all unique months from records + current month
+  const currentMonth = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
 
-  // Get all unique months from records
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+
+  // Fetch records
+  useEffect(() => {
+    const fetchRecords = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/records?month=${selectedMonth}&role=${role}`);
+        const json = await res.json();
+        if (json.data) {
+          setRecords(json.data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch records:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRecords();
+  }, [selectedMonth, role]);
+
   const availableMonths = useMemo(() => {
-    const months = new Set(allRecords.map((r) => r.month));
-    months.add(getCurrentMonth());
+    const months = new Set(records.map((r: any) => r.month));
+    months.add(currentMonth);
     return Array.from(months).sort().reverse();
-  }, [allRecords]);
-
-  const monthRecords = useMemo(() => {
-    return allRecords.filter((r) => r.month === selectedMonth);
-  }, [allRecords, selectedMonth]);
+  }, [records, currentMonth]);
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return monthRecords;
-    return monthRecords.filter((r) => {
-      const eq = EQUIPMENT_LIST.find((e) => e.id === r.equipmentId);
+    if (!keyword) return records;
+    return records.filter((r: any) => {
+      const eq = EQUIPMENT_LIST.find((e) => e.id === r.equipment_id);
       return eq?.name.toLowerCase().includes(keyword);
     });
-  }, [monthRecords, search]);
+  }, [records, search]);
 
-  const completedCount = monthRecords.filter(
-    (r) => r.photoPairs.length > 0
+  const completedCount = filtered.filter(
+    (r: any) => r.photo_pairs && r.photo_pairs.length > 0 && r.photo_pairs.some((p: any) => p.before || p.after)
   ).length;
 
   const getEquipmentName = (id: string) => {
@@ -56,13 +87,13 @@ export default function RecordsPage() {
   };
 
   const handleExport = () => {
-    const data = filtered.map((r) => ({
-      设备名称: getEquipmentName(r.equipmentId),
-      技术员: r.technician,
-      照片组数: r.photoPairs.filter((p) => p.before && p.after).length,
-      备注: r.notes,
-      创建时间: new Date(r.createdAt).toLocaleString("zh-CN"),
-      更新时间: new Date(r.updatedAt).toLocaleString("zh-CN"),
+    const data = filtered.map((r: any) => ({
+      设备名称: getEquipmentName(r.equipment_id),
+      技术员: r.technician || "",
+      照片组数: r.photo_pairs?.filter((p: any) => p.before && p.after).length || 0,
+      备注: r.notes || "",
+      创建时间: new Date(r.created_at).toLocaleString("zh-CN"),
+      更新时间: new Date(r.updated_at).toLocaleString("zh-CN"),
     }));
 
     const csvContent = [
@@ -85,6 +116,31 @@ export default function RecordsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("确定要删除这条记录吗？此操作不可恢复。")) return;
+    try {
+      const res = await fetch(`/api/records/${id}`, {
+        method: "DELETE",
+        headers: { "x-role": "admin" },
+      });
+      if (res.ok) {
+        setRecords((prev) => prev.filter((r: any) => r.id !== id));
+      } else {
+        const json = await res.json();
+        alert(json.error || "删除失败");
+      }
+    } catch (e) {
+      alert("网络错误");
+    }
+  };
+
+  // Calculate 6 months ago
+  const sixMonthsAgo = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 6);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -103,6 +159,27 @@ export default function RecordsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Role Toggle */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+              <button
+                onClick={() => { setRole("operator"); sessionStorage.setItem("role", "operator"); }}
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                  role === "operator" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500"
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                操作端
+              </button>
+              <button
+                onClick={() => { setRole("admin"); sessionStorage.setItem("role", "admin"); }}
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                  role === "admin" ? "bg-white text-purple-600 shadow-sm" : "text-gray-500"
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5" />
+                管理端
+              </button>
+            </div>
             <button
               onClick={() => setShowQR(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
@@ -110,13 +187,15 @@ export default function RecordsPage() {
               <QrCode className="w-4 h-4" />
               扫码
             </button>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-              导出CSV
-            </button>
+            {role === "admin" && (
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                导出CSV
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -147,25 +226,27 @@ export default function RecordsPage() {
           </select>
         </div>
 
+        {/* Retention Notice */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4 flex items-start gap-2">
+          <Calendar className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-blue-700">
+            记录保留策略：系统自动保留最近 6 个月的保养记录（{formatMonth(sixMonthsAgo)} 之后的数据）。更早的记录将被自动清理。
+          </p>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">设备总数</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {EQUIPMENT_LIST.length}
-            </p>
+            <p className="text-2xl font-bold text-gray-900">{EQUIPMENT_LIST.length}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">已完成</p>
-            <p className="text-2xl font-bold text-green-600">
-              {completedCount}
-            </p>
+            <p className="text-2xl font-bold text-green-600">{completedCount}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">待保养</p>
-            <p className="text-2xl font-bold text-orange-500">
-              {EQUIPMENT_LIST.length - completedCount}
-            </p>
+            <p className="text-2xl font-bold text-orange-500">{EQUIPMENT_LIST.length - completedCount}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">完成率</p>
@@ -177,7 +258,12 @@ export default function RecordsPage() {
 
         {/* Records Table */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-gray-500">加载中...</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300" />
               <p className="text-sm">暂无保养记录</p>
@@ -190,44 +276,25 @@ export default function RecordsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      设备名称
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      技术员
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      照片组数
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                      备注
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                      更新时间
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      操作
-                    </th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">设备名称</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">技术员</th>
+                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">照片组数</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">备注</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">更新时间</th>
+                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((record) => {
-                    const completedPairs = record.photoPairs.filter(
-                      (p) => p.before && p.after
-                    ).length;
+                  {filtered.map((record: any) => {
+                    const completedPairs = record.photo_pairs?.filter(
+                      (p: any) => p.before && p.after
+                    ).length || 0;
                     return (
-                      <tr
-                        key={record.equipmentId}
-                        className="hover:bg-gray-50/50 transition-colors"
-                      >
+                      <tr key={record.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900">
-                              {getEquipmentName(record.equipmentId)}
-                            </span>
-                            {completedPairs > 0 && (
-                              <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                            )}
+                            <span className="font-medium text-gray-900">{getEquipmentName(record.equipment_id)}</span>
+                            {completedPairs > 0 && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -237,33 +304,38 @@ export default function RecordsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                              completedPairs > 0
-                                ? "bg-green-50 text-green-700"
-                                : "bg-gray-100 text-gray-500"
-                            }`}
-                          >
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            completedPairs > 0 ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"
+                          }`}>
                             {completedPairs} 组
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-500 hidden md:table-cell max-w-[200px] truncate">
-                          {record.notes || "-"}
-                        </td>
+                        <td className="px-4 py-3 text-gray-500 hidden md:table-cell max-w-[200px] truncate">{record.notes || "-"}</td>
                         <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(record.updatedAt).toLocaleString("zh-CN")}
+                            {new Date(record.updated_at).toLocaleString("zh-CN")}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <Link
-                            href={`/equipment/${record.equipmentId}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            查看
-                          </Link>
+                          <div className="flex items-center justify-center gap-1">
+                            <Link
+                              href={`/equipment/${record.equipment_id}`}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              查看
+                            </Link>
+                            {role === "admin" && (
+                              <button
+                                onClick={() => handleDelete(record.id)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                删除
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -282,67 +354,45 @@ export default function RecordsPage() {
               保养照片预览
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((record) => {
-                const completedPairs = record.photoPairs.filter(
-                  (p) => p.before && p.after
-                );
+              {filtered.map((record: any) => {
+                const completedPairs = record.photo_pairs?.filter(
+                  (p: any) => p.before && p.after
+                ) || [];
                 if (completedPairs.length === 0) return null;
                 return (
-                  <div
-                    key={record.equipmentId}
-                    className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"
-                  >
+                  <div key={record.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-900 truncate">
-                        {getEquipmentName(record.equipmentId)}
+                        {getEquipmentName(record.equipment_id)}
                       </span>
-                      <span className="text-xs text-gray-400">
-                        {completedPairs.length}组
-                      </span>
+                      <span className="text-xs text-gray-400">{completedPairs.length}组</span>
                     </div>
                     <div className="space-y-3">
-                      {completedPairs.slice(0, 3).map((pair, idx) => (
+                      {completedPairs.slice(0, 3).map((pair: any, idx: number) => (
                         <div key={pair.id} className="flex gap-2">
                           {pair.before && (
                             <div className="flex-1">
                               <div className="relative">
-                                <img
-                                  src={pair.before.dataUrl}
-                                  alt={`Before #${idx + 1}`}
-                                  className="w-full aspect-square object-cover rounded-lg border border-gray-100"
-                                />
-                                <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
-                                  Before
-                                </span>
+                                <img src={pair.before.dataUrl} alt={`Before #${idx + 1}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100" />
+                                <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">Before</span>
                               </div>
                             </div>
                           )}
                           {pair.after && (
                             <div className="flex-1">
                               <div className="relative">
-                                <img
-                                  src={pair.after.dataUrl}
-                                  alt={`After #${idx + 1}`}
-                                  className="w-full aspect-square object-cover rounded-lg border border-gray-100"
-                                />
-                                <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded">
-                                  After
-                                </span>
+                                <img src={pair.after.dataUrl} alt={`After #${idx + 1}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100" />
+                                <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded">After</span>
                               </div>
                             </div>
                           )}
                         </div>
                       ))}
                       {completedPairs.length > 3 && (
-                        <p className="text-xs text-gray-400 text-center">
-                          还有 {completedPairs.length - 3} 组照片...
-                        </p>
+                        <p className="text-xs text-gray-400 text-center">还有 {completedPairs.length - 3} 组照片...</p>
                       )}
                     </div>
-                    <Link
-                      href={`/equipment/${record.equipmentId}`}
-                      className="mt-3 block text-center text-xs text-blue-600 hover:underline"
-                    >
+                    <Link href={`/equipment/${record.equipment_id}`} className="mt-3 block text-center text-xs text-blue-600 hover:underline">
                       查看完整记录 →
                     </Link>
                   </div>
@@ -355,22 +405,11 @@ export default function RecordsPage() {
 
       {/* QR Code Modal */}
       {showQR && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={() => setShowQR(false)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowQR(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900">
-                手机扫码进入
-              </h3>
-              <button
-                onClick={() => setShowQR(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100"
-              >
+              <h3 className="text-base font-bold text-gray-900">手机扫码进入</h3>
+              <button onClick={() => setShowQR(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
                 <ArrowLeft className="w-4 h-4 text-gray-500 rotate-180" />
               </button>
             </div>
@@ -385,9 +424,7 @@ export default function RecordsPage() {
                 />
               </div>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-3">
-              用手机浏览器扫描此二维码即可进入保养页面
-            </p>
+            <p className="text-xs text-gray-400 text-center mt-3">用手机浏览器扫描此二维码即可进入保养页面</p>
           </div>
         </div>
       )}

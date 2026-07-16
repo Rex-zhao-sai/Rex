@@ -11,6 +11,7 @@ interface PhotoUploaderProps {
   onUpload: (photo: PhotoRecord) => void;
   onRemove: () => void;
   index: number;
+  disabled?: boolean;
 }
 
 export function PhotoUploader({
@@ -19,6 +20,7 @@ export function PhotoUploader({
   onUpload,
   onRemove,
   index,
+  disabled = false,
 }: PhotoUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -82,13 +84,15 @@ export function PhotoUploader({
             alt={`${labelText} photo`}
             className="w-full aspect-square object-cover rounded-lg border border-gray-200"
           />
-          <button
-            onClick={onRemove}
-            className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-            type="button"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          {!disabled && (
+            <button
+              onClick={onRemove}
+              className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+              type="button"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
           <div className="mt-1.5 flex items-center gap-1 text-[10px] text-gray-400">
             <Clock className="w-3 h-3" />
             <span>
@@ -105,8 +109,8 @@ export function PhotoUploader({
       ) : (
         <button
           onClick={() => inputRef.current?.click()}
-          disabled={isProcessing}
-          className="w-full aspect-square border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/50 transition-colors disabled:opacity-50"
+          disabled={disabled || isProcessing}
+          className="w-full aspect-square border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-transparent"
           type="button"
         >
           {isProcessing ? (

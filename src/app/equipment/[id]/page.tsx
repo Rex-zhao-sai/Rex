@@ -4,13 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import type { PhotoPair, PhotoRecord, MaintenanceRecord } from "@/lib/equipment-data";
-import {
-  getRecord,
-  saveRecord,
-  getCurrentMonth,
-  formatMonth,
-  generateId,
-} from "@/lib/storage";
+import { generateId, getCurrentMonth } from "@/lib/storage";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import {
   ArrowLeft,
@@ -19,13 +13,23 @@ import {
   Trash2,
   CheckCircle2,
   FileText,
-  Camera,
+  Shield,
+  User,
+  Lock,
 } from "lucide-react";
+
+type Role = "admin" | "operator";
+
+function getStoredRole(): Role {
+  if (typeof window === "undefined") return "operator";
+  return (sessionStorage.getItem("role") as Role) || "operator";
+}
 
 export default function EquipmentDetail() {
   const params = useParams();
   const router = useRouter();
   const equipmentId = params.id as string;
+  const [role, setRole] = useState<Role>(getStoredRole());
 
   const equipment = EQUIPMENT_LIST.find((e) => e.id === equipmentId);
   const currentMonth = getCurrentMonth();
@@ -35,20 +39,40 @@ export default function EquipmentDetail() {
   const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState(false);
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [existingRecordId, setExistingRecordId] = useState<string | null>(null);
+  const [recordRole, setRecordRole] = useState<Role>("operator");
 
   // Load existing record
   useEffect(() => {
-    const record = getRecord(equipmentId, currentMonth);
-    if (record) {
-      setPhotoPairs(record.photoPairs);
-      setTechnician(record.technician);
-      setNotes(record.notes);
-    } else {
-      // Initialize with one empty pair
-      setPhotoPairs([
-        { id: generateId(), before: null, after: null },
-      ]);
-    }
+    const fetchRecord = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/records?equipmentId=${equipmentId}&month=${currentMonth}`);
+        const json = await res.json();
+        if (json.data && json.data.length > 0) {
+          const record = json.data[0];
+          setPhotoPairs(record.photo_pairs || []);
+          setTechnician(record.technician || "");
+          setNotes(record.notes || "");
+          setExistingRecordId(record.id);
+          setRecordRole(record.role || "operator");
+        } else {
+          // Initialize with one empty pair
+          setPhotoPairs([
+            { id: generateId(), before: null, after: null },
+          ]);
+        }
+      } catch (e) {
+        console.error("Failed to fetch record:", e);
+        setPhotoPairs([
+          { id: generateId(), before: null, after: null },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRecord();
   }, [equipmentId, currentMonth]);
 
   const handlePhotoUpload = useCallback(
@@ -90,22 +114,63 @@ export default function EquipmentDetail() {
     []
   );
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const now = new Date().toISOString();
-    const record: MaintenanceRecord = {
-      equipmentId,
+    const recordData = {
+      equipment_id: equipmentId,
       month: currentMonth,
-      photoPairs,
-      notes,
       technician,
-      createdAt: getRecord(equipmentId, currentMonth)?.createdAt ?? now,
-      updatedAt: now,
+      notes,
+      photo_pairs: photoPairs,
     };
-    saveRecord(record);
-    setSaved(true);
-    setShowSavedToast(true);
-    setTimeout(() => setShowSavedToast(false), 2000);
-  }, [equipmentId, currentMonth, photoPairs, notes, technician]);
+
+    try {
+      if (existingRecordId) {
+        // Update existing record
+        const res = await fetch(`/api/records/${existingRecordId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "x-role": role,
+          },
+          body: JSON.stringify(recordData),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          alert(json.error || "保存失败");
+          return;
+        }
+      } else {
+        // Create new record
+        const res = await fetch("/api/records", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-role": role,
+          },
+          body: JSON.stringify(recordData),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          alert(json.error || "保存失败");
+          return;
+        }
+        if (json.data) {
+          setExistingRecordId(json.data.id);
+          setRecordRole(role);
+        }
+      }
+      setSaved(true);
+      setShowSavedToast(true);
+      setTimeout(() => setShowSavedToast(false), 2000);
+    } catch (e) {
+      alert("网络错误，请重试");
+    }
+  }, [equipmentId, currentMonth, photoPairs, notes, technician, role, existingRecordId]);
+
+  // Check if current user can edit
+  const canEdit = role === "admin" || recordRole === "operator" || !existingRecordId;
+  const isReadOnly = !canEdit;
 
   if (!equipment) {
     return (
@@ -143,18 +208,33 @@ export default function EquipmentDetail() {
               {equipment.name}
             </h1>
             <p className="text-xs text-gray-500">
-              {formatMonth(currentMonth)} 保养记录
+              {currentMonth} 保养记录
             </p>
+          </div>
+          {/* Role indicator */}
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
+            role === "admin" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
+          }`}>
+            {role === "admin" ? <Shield className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+            {role === "admin" ? "管理端" : "操作端"}
           </div>
           <button
             onClick={handleSave}
+            disabled={isReadOnly}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              saved
+              isReadOnly
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : saved
                 ? "bg-green-100 text-green-700"
                 : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
             }`}
           >
-            {saved ? (
+            {isReadOnly ? (
+              <>
+                <Lock className="w-4 h-4" />
+                只读
+              </>
+            ) : saved ? (
               <>
                 <CheckCircle2 className="w-4 h-4" />
                 已保存
@@ -170,107 +250,134 @@ export default function EquipmentDetail() {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-        {/* Info Card */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">保养信息</span>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-500">加载中...</p>
           </div>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">技术员</label>
-              <input
-                type="text"
-                value={technician}
-                onChange={(e) => {
-                  setTechnician(e.target.value);
-                  setSaved(false);
-                }}
-                placeholder="请输入技术员姓名"
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">备注</label>
-              <textarea
-                value={notes}
-                onChange={(e) => {
-                  setNotes(e.target.value);
-                  setSaved(false);
-                }}
-                placeholder="保养说明、异常情况等..."
-                rows={2}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Photo Pairs */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Camera className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-medium text-gray-700">
-                保养照片
-              </span>
-              <span className="text-xs text-gray-400">
-                ({completedPairs}/{photoPairs.length} 组完成)
-              </span>
-            </div>
-          </div>
-
-          {photoPairs.map((pair, idx) => (
-            <div
-              key={pair.id}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-gray-500">
-                  第 {idx + 1} 组
-                </span>
-                {photoPairs.length > 1 && (
-                  <button
-                    onClick={() => removePhotoPair(pair.id)}
-                    className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    删除
-                  </button>
-                )}
+        ) : (
+          <>
+            {/* Read-only warning */}
+            {isReadOnly && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                <Lock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">只读模式</p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    此记录由管理员创建，操作端无法修改。请切换到管理端进行编辑。
+                  </p>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <PhotoUploader
-                  label="before"
-                  photo={pair.before}
-                  onUpload={(photo) =>
-                    handlePhotoUpload(pair.id, "before", photo)
-                  }
-                  onRemove={() => handlePhotoRemove(pair.id, "before")}
-                  index={idx}
-                />
-                <PhotoUploader
-                  label="after"
-                  photo={pair.after}
-                  onUpload={(photo) =>
-                    handlePhotoUpload(pair.id, "after", photo)
-                  }
-                  onRemove={() => handlePhotoRemove(pair.id, "after")}
-                  index={idx}
-                />
+            )}
+
+            {/* Info Card */}
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-700">保养信息</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">技术员</label>
+                  <input
+                    type="text"
+                    value={technician}
+                    onChange={(e) => {
+                      setTechnician(e.target.value);
+                      setSaved(false);
+                    }}
+                    disabled={isReadOnly}
+                    placeholder="请输入技术员姓名"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">备注</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => {
+                      setNotes(e.target.value);
+                      setSaved(false);
+                    }}
+                    disabled={isReadOnly}
+                    placeholder="保养说明、异常情况等..."
+                    rows={2}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
               </div>
             </div>
-          ))}
 
-          {/* Add More Button */}
-          <button
-            onClick={addPhotoPair}
-            className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center gap-2 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            添加更多照片组
-          </button>
-        </div>
+            {/* Photo Pairs */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    保养照片
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    ({completedPairs}/{photoPairs.length} 组完成)
+                  </span>
+                </div>
+              </div>
+
+              {photoPairs.map((pair, idx) => (
+                <div
+                  key={pair.id}
+                  className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-gray-500">
+                      第 {idx + 1} 组
+                    </span>
+                    {!isReadOnly && photoPairs.length > 1 && (
+                      <button
+                        onClick={() => removePhotoPair(pair.id)}
+                        className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        删除
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <PhotoUploader
+                      label="before"
+                      photo={pair.before}
+                      onUpload={(photo) =>
+                        handlePhotoUpload(pair.id, "before", photo)
+                      }
+                      onRemove={() => handlePhotoRemove(pair.id, "before")}
+                      index={idx}
+                      disabled={isReadOnly}
+                    />
+                    <PhotoUploader
+                      label="after"
+                      photo={pair.after}
+                      onUpload={(photo) =>
+                        handlePhotoUpload(pair.id, "after", photo)
+                      }
+                      onRemove={() => handlePhotoRemove(pair.id, "after")}
+                      index={idx}
+                      disabled={isReadOnly}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {/* Add More Button */}
+              {!isReadOnly && (
+                <button
+                  onClick={addPhotoPair}
+                  className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center gap-2 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  添加更多照片组
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Save Toast */}
