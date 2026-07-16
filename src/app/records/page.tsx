@@ -20,6 +20,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 type Role = "admin" | "operator";
 
@@ -30,8 +31,13 @@ function getStoredRole(): Role {
 
 export default function RecordsPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
-  const [role, setRole] = useState<Role>(getStoredRole());
+  const [role, setRole] = useState<Role>(() => {
+    // Mobile always uses operator role
+    if (typeof window !== "undefined" && window.innerWidth < 768) return "operator";
+    return getStoredRole();
+  });
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
@@ -142,6 +148,21 @@ export default function RecordsPage() {
   }, []);
 
   return (
+    <>
+      {isMobile && (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="text-center">
+            <p className="text-gray-500 mb-4">记录总览请在电脑端查看</p>
+            <button
+              onClick={() => router.push("/")}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              返回首页
+            </button>
+          </div>
+        </div>
+      )}
+      {!isMobile && (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
@@ -429,5 +450,7 @@ export default function RecordsPage() {
         </div>
       )}
     </div>
+      )}
+    </>
   );
 }

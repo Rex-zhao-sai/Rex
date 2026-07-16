@@ -6,6 +6,7 @@ import { formatMonth } from "@/lib/storage";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2 } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 type Role = "admin" | "operator";
 
@@ -15,8 +16,13 @@ function getStoredRole(): Role {
 }
 
 export default function Home() {
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
-  const [role, setRole] = useState<Role>(getStoredRole());
+  const [role, setRole] = useState<Role>(() => {
+    // Mobile always uses operator role
+    if (typeof window !== "undefined" && window.innerWidth < 768) return "operator";
+    return getStoredRole();
+  });
   const [records, setRecords] = useState<Record<string, any>>({});
   const [currentMonth] = useState(() => {
     const now = new Date();
@@ -134,38 +140,43 @@ export default function Home() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Link
-                href="/records"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-              >
-                <Monitor className="w-4 h-4" />
-                记录
-              </Link>
-              {/* Role Toggle */}
-              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-                <button
-                  onClick={() => handleRoleChange("operator")}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                    role === "operator"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
+              {/* Records link - desktop only */}
+              {!isMobile && (
+                <Link
+                  href="/records"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                 >
-                  <User className="w-3.5 h-3.5" />
-                  操作端
-                </button>
-                <button
-                  onClick={() => handleRoleChange("admin")}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                    role === "admin"
-                      ? "bg-white text-purple-600 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  管理端
-                </button>
-              </div>
+                  <Monitor className="w-4 h-4" />
+                  记录
+                </Link>
+              )}
+              {/* Role Toggle - desktop only */}
+              {!isMobile && (
+                <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                  <button
+                    onClick={() => handleRoleChange("operator")}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                      role === "operator"
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    操作端
+                  </button>
+                  <button
+                    onClick={() => handleRoleChange("admin")}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                      role === "admin"
+                        ? "bg-white text-purple-600 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    管理端
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -260,8 +271,8 @@ export default function Home() {
         </button>
       </div>
 
-      {/* QR Code Button */}
-      <QRCodeModal />
+      {/* QR Code Button - desktop only */}
+      {!isMobile && <QRCodeModal />}
 
       {/* Add Equipment Modal */}
       {showAddModal && (
