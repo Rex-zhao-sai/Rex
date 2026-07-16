@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { getAllRecords, getCurrentMonth, formatMonth } from "@/lib/storage";
 import Link from "next/link";
-import { Search, CheckCircle2, Clock, ChevronRight } from "lucide-react";
+import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, ArrowLeft } from "lucide-react";
+import { QRCodeModal } from "@/components/QRCodeModal";
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -20,14 +21,11 @@ export default function Home() {
     );
   }, [search]);
 
-  const getRecordStatus = useCallback(
-    (equipmentId: string) => {
-      return records.find(
-        (r) => r.equipmentId === equipmentId && r.month === currentMonth
-      );
-    },
-    [records, currentMonth]
-  );
+  const getRecordStatus = (equipmentId: string) => {
+    return records.find(
+      (r) => r.equipmentId === equipmentId && r.month === currentMonth
+    );
+  };
 
   const completedCount = records.filter(
     (r) => r.month === currentMonth && r.photoPairs.length > 0
@@ -38,10 +36,21 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-3">
-          <h1 className="text-lg font-bold text-gray-900">设备月度保养</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {formatMonth(currentMonth)} · 已完成 {completedCount}/{EQUIPMENT_LIST.length}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">设备月度保养</h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {formatMonth(currentMonth)} · 已完成 {completedCount}/{EQUIPMENT_LIST.length}
+              </p>
+            </div>
+            <Link
+              href="/records"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Monitor className="w-4 h-4" />
+              记录
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -81,7 +90,6 @@ export default function Home() {
           <div className="space-y-2">
             {filtered.map((equipment) => {
               const record = getRecordStatus(equipment.id);
-              const hasPhotos = record && record.photoPairs.length > 0;
               const hasAnyPhoto = record?.photoPairs.some(
                 (p) => p.before || p.after
               );
@@ -120,6 +128,9 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* QR Code Button */}
+      <QRCodeModal />
     </div>
   );
 }
