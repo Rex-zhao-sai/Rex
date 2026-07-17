@@ -1,7 +1,6 @@
 {
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "regions": ["hnd1"],
   "env": {
     "SUPABASE_URL_CUSTOM": "https://cpkqoubbwjvchbmdsish.supabase.co",
     "SUPABASE_ANON_KEY_CUSTOM": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwa3FvdWJid2p2Y2hibWRzaXNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxODkyMjksImV4cCI6MjA5OTc2NTIyOX0.pzXxbNq_sHa7JQOXYBGPf5KXUH3m7hj8l3QUwIaASU8"
