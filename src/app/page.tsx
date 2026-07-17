@@ -2,14 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
-import { formatMonth } from "@/lib/storage";
-import {
-  fetchEquipment,
-  fetchRecords,
-  addEquipment,
-  isUsingLocalFallback,
-  setLocalFallback,
-} from "@/lib/api-client";
+import supabase from "@/lib/supabase-browser";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
@@ -26,7 +19,6 @@ export default function Home() {
   const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<Role>(() => {
-    // Mobile always uses operator role
     if (typeof window !== "undefined" && window.innerWidth < 768) return "operator";
     return getStoredRole();
   });
@@ -37,7 +29,6 @@ export default function Home() {
   });
   const [loading, setLoading] = useState(true);
   const [equipmentList, setEquipmentList] = useState(EQUIPMENT_LIST);
-  const [useLocal, setUseLocal] = useState(false);
   const [connectionError, setConnectionError] = useState("");
 
   // Add equipment modal state
@@ -46,242 +37,236 @@ export default function Home() {
   const [addingEquipment, setAddingEquipment] = useState(false);
   const [addError, setAddError] = useState("");
 
+  // QR code modal
+  const [showQR, setShowQR] = useState(false);
+
   // Fetch records for current month
   useEffect(() => {
     const loadRecords = async () => {
       setLoading(true);
       setConnectionError("");
       try {
-        const data = await fetchRecords(currentMonth);
+        const { data, error } = await supabase
+          .from("maintenance_records")
+          .select("*, equipment(name)")
+          .eq("month", currentMonth);
+
+        if (error) throw error;
+
         const map: Record<string, any> = {};
-        data.forEach((r) => {
+        (data || []).forEach((r) => {
           map[r.equipment_id] = r;
         });
         setRecords(map);
-        setUseLocal(false);
       } catch (e: any) {
-        console.error("云端获取失败，使用本地存储:", e);
-        setUseLocal(true);
-        setLocalFallback(true);
-        setConnectionError("云端连接不可用，已切换到本地模式");
-        // 使用本地存储
-        import("@/lib/api-client").then(({ fetchRecordsLocal }) => {
-          fetchRecordsLocal(currentMonth).then((localRecords) => {
-            const map: Record<string, any> = {};
-            localRecords.forEach((r) => {
-              map[r.equipment_id] = r;
-            });
-            setRecords(map);
-          });
-        });
+        console.error("获取记录失败:", e);
+        setConnectionError("连接失败，请检查网络后刷新页面");
       } finally {
         setLoading(false);
       }
     };
     loadRecords();
-  }, [currentMonth, role]);
+  }, [currentMonth]);
 
-  // Fetch equipment list from API
+  // Fetch equipment list from Supabase
   useEffect(() => {
     const loadEquipment = async () => {
       try {
-        const data = await fetchEquipment();
+        const { data, error } = await supabase
+          .from("equipment")
+          .select("*")
+          .order("name");
+
+        if (error) throw error;
         if (data && data.length > 0) {
           setEquipmentList(data.map((e) => ({ id: e.id, name: e.name })));
         }
       } catch (e) {
-        console.error("云端设备获取失败，使用内置列表:", e);
-        // 使用内置设备列表作为降级
-        setEquipmentList(EQUIPMENT_LIST);
+        console.error("获取设备列表失败:", e);
       }
     };
     loadEquipment();
   }, []);
 
-  const handleRoleChange = useCallback((newRole: Role) => {
-    setRole(newRole);
-    sessionStorage.setItem("role", newRole);
-  }, []);
-
-  const handleAddEquipment = useCallback(async () => {
-    const name = newEquipmentName.trim();
-    if (!name) {
-      setAddError("请输入设备名称");
-      return;
-    }
-
+  // Add new equipment
+  const handleAddEquipment = async () => {
+    if (!newEquipmentName.trim()) return;
     setAddingEquipment(true);
     setAddError("");
 
     try {
-      if (useLocal) {
-        // 本地模式
-        const { addEquipmentLocal } = await import("@/lib/api-client");
-        const newEquip = await addEquipmentLocal(name);
-        setEquipmentList((prev) => [...prev, newEquip]);
-      } else {
-        // 云端模式
-        const newEquip = await addEquipment(name);
-        setEquipmentList((prev) => [...prev, newEquip]);
+      const id = newEquipmentName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const { data, error } = await supabase
+        .from("equipment")
+        .insert({ id, name: newEquipmentName.trim() })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === "23505") {
+          setAddError("设备名称已存在");
+        } else {
+          throw error;
+        }
+        return;
       }
+
+      setEquipmentList((prev) => [...prev, { id: data.id, name: data.name }].sort((a, b) => a.name.localeCompare(b.name)));
       setNewEquipmentName("");
       setShowAddModal(false);
     } catch (e: any) {
-      setAddError(e.message || "添加失败，请重试");
+      setAddError(e.message || "添加失败");
     } finally {
       setAddingEquipment(false);
     }
-  }, [newEquipmentName, useLocal]);
+  };
 
+  // Filtered equipment
   const filtered = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-    if (!keyword) return equipmentList;
-    return equipmentList.filter((e) =>
-      e.name.toLowerCase().includes(keyword)
-    );
-  }, [search, equipmentList]);
+    if (!search.trim()) return equipmentList;
+    const q = search.toLowerCase();
+    return equipmentList.filter((e) => e.name.toLowerCase().includes(q));
+  }, [equipmentList, search]);
 
-  const completedCount = Object.values(records).filter(
-    (r: any) => r.photo_pairs && r.photo_pairs.length > 0 && r.photo_pairs.some((p: any) => p.before || p.after)
-  ).length;
+  // Stats
+  const completed = Object.keys(records).length;
+  const total = equipmentList.length;
+  const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  const handleRoleToggle = () => {
+    const newRole = role === "admin" ? "operator" : "admin";
+    setRole(newRole);
+    sessionStorage.setItem("role", newRole);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Connection Error Banner */}
-      {connectionError && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
-          <div className="max-w-2xl mx-auto flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <p className="text-xs text-amber-700">{connectionError}</p>
-          </div>
-        </div>
-      )}
-
+    <div className="min-h-screen bg-[#F9FAFB]">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">设备月度保养</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {formatMonth(currentMonth)} · 已完成 {completedCount}/{equipmentList.length}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Records link - desktop only */}
-              {!isMobile && (
-                <Link
-                  href="/records"
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                >
-                  <Monitor className="w-4 h-4" />
-                  记录
-                </Link>
-              )}
-              {/* Role Toggle - desktop only */}
-              {!isMobile && (
-                <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-                  <button
-                    onClick={() => handleRoleChange("operator")}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                      role === "operator"
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    <User className="w-3.5 h-3.5" />
-                    操作端
-                  </button>
-                  <button
-                    onClick={() => handleRoleChange("admin")}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                      role === "admin"
-                        ? "bg-white text-purple-600 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    管理端
-                  </button>
-                </div>
-              )}
-            </div>
+      <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-[#111827]">设备月度保养</h1>
+          <div className="flex items-center gap-2">
+            {/* Role toggle - desktop only */}
+            {!isMobile && (
+              <button
+                onClick={handleRoleToggle}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  role === "admin"
+                    ? "bg-[#2563EB] text-white"
+                    : "bg-[#F3F4F6] text-[#6B7280]"
+                }`}
+              >
+                {role === "admin" ? <Shield size={14} /> : <User size={14} />}
+                {role === "admin" ? "管理端" : "操作端"}
+              </button>
+            )}
+            {/* Records link - desktop only */}
+            {!isMobile && (
+              <Link
+                href="/records"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3F4F6] text-[#6B7280] text-sm font-medium hover:bg-[#E5E7EB] transition-colors"
+              >
+                <Monitor size={14} />
+                记录
+              </Link>
+            )}
+            {/* QR code button - desktop only */}
+            {!isMobile && (
+              <button
+                onClick={() => setShowQR(true)}
+                className="p-2 rounded-full bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB] transition-colors"
+              >
+                <QrCode size={18} />
+              </button>
+            )}
           </div>
         </div>
       </header>
 
+      {/* Connection error banner */}
+      {connectionError && (
+        <div className="max-w-2xl mx-auto px-4 pt-3">
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800">
+            <AlertCircle size={16} />
+            {connectionError}
+          </div>
+        </div>
+      )}
+
+      {/* Progress bar */}
+      <div className="max-w-2xl mx-auto px-4 pt-4">
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-[#6B7280]">{currentMonth} 保养进度</span>
+            <span className="text-sm font-medium text-[#111827]">
+              {completed}/{total} ({progress}%)
+            </span>
+          </div>
+          <div className="h-2 bg-[#F3F4F6] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#22C55E] rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Search */}
-      <div className="max-w-2xl mx-auto px-4 pt-4 pb-2">
+      <div className="max-w-2xl mx-auto px-4 pt-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
           <input
             type="text"
             placeholder="搜索设备名称..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
           />
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="max-w-2xl mx-auto px-4 pb-4">
-        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-green-500 rounded-full transition-all duration-500"
-            style={{
-              width: `${equipmentList.length > 0 ? (completedCount / equipmentList.length) * 100 : 0}%`,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Equipment List */}
-      <div className="max-w-2xl mx-auto px-4 pb-24">
+      {/* Equipment list */}
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-24">
         {loading ? (
-          <div className="text-center py-12 text-gray-400">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p>加载中...</p>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={24} className="animate-spin text-[#2563EB]" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <p>未找到匹配的设备</p>
+          <div className="text-center py-12 text-[#6B7280] text-sm">
+            没有找到匹配的设备
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.map((equipment) => {
-              const record = records[equipment.id];
-              const hasAnyPhoto = record?.photo_pairs?.some(
-                (p: any) => p.before || p.after
-              );
+            {filtered.map((eq) => {
+              const record = records[eq.id];
+              const isCompleted = !!record;
+              const photoCount = record?.photo_pairs?.length || 0;
 
               return (
                 <Link
-                  key={equipment.id}
-                  href={`/equipment/${equipment.id}`}
-                  className="block bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 active:scale-[0.99]"
+                  key={eq.id}
+                  href={`/equipment/${eq.id}`}
+                  className="block bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow border border-[#E5E7EB]"
                 >
-                  <div className="flex items-center px-4 py-3.5">
+                  <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {equipment.name}
-                        </span>
-                        {hasAnyPhoto && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700">
-                            <CheckCircle2 className="w-3 h-3" />
-                            {record.photo_pairs.filter((p: any) => p.before && p.after).length}组
-                          </span>
+                        {isCompleted ? (
+                          <CheckCircle2 size={18} className="text-[#22C55E] flex-shrink-0" />
+                        ) : (
+                          <Clock size={18} className="text-[#9CA3AF] flex-shrink-0" />
                         )}
+                        <span className="text-sm font-medium text-[#111827] truncate">
+                          {eq.name}
+                        </span>
                       </div>
-                      {record && (
-                        <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          上次更新: {new Date(record.updated_at).toLocaleString("zh-CN")}
-                        </p>
+                      {isCompleted && (
+                        <div className="mt-1 ml-5 text-xs text-[#6B7280]">
+                          {photoCount} 组照片 · {new Date(record.updated_at).toLocaleDateString("zh-CN")}
+                        </div>
                       )}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 ml-2" />
+                    <ChevronRight size={18} className="text-[#D1D5DB] flex-shrink-0 ml-2" />
                   </div>
                 </Link>
               );
@@ -289,90 +274,52 @@ export default function Home() {
           </div>
         )}
 
-        {/* Add Equipment Button */}
+        {/* Add equipment button */}
         <button
           onClick={() => setShowAddModal(true)}
-          className="w-full mt-4 py-4 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center gap-2 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition-colors"
+          className="w-full mt-4 py-3 border-2 border-dashed border-[#D1D5DB] rounded-xl text-[#6B7280] text-sm font-medium hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex items-center justify-center gap-2"
         >
-          <Plus className="w-5 h-5" />
+          <Plus size={18} />
           添加新设备
         </button>
       </div>
 
-      {/* QR Code Button - desktop only */}
-      {!isMobile && <QRCodeModal />}
-
-      {/* Add Equipment Modal */}
+      {/* Add equipment modal */}
       {showAddModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={() => setShowAddModal(false)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900">添加新设备</h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-500" />
+              <h3 className="text-base font-bold text-[#111827]">添加新设备</h3>
+              <button onClick={() => { setShowAddModal(false); setAddError(""); setNewEquipmentName(""); }} className="p-1 rounded-full hover:bg-[#F3F4F6]">
+                <X size={20} className="text-[#6B7280]" />
               </button>
             </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  设备名称
-                </label>
-                <input
-                  type="text"
-                  value={newEquipmentName}
-                  onChange={(e) => {
-                    setNewEquipmentName(e.target.value);
-                    setAddError("");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddEquipment();
-                  }}
-                  placeholder="请输入设备名称，如：TKP-NEW"
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  autoFocus
-                />
-              </div>
-
-              {addError && (
-                <p className="text-sm text-red-600">{addError}</p>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleAddEquipment}
-                  disabled={addingEquipment || !newEquipmentName.trim()}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {addingEquipment ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      添加中...
-                    </>
-                  ) : (
-                    "确认添加"
-                  )}
-                </button>
-              </div>
-            </div>
+            <input
+              type="text"
+              placeholder="输入设备名称..."
+              value={newEquipmentName}
+              onChange={(e) => { setNewEquipmentName(e.target.value); setAddError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && handleAddEquipment()}
+              className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+              autoFocus
+            />
+            {addError && (
+              <p className="mt-2 text-xs text-red-500">{addError}</p>
+            )}
+            <button
+              onClick={handleAddEquipment}
+              disabled={!newEquipmentName.trim() || addingEquipment}
+              className="w-full mt-4 py-2.5 bg-[#2563EB] text-white rounded-xl text-sm font-medium hover:bg-[#1D4ED8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {addingEquipment ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              {addingEquipment ? "添加中..." : "确认添加"}
+            </button>
           </div>
         </div>
       )}
+
+      {/* QR Code Modal */}
+      {!isMobile && showQR && <QRCodeModal />}
     </div>
   );
 }

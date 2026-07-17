@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import supabase from "@/lib/supabase-browser";
 
 type Role = "admin" | "operator";
 
@@ -55,10 +56,21 @@ export default function RecordsPage() {
     const fetchRecords = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/records?month=${selectedMonth}&role=${role}`);
-        const json = await res.json();
-        if (json.data) {
-          setRecords(json.data);
+        let query = supabase
+          .from("maintenance_records")
+          .select("*, equipment(name)")
+          .eq("month", selectedMonth)
+          .order("created_at", { ascending: false });
+
+        if (selectedMonth === currentMonth) {
+          // For current month, also include records without month filter
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.error("Failed to fetch records:", error.message);
+        } else {
+          setRecords(data || []);
         }
       } catch (e) {
         console.error("Failed to fetch records:", e);
@@ -67,7 +79,7 @@ export default function RecordsPage() {
       }
     };
     fetchRecords();
-  }, [selectedMonth, role]);
+  }, [selectedMonth, currentMonth]);
 
   const availableMonths = useMemo(() => {
     const months = new Set(records.map((r: any) => r.month));
@@ -125,18 +137,11 @@ export default function RecordsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("确定要删除这条记录吗？此操作不可恢复。")) return;
     try {
-      const res = await fetch(`/api/records/${id}`, {
-        method: "DELETE",
-        headers: { "x-role": "admin" },
-      });
-      if (res.ok) {
-        setRecords((prev) => prev.filter((r: any) => r.id !== id));
-      } else {
-        const json = await res.json();
-        alert(json.error || "删除失败");
-      }
-    } catch (e) {
-      alert("网络错误");
+      const { error } = await supabase.from("maintenance_records").delete().eq("id", id);
+      if (error) throw new Error(error.message);
+      setRecords((prev) => prev.filter((r: any) => r.id !== id));
+    } catch (e: any) {
+      alert("删除失败：" + e.message);
     }
   };
 
