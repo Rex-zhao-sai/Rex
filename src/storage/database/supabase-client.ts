@@ -106,13 +106,11 @@ function getSupabaseServiceRoleKey(): string | undefined {
 function getSupabaseClient(token?: string): SupabaseClient {
   const { url, anonKey } = getSupabaseCredentials();
 
-  let key: string;
-  if (token) {
-    key = anonKey;
-  } else {
-    const serviceRoleKey = getSupabaseServiceRoleKey();
-    key = serviceRoleKey ?? anonKey;
-  }
+  // Debug: log which URL is being used
+  console.log('[Supabase] Connecting to:', url.substring(0, 40) + '...');
+
+  // Always use anon key - service_role key from sandbox won't work with custom instance
+  const key = anonKey;
 
   const globalOptions: Record<string, any> = {};
   if (token) {

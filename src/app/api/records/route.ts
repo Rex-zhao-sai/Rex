@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
   const equipmentId = searchParams.get("equipmentId");
 
   const client = getSupabaseClient();
+  // GET /api/records
 
   let query = client.from("maintenance_records").select("*, equipment(name)");
 
@@ -34,6 +35,8 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error } = await query.order("created_at", { ascending: false }).limit(1000);
+
+  // Query result
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
