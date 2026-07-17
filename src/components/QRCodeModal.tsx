@@ -9,7 +9,9 @@ export function QRCodeModal() {
   const [appUrl, setAppUrl] = useState("");
 
   useEffect(() => {
-    setAppUrl(window.location.origin);
+    // Include basePath for GitHub Pages deployment
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/Rex';
+    setAppUrl(window.location.origin + basePath);
   }, []);
 
   if (!open) {
@@ -66,7 +68,7 @@ export function QRCodeModal() {
             <span>
               电脑端访问：
               <a
-                href="/records"
+                href="/Rex/records"
                 className="text-blue-600 hover:underline font-medium"
               >
                 查看保养记录
