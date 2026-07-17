@@ -170,15 +170,13 @@ export default function Home() {
                 记录
               </Link>
             )}
-            {/* QR code button - desktop only */}
-            {!isMobile && (
-              <button
-                onClick={() => setShowQR(true)}
-                className="p-2 rounded-full bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB] transition-colors"
-              >
-                <QrCode size={18} />
-              </button>
-            )}
+            {/* QR code button - visible on all devices */}
+            <button
+              onClick={() => setShowQR(true)}
+              className="p-2 rounded-full bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB] transition-colors"
+            >
+              <QrCode size={18} />
+            </button>
           </div>
         </div>
       </header>
