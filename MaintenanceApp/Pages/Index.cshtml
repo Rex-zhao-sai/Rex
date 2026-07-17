@@ -1,0 +1,75 @@
+@page
+@model MaintenanceApp.Pages.IndexModel
+@{
+    ViewData["Title"] = "设备清单";
+}
+
+<div class="header">
+    <h1>设备月度保养记录</h1>
+    <div class="role-toggle">
+        <button class="role-btn @(Model.CurrentRole == "operator" ? "active" : "")" data-role="operator" onclick="setRole('operator')">操作端</button>
+        <button class="role-btn @(Model.CurrentRole == "admin" ? "active" : "")" data-role="admin" onclick="setRole('admin')">管理端</button>
+    </div>
+</div>
+
+<input type="text" class="search-box" placeholder="搜索设备名称..." oninput="filterEquipment(this.value)" />
+
+<div class="progress-bar">
+    <div class="progress-fill" style="width: @Model.ProgressPercent%"></div>
+</div>
+<p class="progress-text">本月进度：@Model.CompletedCount / @Model.TotalCount 台设备已保养 (@Model.ProgressPercent%)</p>
+
+<div class="equipment-list" id="equipmentList">
+    @foreach (var item in Model.EquipmentWithStatus)
+    {
+        <a href="/Equipment/@item.Equipment.Id" class="equipment-card @(item.IsCompleted ? "completed" : "")" data-name="@item.Equipment.Name.ToLower()">
+            <div>
+                <div class="equipment-name">@item.Equipment.Name</div>
+                @if (item.IsCompleted && item.Record != null)
+                {
+                    <div class="equipment-status">@item.Record.PhotoPairs.Count 组照片 · @item.Record.Technician</div>
+                }
+            </div>
+            <span class="status-badge @(item.IsCompleted ? "done" : "pending")">
+                @(item.IsCompleted ? "已完成" : "待保养")
+            </span>
+        </a>
+    }
+</div>
+
+<button class="add-btn" onclick="showAddEquipment()">+ 添加新设备</button>
+
+@section Scripts {
+<script>
+function filterEquipment(query) {
+    const cards = document.querySelectorAll('.equipment-card');
+    const q = query.toLowerCase();
+    cards.forEach(card => {
+        const name = card.dataset.name || '';
+        card.style.display = name.includes(q) ? '' : 'none';
+    });
+}
+
+async function showAddEquipment() {
+    const name = prompt('请输入设备名称：');
+    if (!name || !name.trim()) return;
+    
+    try {
+        const res = await fetch('/api/equipment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name.trim() })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('设备添加成功');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || '添加失败', 'error');
+        }
+    } catch (e) {
+        showToast('网络错误', 'error');
+    }
+}
+</script>
+}

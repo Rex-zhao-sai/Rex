@@ -1,0 +1,155 @@
+@page "{id}"
+@model MaintenanceApp.Pages.Equipment.DetailModel
+@{
+    ViewData["Title"] = Model.Equipment?.Name ?? "设备详情";
+}
+
+<div class="header">
+    <a href="/" class="back-btn">← 返回</a>
+    <h1>@Model.Equipment?.Name</h1>
+</div>
+
+@if (Model.ReadOnly)
+{
+    <div class="alert alert-warning">
+        ⚠️ 当前为只读模式，此记录由管理端创建，操作端无法修改
+    </div>
+}
+
+<div class="form-group">
+    <label>技术员</label>
+    <input type="text" id="technician" class="form-control" value="@Model.Record?.Technician" 
+           @(Model.ReadOnly ? "readonly" : "") />
+</div>
+
+<div class="form-group">
+    <label>保养备注</label>
+    <textarea id="notes" class="form-control" rows="3" @(Model.ReadOnly ? "readonly" : "")>@Model.Record?.Notes</textarea>
+</div>
+
+<h2>保养照片</h2>
+<div id="photoPairs">
+    @for (int i = 0; i < Math.Max(1, Model.Record?.PhotoPairs.Count ?? 1); i++)
+    {
+        var pair = Model.Record?.PhotoPairs.Count > i ? Model.Record.PhotoPairs[i] : null;
+        <div class="photo-pair" data-index="@i">
+            <div class="photo-slot before @(pair?.Before != null ? "has-photo" : "")" data-slot="before">
+                <span class="photo-label">Before</span>
+                @if (pair?.Before != null)
+                {
+                    <img src="@pair.Before" />
+                    <div class="photo-time">@pair.BeforeTime</div>
+                }
+                @if (!Model.ReadOnly)
+                {
+                    <input type="file" accept="image/*" capture="environment" 
+                           onchange="handlePhotoUpload(this, this.parentElement)" />
+                }
+            </div>
+            <div class="photo-slot after @(pair?.After != null ? "has-photo" : "")" data-slot="after">
+                <span class="photo-label">After</span>
+                @if (pair?.After != null)
+                {
+                    <img src="@pair.After" />
+                    <div class="photo-time">@pair.AfterTime</div>
+                }
+                @if (!Model.ReadOnly)
+                {
+                    <input type="file" accept="image/*" capture="environment" 
+                           onchange="handlePhotoUpload(this, this.parentElement)" />
+                }
+            </div>
+            @if (!Model.ReadOnly && i > 0)
+            {
+                <button class="remove-pair" onclick="removePair(@i)">✕</button>
+            }
+        </div>
+    }
+</div>
+
+@if (!Model.ReadOnly)
+{
+    <button class="add-pair-btn" onclick="addPhotoPair()">+ 添加照片组</button>
+}
+
+@if (!Model.ReadOnly)
+{
+    <button class="save-btn" onclick="saveRecord()">保存记录</button>
+}
+
+@section Scripts {
+<script>
+const equipmentId = '@Model.Equipment?.Id';
+const month = '@Model.Month';
+let photoPairs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Record?.PhotoPairs ?? new List<PhotoPair> { new() }));
+
+function addPhotoPair() {
+    const container = document.getElementById('photoPairs');
+    const index = container.children.length;
+    const div = document.createElement('div');
+    div.className = 'photo-pair';
+    div.dataset.index = index;
+    div.innerHTML = `
+        <div class="photo-slot before" data-slot="before">
+            <span class="photo-label">Before</span>
+            <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(this, this.parentElement)" />
+        </div>
+        <div class="photo-slot after" data-slot="after">
+            <span class="photo-label">After</span>
+            <input type="file" accept="image/*" capture="environment" onchange="handlePhotoUpload(this, this.parentElement)" />
+        </div>
+        <button class="remove-pair" onclick="removePair(${index})">✕</button>
+    `;
+    container.appendChild(div);
+    photoPairs.push({ before: null, after: null, beforeTime: null, afterTime: null });
+}
+
+function removePair(index) {
+    const container = document.getElementById('photoPairs');
+    if (container.children.length <= 1) return;
+    container.children[index].remove();
+    photoPairs.splice(index, 1);
+    // Re-index
+    Array.from(container.children).forEach((child, i) => child.dataset.index = i);
+}
+
+async function saveRecord() {
+    // Collect photo data from DOM
+    const pairs = [];
+    document.querySelectorAll('.photo-pair').forEach(el => {
+        const beforeSlot = el.querySelector('[data-slot="before"]');
+        const afterSlot = el.querySelector('[data-slot="after"]');
+        pairs.push({
+            before: beforeSlot?.dataset.photo || null,
+            after: afterSlot?.dataset.photo || null,
+            beforeTime: beforeSlot?.dataset.time || null,
+            afterTime: afterSlot?.dataset.time || null
+        });
+    });
+
+    const data = {
+        equipmentId: equipmentId,
+        month: month,
+        technician: document.getElementById('technician').value,
+        notes: document.getElementById('notes').value,
+        photoPairs: pairs
+    };
+
+    try {
+        const res = await fetch('/api/records', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-role': sessionStorage.getItem('role') || 'operator' },
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+            showToast('保存成功');
+        } else {
+            showToast(result.error || '保存失败', 'error');
+        }
+    } catch (e) {
+        showToast('网络错误', 'error');
+    }
+}
+</script>
+}
