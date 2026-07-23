@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
+import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import supabase from "@/lib/supabase-browser";
 import Link from "next/link";
-import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle } from "lucide-react";
+import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, Calendar } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -39,6 +40,32 @@ export default function Home() {
 
   // QR code modal
   const [showQR, setShowQR] = useState(false);
+
+  // 获取距上次保养的天数
+  const getDaysSinceLastMaintenance = (equipmentId: string): number => {
+    // 优先使用系统中的记录
+    if (records[equipmentId]) {
+      const record = records[equipmentId];
+      if (record.updated_at) {
+        const lastDate = new Date(record.updated_at);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+    }
+    
+    // 使用 Excel 数据
+    const excelDate = LAST_MAINTENANCE_FROM_EXCEL[equipmentId];
+    if (excelDate) {
+      const lastDate = new Date(excelDate);
+      const today = new Date();
+      const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+    
+    // 无记录
+    return 999;
+  };
 
   // Fetch records for current month
   useEffect(() => {
@@ -121,12 +148,21 @@ export default function Home() {
     }
   };
 
-  // Filtered equipment
+  // Filtered and sorted equipment (按距离上次保养时间由长到短排序)
   const filtered = useMemo(() => {
-    if (!search.trim()) return equipmentList;
-    const q = search.toLowerCase();
-    return equipmentList.filter((e) => e.name.toLowerCase().includes(q));
-  }, [equipmentList, search]);
+    let list = equipmentList;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = equipmentList.filter((e) => e.name.toLowerCase().includes(q));
+    }
+    
+    // 按距离上次保养时间排序（由长到短，最长的排最上面）
+    return [...list].sort((a, b) => {
+      const aDays = getDaysSinceLastMaintenance(a.id);
+      const bDays = getDaysSinceLastMaintenance(b.id);
+      return bDays - aDays; // 降序：天数多的排前面
+    });
+  }, [equipmentList, search, records]);
 
   // Stats
   const completed = Object.keys(records).length;
@@ -240,6 +276,32 @@ export default function Home() {
               const isCompleted = !!record;
               const photoCount = record?.photo_pairs?.length || 0;
 
+              // 计算上次保养时间和天数
+              let lastMaintenanceDate: string | null = null;
+              let daysSinceLastMaintenance: number = 999;
+
+              // 优先使用系统中的记录
+              if (record?.updated_at) {
+                lastMaintenanceDate = record.updated_at;
+                const lastDate = new Date(record.updated_at);
+                const today = new Date();
+                const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+                daysSinceLastMaintenance = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              }
+              // 否则使用 Excel 中的记录
+              else if (LAST_MAINTENANCE_FROM_EXCEL[eq.id]) {
+                lastMaintenanceDate = LAST_MAINTENANCE_FROM_EXCEL[eq.id];
+                const lastDate = new Date(LAST_MAINTENANCE_FROM_EXCEL[eq.id]);
+                const today = new Date();
+                const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+                daysSinceLastMaintenance = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              }
+              // 无记录显示>60 天
+              else {
+                lastMaintenanceDate = null;
+                daysSinceLastMaintenance = 61; // 显示为>60 天
+              }
+
               return (
                 <Link
                   key={eq.id}
@@ -258,11 +320,23 @@ export default function Home() {
                           {eq.name}
                         </span>
                       </div>
-                      {isCompleted && (
-                        <div className="mt-1 ml-5 text-xs text-[#6B7280]">
-                          {photoCount} 组照片 · {new Date(record.updated_at).toLocaleDateString("zh-CN")}
-                        </div>
-                      )}
+                      <div className="mt-1 ml-5 flex items-center gap-2 flex-wrap">
+                        {isCompleted && (
+                          <span className="text-xs text-[#6B7280]">
+                            {photoCount} 组照片 · {new Date(record.updated_at).toLocaleDateString("zh-CN")}
+                          </span>
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          daysSinceLastMaintenance <= 30
+                            ? "bg-green-100 text-green-700"
+                            : daysSinceLastMaintenance <= 60
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-red-100 text-red-700"
+                        }`}>
+                          <Calendar size={10} className="inline mr-1" />
+                          {daysSinceLastMaintenance === 61 ? ">60 天前" : `${daysSinceLastMaintenance}天前`}
+                        </span>
+                      </div>
                     </div>
                     <ChevronRight size={18} className="text-[#D1D5DB] flex-shrink-0 ml-2" />
                   </div>
