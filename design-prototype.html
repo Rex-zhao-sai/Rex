@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备月度保养 - 首页设计原型</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .section-fade { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-gray-900">设备月度保养</h1>
+            <div class="flex items-center gap-2">
+                <button class="px-3 py-1.5 text-sm bg-gray-100 rounded-lg flex items-center gap-1.5">
+                    <i class="fas fa-user"></i> 操作端
+                </button>
+                <button class="px-3 py-1.5 text-sm bg-gray-100 rounded-lg flex items-center gap-1.5">
+                    <i class="fas fa-clipboard-list"></i> 记录
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- 进度概览 -->
+        <div class="bg-white rounded-xl p-5 shadow-sm mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">2026-07 保养进度</h2>
+                    <p class="text-sm text-gray-500 mt-1">本月共 84 台设备</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-blue-600">4<span class="text-lg text-gray-400">/84</span></div>
+                    <div class="text-sm text-gray-500">5%</div>
+                </div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div class="bg-blue-600 h-2.5 rounded-full" style="width: 5%"></div>
+            </div>
+            <div class="flex items-center justify-between mt-3 text-sm">
+                <div class="flex items-center gap-4">
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-green-500"></span> 已完成 4</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> 即将到期 8</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span> 超期未保养 12</span>
+                </div>
+                <span class="text-gray-400">待保养 60</span>
+            </div>
+        </div>
+
+        <!-- 搜索框 -->
+        <div class="mb-6">
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <input type="text" placeholder="搜索设备名称..." class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+        </div>
+
+        <!-- 分组：超期未保养 -->
+        <section class="mb-8 section-fade">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                    <h3 class="text-lg font-semibold text-gray-900">超期未保养</h3>
+                    <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium">12</span>
+                </div>
+                <button class="text-sm text-blue-600 hover:text-blue-700">查看全部 ›</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <!-- 设备卡片 -->
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">316</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">🔴 >60 天</span>
+                    </div>
+                    <p class="text-xs text-gray-500">上次保养：2026-05-15</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">ADM_AAU EPE</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">🔴 >60 天</span>
+                    </div>
+                    <p class="text-xs text-gray-500">上次保养：2026-05-20</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">ADM_AAU ICT</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">🔴 >60 天</span>
+                    </div>
+                    <p class="text-xs text-gray-500">上次保养：2026-05-18</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">ADM_DU_G2 EPE</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">🔴 45 天</span>
+                    </div>
+                    <p class="text-xs text-gray-500">上次保养：2026-06-08</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 分组：即将到期 -->
+        <section class="mb-8 section-fade">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                    <h3 class="text-lg font-semibold text-gray-900">即将到期</h3>
+                    <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">8</span>
+                </div>
+                <button class="text-sm text-blue-600 hover:text-blue-700">查看全部 ›</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-yellow-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Aero B EPE</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">🟡 15 天</span>
+                    </div>
+                    <p class="text-xs text-gray-500">上次保养：2026-07-08</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-yellow-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Aero B ICT</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">🟡 20 天</span>
+                    </div>
+                    <p class="text-xs text-gray-500">上次保养：2026-07-03</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-yellow-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Aero B PROG</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">🟡 25 天</span>
+                    </div>
+                    <p class="text-xs text-gray-500">上次保养：2026-06-28</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-yellow-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Aero C EPE</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">🟡 28 天</span>
+                    </div>
+                    <p class="text-xs text-gray-500">上次保养：2026-06-25</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 分组：已完成 -->
+        <section class="mb-8 section-fade">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                    <h3 class="text-lg font-semibold text-gray-900">本月已完成</h3>
+                    <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">4</span>
+                </div>
+                <button class="text-sm text-blue-600 hover:text-blue-700">查看全部 ›</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Equipment A</h4>
+                        <i class="fas fa-check-circle text-green-500"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">🟢 2 天前</span>
+                    </div>
+                    <p class="text-xs text-gray-500">保养人：张三 · 2 组照片</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Equipment B</h4>
+                        <i class="fas fa-check-circle text-green-500"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium"> 5 天前</span>
+                    </div>
+                    <p class="text-xs text-gray-500">保养人：李四 · 1 组照片</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Equipment C</h4>
+                        <i class="fas fa-check-circle text-green-500"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">🟢 8 天前</span>
+                    </div>
+                    <p class="text-xs text-gray-500">保养人：王五 · 3 组照片</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-green-500 card-hover cursor-pointer transition-all">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Equipment D</h4>
+                        <i class="fas fa-check-circle text-green-500"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">🟢 12 天前</span>
+                    </div>
+                    <p class="text-xs text-gray-500">保养人：赵六 · 2 组照片</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 分组：待保养 -->
+        <section class="mb-8 section-fade">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                    <h3 class="text-lg font-semibold text-gray-900">待保养</h3>
+                    <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">60</span>
+                </div>
+                <button class="text-sm text-blue-600 hover:text-blue-700">查看全部 ›</button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-gray-300 card-hover cursor-pointer transition-all opacity-75">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Equipment E</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">⚪ 待保养</span>
+                    </div>
+                    <p class="text-xs text-gray-500">计划日期：2026-07-25</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-gray-300 card-hover cursor-pointer transition-all opacity-75">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Equipment F</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">⚪ 待保养</span>
+                    </div>
+                    <p class="text-xs text-gray-500">计划日期：2026-07-26</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-gray-300 card-hover cursor-pointer transition-all opacity-75">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Equipment G</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">⚪ 待保养</span>
+                    </div>
+                    <p class="text-xs text-gray-500">计划日期：2026-07-27</p>
+                </div>
+
+                <div class="bg-white rounded-xl p-4 shadow-sm border-l-4 border-gray-300 card-hover cursor-pointer transition-all opacity-75">
+                    <div class="flex items-start justify-between mb-2">
+                        <h4 class="font-semibold text-gray-900 text-sm">Equipment H</h4>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5 mb-2">
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium"> 待保养</span>
+                    </div>
+                    <p class="text-xs text-gray-500">计划日期：2026-07-28</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部提示 -->
+    <div class="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
+        💡 点击设备卡片进入保养详情
+    </div>
+</body>
+</html>
