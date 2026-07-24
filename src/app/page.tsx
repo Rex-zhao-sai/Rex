@@ -70,8 +70,8 @@ export default function Home() {
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
     
-    // 无记录
-    return 999;
+    // 无记录显示>60 天
+    return 61;
   };
 
   // Fetch records for current month
@@ -226,8 +226,13 @@ export default function Home() {
       statusColor = "border-green-500";
       statusIcon = <CheckCircle2 size={16} className="text-green-500" />;
       statusText = `🟢 ${eq.days}天前`;
+    } else if (eq.days > 60) {
+      // 超期未保养 (>60 天)
+      statusColor = "border-red-500";
+      statusIcon = <AlertCircle size={16} className="text-red-500" />;
+      statusText = ` >60 天前`;
     } else if (eq.days > 30) {
-      // 超期未保养 (>30 天)
+      // 超期未保养 (31-60 天)
       statusColor = "border-red-500";
       statusIcon = <AlertCircle size={16} className="text-red-500" />;
       statusText = `🔴 ${eq.days}天前`;
@@ -235,7 +240,7 @@ export default function Home() {
       // 即将到期 (<30 天)
       statusColor = "border-yellow-500";
       statusIcon = <Clock size={16} className="text-yellow-500" />;
-      statusText = ` ${eq.days}天前`;
+      statusText = `🟡 ${eq.days}天前`;
     }
 
     return (
