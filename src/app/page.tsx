@@ -48,32 +48,6 @@ export default function Home() {
     completed: false,
   });
 
-  // 获取距上次保养的天数
-  const getDaysSinceLastMaintenance = (equipmentId: string): number => {
-    // 优先使用系统中的记录
-    if (records[equipmentId]) {
-      const record = records[equipmentId];
-      if (record.updated_at) {
-        const lastDate = new Date(record.updated_at);
-        const today = new Date();
-        const diffTime = Math.abs(today.getTime() - lastDate.getTime());
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      }
-    }
-    
-    // 使用 Excel 数据
-    const excelDate = LAST_MAINTENANCE_FROM_EXCEL[equipmentId];
-    if (excelDate) {
-      const lastDate = new Date(excelDate);
-      const today = new Date();
-      const diffTime = Math.abs(today.getTime() - lastDate.getTime());
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
-    
-    // 无记录显示>60 天
-    return 61;
-  };
-
   // Fetch records for current month
   useEffect(() => {
     const loadRecords = async () => {
@@ -177,7 +151,23 @@ export default function Home() {
 
     list.forEach((eq) => {
       const record = records[eq.id];
-      const days = getDaysSinceLastMaintenance(eq.id);
+      
+      // 内联计算天数，避免闭包问题
+      let days = 61; // 默认值
+      if (record && record.updated_at) {
+        const lastDate = new Date(record.updated_at);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+        days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      } else {
+        const excelDate = LAST_MAINTENANCE_FROM_EXCEL[eq.id];
+        if (excelDate) {
+          const lastDate = new Date(excelDate);
+          const today = new Date();
+          const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+          days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+      }
 
       if (record) {
         // 本月有保养记录
