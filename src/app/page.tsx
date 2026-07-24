@@ -394,7 +394,6 @@ export default function Home() {
             <span>已完成 <span className="font-semibold text-green-600">{completedCount}</span></span>
             <span>即将到期 <span className="font-semibold text-yellow-600">{upcomingCount}</span></span>
             <span>超期 <span className="font-semibold text-red-600">{overdueCount}</span></span>
-            <span>待保养 <span className="font-semibold text-gray-500">{total - completedCount - upcomingCount - overdueCount}</span></span>
           </div>
         </div>
 
