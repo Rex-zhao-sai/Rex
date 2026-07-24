@@ -42,6 +42,9 @@ export default function RecordsPage() {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   // Get all unique months from records + current month
   const currentMonth = useMemo(() => {
@@ -145,6 +148,39 @@ export default function RecordsPage() {
     }
   };
 
+  const ADMIN_PASSWORD = "Test12345678!@";
+
+  const handleAdminClick = () => {
+    if (role === "admin") {
+      // 已经是管理端，可以切换回操作端
+      setRole("operator");
+      sessionStorage.setItem("role", "operator");
+    } else {
+      // 需要输入密码才能进入管理端
+      setShowPasswordModal(true);
+      setPassword("");
+      setPasswordError("");
+    }
+  };
+
+  const handlePasswordSubmit = () => {
+    if (password === ADMIN_PASSWORD) {
+      setRole("admin");
+      sessionStorage.setItem("role", "admin");
+      setShowPasswordModal(false);
+      setPassword("");
+      setPasswordError("");
+    } else {
+      setPasswordError("密码错误，请重试");
+    }
+  };
+
+  const handlePasswordKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handlePasswordSubmit();
+    }
+  };
+
   // Calculate 6 months ago
   const sixMonthsAgo = useMemo(() => {
     const d = new Date();
@@ -197,7 +233,7 @@ export default function RecordsPage() {
                 操作端
               </button>
               <button
-                onClick={() => { setRole("admin"); sessionStorage.setItem("role", "admin"); }}
+                onClick={handleAdminClick}
                 className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
                   role === "admin" ? "bg-white text-purple-600 shadow-sm" : "text-gray-500"
                 }`}
@@ -451,6 +487,51 @@ export default function RecordsPage() {
               </div>
             </div>
             <p className="text-xs text-gray-400 text-center mt-3">用手机浏览器扫描此二维码即可进入保养页面</p>
+          </div>
+        </div>
+      )}
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowPasswordModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-900">管理端验证</h3>
+              <button onClick={() => setShowPasswordModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
+                <ArrowLeft className="w-4 h-4 text-gray-500 rotate-180" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">请输入管理密码</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }}
+                  onKeyDown={handlePasswordKeyDown}
+                  placeholder="请输入密码"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none text-sm transition-all"
+                  autoFocus
+                />
+                {passwordError && (
+                  <p className="text-xs text-red-500 mt-2">{passwordError}</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowPasswordModal(false)}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handlePasswordSubmit}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors"
+                >
+                  确认
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
