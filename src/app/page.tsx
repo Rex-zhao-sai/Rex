@@ -318,7 +318,7 @@ export default function Home() {
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Network className="text-blue-600" size={24} />
+            <img src="/melecs-logo.svg" alt="Melecs" className="h-8 w-auto" />
             <h1 className="text-xl font-bold text-gray-900">设备月度保养</h1>
           </div>
           <div className="flex items-center gap-3">
