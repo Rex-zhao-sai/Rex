@@ -1,17 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 220" width="200" height="220">
-  <defs>
-    <clipPath id="ring1">
-      <path d="M100 30 C130 30, 150 50, 150 80 C150 110, 130 130, 100 130 C70 130, 50 110, 50 80 C50 50, 70 30, 100 30 Z"/>
-    </clipPath>
-    <clipPath id="ring2">
-      <path d="M70 80 C100 80, 120 100, 120 130 C120 160, 100 180, 70 180 C40 180, 20 160, 20 130 C20 100, 40 80, 70 80 Z"/>
-    </clipPath>
-    <clipPath id="ring3">
-      <path d="M130 80 C160 80, 180 100, 180 130 C180 160, 160 180, 130 180 C100 180, 80 160, 80 130 C80 100, 100 80, 130 80 Z"/>
-    </clipPath>
-  </defs>
-  <path d="M100 30 C130 30, 150 50, 150 80 C150 110, 130 130, 100 130 C70 130, 50 110, 50 80 C50 50, 70 30, 100 30 Z" fill="none" stroke="#6B8EAD" stroke-width="12" opacity="0.8"/>
-  <path d="M70 80 C100 80, 120 100, 120 130 C120 160, 100 180, 70 180 C40 180, 20 160, 20 130 C20 100, 40 80, 70 80 Z" fill="none" stroke="#5A8A7A" stroke-width="12" opacity="0.8"/>
-  <path d="M130 80 C160 80, 180 100, 180 130 C180 160, 160 180, 130 180 C100 180, 80 160, 80 130 C80 100, 100 80, 130 80 Z" fill="none" stroke="#7A9A6A" stroke-width="12" opacity="0.8"/>
-  <text x="100" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">melecs</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- 顶部蓝色环 -->
+  <path d="M100 30 C125 30, 145 50, 145 75 C145 100, 125 120, 100 120 C75 120, 55 100, 55 75 C55 50, 75 30, 100 30" fill="none" stroke="#6B8EAD" stroke-width="10" stroke-linecap="round"/>
+  <!-- 左下绿色环 -->
+  <path d="M70 80 C90 80, 110 95, 110 115 C110 140, 90 160, 70 160 C50 160, 30 140, 30 115 C30 95, 50 80, 70 80" fill="none" stroke="#5A8A7A" stroke-width="10" stroke-linecap="round"/>
+  <!-- 右下深绿色环 -->
+  <path d="M130 80 C150 80, 170 95, 170 115 C170 140, 150 160, 130 160 C110 160, 90 140, 90 115 C90 95, 110 80, 130 80" fill="none" stroke="#7A9A6A" stroke-width="10" stroke-linecap="round"/>
+  <!-- 文字 -->
+  <text x="100" y="192" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">melecs</text>
 </svg>
