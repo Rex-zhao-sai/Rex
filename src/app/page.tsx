@@ -5,7 +5,7 @@ import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import supabase from "@/lib/supabase-browser";
 import Link from "next/link";
-import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, Calendar, ChevronDown } from "lucide-react";
+import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -40,6 +40,11 @@ export default function Home() {
 
   // QR code modal
   const [showQR, setShowQR] = useState(false);
+
+  // Password modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   // Expand state for each group
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
@@ -197,9 +202,36 @@ export default function Home() {
   const progress = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
   const handleRoleToggle = () => {
-    const newRole = role === "admin" ? "operator" : "admin";
-    setRole(newRole);
-    sessionStorage.setItem("role", newRole);
+    if (role === "admin") {
+      // Switching from admin to operator - no password needed
+      const newRole = "operator";
+      setRole(newRole);
+      sessionStorage.setItem("role", newRole);
+    } else {
+      // Switching from operator to admin - show password modal
+      setShowPasswordModal(true);
+      setPassword("");
+      setPasswordError("");
+    }
+  };
+
+  const handlePasswordSubmit = () => {
+    if (password === "Test12345678!@") {
+      const newRole = "admin";
+      setRole(newRole);
+      sessionStorage.setItem("role", newRole);
+      setShowPasswordModal(false);
+      setPassword("");
+      setPasswordError("");
+    } else {
+      setPasswordError("密码错误，请重试");
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordModal(false);
+    setPassword("");
+    setPasswordError("");
   };
 
   // 渲染设备卡片
@@ -313,7 +345,7 @@ export default function Home() {
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Calendar className="text-blue-600" size={24} />
+            <img src="/melecs-logo.png" alt="Melecs Logo" className="w-10 h-10 object-contain" />
             <h1 className="text-xl font-bold text-gray-900">设备月度保养</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -477,6 +509,51 @@ export default function Home() {
 
       {/* QR Code Modal */}
       {!isMobile && showQR && <QRCodeModal />}
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-900">管理端验证</h3>
+              <button
+                onClick={handlePasswordCancel}
+                className="p-1 rounded-full hover:bg-gray-100"
+              >
+                <X size={20} className="text-gray-600" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">请输入管理端密码以切换身份</p>
+            <input
+              type="password"
+              placeholder="输入密码..."
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              autoFocus
+            />
+            {passwordError && (
+              <p className="mt-2 text-xs text-red-500">{passwordError}</p>
+            )}
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={handlePasswordCancel}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                disabled={!password.trim()}
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .card-hover:hover {
