@@ -100,7 +100,13 @@ export default function Home() {
         setRecords(map);
       } catch (e: any) {
         console.error("获取记录失败:", e);
-        setConnectionError("连接失败，请检查网络后刷新页面");
+        if (e.name === 'AbortError') {
+          setConnectionError("加载超时，请检查网络后刷新页面");
+        } else {
+          setConnectionError("连接失败，请检查网络后刷新页面");
+        }
+        // 即使获取记录失败，也显示设备列表（只是没有保养状态）
+        setRecords({});
       } finally {
         setLoading(false);
       }
@@ -121,8 +127,11 @@ export default function Home() {
         if (data && data.length > 0) {
           setEquipmentList(data.map((e) => ({ id: e.id, name: e.name })));
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("获取设备列表失败:", e);
+        if (e.name === 'AbortError') {
+          setConnectionError("加载超时，请检查网络后刷新页面");
+        }
       }
     };
     loadEquipment();
