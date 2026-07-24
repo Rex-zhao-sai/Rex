@@ -43,6 +43,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   const [photoPairs, setPhotoPairs] = useState<PhotoPair[]>([]);
   const [technician, setTechnician] = useState("");
   const [notes, setNotes] = useState("");
+  const [duration, setDuration] = useState("");
   const [saved, setSaved] = useState(false);
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -70,6 +71,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
           setPhotoPairs((data.photo_pairs as PhotoPair[]) || []);
           setTechnician(data.technician || "");
           setNotes(data.notes || "");
+          setDuration(data.duration || "");
           setExistingRecordId(data.id);
           setRecordRole((data.role as Role) || "operator");
         } else {
@@ -132,6 +134,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       month: currentMonth,
       technician,
       notes,
+      duration: duration ? parseInt(duration) : null,
       photo_pairs: photoPairs,
       role,
     };
@@ -160,7 +163,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     } finally {
       setSaving(false);
     }
-  }, [equipmentId, currentMonth, technician, notes, photoPairs, role, existingRecordId]);
+  }, [equipmentId, currentMonth, technician, notes, duration, photoPairs, role, existingRecordId]);
 
   const canEdit = role === "admin" || recordRole === "operator" || !existingRecordId;
   const isReadOnly = !canEdit;
@@ -270,6 +273,23 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                   placeholder="输入保养备注（可选）"
                   rows={2}
                   className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280] resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#6B7280] mb-1">时长（分钟）</label>
+                <input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => {
+                    // Only allow positive integers
+                    const val = e.target.value.replace(/[^0-9]/g, "");
+                    setDuration(val);
+                    setSaved(false);
+                  }}
+                  disabled={isReadOnly}
+                  placeholder="输入保养时长（分钟）"
+                  min="0"
+                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                 />
               </div>
             </div>
