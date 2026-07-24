@@ -32,6 +32,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [equipmentList, setEquipmentList] = useState(EQUIPMENT_LIST);
   const [connectionError, setConnectionError] = useState("");
+  const [loadingTime, setLoadingTime] = useState(0);
 
   // Add equipment modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -82,6 +83,7 @@ export default function Home() {
 
   // Fetch records and equipment list
   useEffect(() => {
+    const startTime = Date.now();
     const loadData = async () => {
       setLoading(true);
       setConnectionError("");
@@ -108,6 +110,8 @@ export default function Home() {
         console.error("数据加载失败:", e);
         setConnectionError("连接失败，请检查网络后刷新页面");
       } finally {
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        setLoadingTime(elapsed);
         setLoading(false);
       }
     };
@@ -427,8 +431,16 @@ export default function Home() {
 
         {/* Loading state */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-12">
             <Loader2 size={24} className="animate-spin text-blue-600" />
+            <p className="mt-4 text-sm text-gray-500">
+              {loadingTime > 0 ? `加载中... ${loadingTime}秒` : "正在连接数据库..."}
+            </p>
+            {loadingTime >= 3 && (
+              <p className="mt-2 text-xs text-gray-400">
+                首次访问可能需要 5-10 秒（数据库唤醒）
+              </p>
+            )}
           </div>
         ) : (
           <>
