@@ -226,13 +226,8 @@ export default function Home() {
       statusColor = "border-green-500";
       statusIcon = <CheckCircle2 size={16} className="text-green-500" />;
       statusText = `🟢 ${eq.days}天前`;
-    } else if (eq.days > 60) {
-      // 超期未保养 (>60 天)
-      statusColor = "border-red-500";
-      statusIcon = <AlertCircle size={16} className="text-red-500" />;
-      statusText = ` >60 天前`;
     } else if (eq.days > 30) {
-      // 超期未保养 (31-60 天)
+      // 超期未保养 (>30 天)
       statusColor = "border-red-500";
       statusIcon = <AlertCircle size={16} className="text-red-500" />;
       statusText = `🔴 ${eq.days}天前`;
