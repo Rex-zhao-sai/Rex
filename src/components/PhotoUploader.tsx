@@ -3,7 +3,8 @@
 import { useState, useRef, useCallback } from "react";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId } from "@/lib/storage";
-import { Camera, X, Clock } from "lucide-react";
+import supabase from "@/lib/supabase-browser";
+import { Camera, X, Clock, Loader2 } from "lucide-react";
 
 interface PhotoUploaderProps {
   pair: PhotoPair;
@@ -23,24 +24,47 @@ export function PhotoUploader({
   const [processing, setProcessing] = useState<"before" | "after" | null>(null);
 
   const handleFile = useCallback(
-    (type: "before" | "after", file: File) => {
+    async (type: "before" | "after", file: File) => {
       setProcessing(type);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
+      try {
+        // 压缩照片（可选，这里先保持原图）
+        // 生成唯一文件名
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${generateId()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        // 上传到 Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from("maintenance-photos")
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // 获取公开 URL
+        const { data: urlData } = supabase.storage
+          .from("maintenance-photos")
+          .getPublicUrl(filePath);
+
         const now = new Date();
         const photoRecord: PhotoRecord = {
           id: generateId(),
           type,
-          dataUrl,
+          dataUrl: urlData.publicUrl, // 使用 Storage URL 而不是 base64
           timestamp: now.toISOString(),
           fileName: file.name,
         };
         onUpload(pair.id, type, photoRecord);
+      } catch (error: any) {
+        console.error("Photo upload error:", error);
+        alert(`照片上传失败：${error.message}`);
+      } finally {
         setProcessing(null);
-      };
-      reader.onerror = () => setProcessing(null);
-      reader.readAsDataURL(file);
+      }
     },
     [pair.id, onUpload]
   );
@@ -108,7 +132,7 @@ export function PhotoUploader({
             type="button"
           >
             {isProcessing ? (
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
             ) : (
               <>
                 <Camera className="w-6 h-6 text-gray-300" />
