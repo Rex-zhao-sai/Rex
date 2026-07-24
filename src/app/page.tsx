@@ -11,14 +11,6 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 
 type Role = "admin" | "operator";
 
-// Get basePath for static assets (GitHub Pages uses /Rex)
-const getBasePath = () => {
-  if (typeof window !== "undefined" && window.location.hostname.includes("github.io")) {
-    return "/Rex";
-  }
-  return "";
-};
-
 function getStoredRole(): Role {
   if (typeof window === "undefined") return "operator";
   return (sessionStorage.getItem("role") as Role) || "operator";
@@ -26,6 +18,7 @@ function getStoredRole(): Role {
 
 export default function Home() {
   const isMobile = useIsMobile();
+  const [basePath, setBasePath] = useState("");
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<Role>(() => {
     if (typeof window !== "undefined" && window.innerWidth < 768) return "operator";
@@ -60,6 +53,13 @@ export default function Home() {
     upcoming: false,
     completed: false,
   });
+
+  // Set basePath on client side
+  useEffect(() => {
+    if (window.location.pathname.startsWith("/Rex")) {
+      setBasePath("/Rex");
+    }
+  }, []);
 
   // Fetch records for current month
   useEffect(() => {
