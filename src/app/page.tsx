@@ -171,8 +171,8 @@ export default function Home() {
       list = equipmentList.filter((e) => e.name.toLowerCase().includes(q));
     }
 
-    const overdue: any[] = [];      // 超期未保养 (>60 天)
-    const upcoming: any[] = [];     // 即将到期 (31-60 天)
+    const overdue: any[] = [];      // 超期未保养 (>30 天)
+    const upcoming: any[] = [];     // 即将到期 (<30 天但本月未保养)
     const completed: any[] = [];    // 本月已完成
 
     list.forEach((eq) => {
@@ -182,11 +182,11 @@ export default function Home() {
       if (record) {
         // 本月有保养记录
         completed.push({ ...eq, days, record });
-      } else if (days > 60) {
-        // 超期未保养
-        overdue.push({ ...eq, days });
       } else if (days > 30) {
-        // 即将到期
+        // 超期未保养 (>30 天)
+        overdue.push({ ...eq, days });
+      } else {
+        // 即将到期 (<30 天但本月未保养)
         upcoming.push({ ...eq, days });
       }
     });
@@ -225,15 +225,17 @@ export default function Home() {
     if (isCompleted) {
       statusColor = "border-green-500";
       statusIcon = <CheckCircle2 size={16} className="text-green-500" />;
-      statusText = eq.days <= 30 ? `🟢 ${eq.days}天前` : `${eq.days}天前`;
-    } else if (eq.days > 60) {
+      statusText = `🟢 ${eq.days}天前`;
+    } else if (eq.days > 30) {
+      // 超期未保养 (>30 天)
       statusColor = "border-red-500";
       statusIcon = <AlertCircle size={16} className="text-red-500" />;
-      statusText = `🔴 >60 天前`;
+      statusText = `🔴 ${eq.days}天前`;
     } else {
+      // 即将到期 (<30 天)
       statusColor = "border-yellow-500";
       statusIcon = <Clock size={16} className="text-yellow-500" />;
-      statusText = `🟡 ${eq.days}天前`;
+      statusText = ` ${eq.days}天前`;
     }
 
     return (
@@ -249,7 +251,7 @@ export default function Home() {
         <div className="flex items-center gap-1.5 mb-2">
           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
             isCompleted ? "bg-green-100 text-green-700" :
-            eq.days > 60 ? "bg-red-100 text-red-700" :
+            eq.days > 30 ? "bg-red-100 text-red-700" :
             "bg-yellow-100 text-yellow-700"
           }`}>
             {statusText}
