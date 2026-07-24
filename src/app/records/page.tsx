@@ -35,8 +35,8 @@ export default function RecordsPage() {
   const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<Role>(() => {
-    // 默认总是操作端，需要密码才能切换到管理端
-    return "operator";
+    // 从 sessionStorage 读取角色，默认为操作端
+    return getStoredRole();
   });
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
