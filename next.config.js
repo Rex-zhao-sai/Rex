@@ -8,9 +8,6 @@ const nextConfig = {
   images: {
     unoptimized: isGitHubPages,
   },
-  env: {
-    NEXT_PUBLIC_BASE_PATH: isGitHubPages ? '/Rex' : '',
-  },
 };
 
 module.exports = nextConfig;

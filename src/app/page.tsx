@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState, useEffect, useMemo } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
@@ -32,7 +31,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [equipmentList, setEquipmentList] = useState(EQUIPMENT_LIST);
   const [connectionError, setConnectionError] = useState("");
-  const [loadingTime, setLoadingTime] = useState(0);
 
   // Add equipment modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -42,11 +40,6 @@ export default function Home() {
 
   // QR code modal
   const [showQR, setShowQR] = useState(false);
-
-  // Password modal state
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [password, setPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
 
   // Expand state for each group
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
@@ -81,42 +74,53 @@ export default function Home() {
     return 61;
   };
 
-  // Fetch records and equipment list
+  // Fetch records for current month
   useEffect(() => {
-    const startTime = Date.now();
-    const loadData = async () => {
+    const loadRecords = async () => {
       setLoading(true);
       setConnectionError("");
       try {
-        // 并行加载记录和设 备列表
-        const [recordsResult, equipmentResult] = await Promise.all([
-          supabase.from("maintenance_records").select("*, equipment(name)").eq("month", currentMonth),
-          supabase.from("equipment").select("*").order("name"),
-        ]);
+        const { data, error } = await supabase
+          .from("maintenance_records")
+          .select("*, equipment(name)")
+          .eq("month", currentMonth);
 
-        if (recordsResult.error) throw recordsResult.error;
-        if (equipmentResult.error) throw equipmentResult.error;
+        if (error) throw error;
 
         const map: Record<string, any> = {};
-        (recordsResult.data || []).forEach((r) => {
+        (data || []).forEach((r) => {
           map[r.equipment_id] = r;
         });
         setRecords(map);
-
-        if (equipmentResult.data && equipmentResult.data.length > 0) {
-          setEquipmentList(equipmentResult.data.map((e) => ({ id: e.id, name: e.name })));
-        }
       } catch (e: any) {
-        console.error("数据加载失败:", e);
+        console.error("获取记录失败:", e);
         setConnectionError("连接失败，请检查网络后刷新页面");
       } finally {
-        const elapsed = Math.round((Date.now() - startTime) / 1000);
-        setLoadingTime(elapsed);
         setLoading(false);
       }
     };
-    loadData();
+    loadRecords();
   }, [currentMonth]);
+
+  // Fetch equipment list from Supabase
+  useEffect(() => {
+    const loadEquipment = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("equipment")
+          .select("*")
+          .order("name");
+
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setEquipmentList(data.map((e) => ({ id: e.id, name: e.name })));
+        }
+      } catch (e) {
+        console.error("获取设备列表失败:", e);
+      }
+    };
+    loadEquipment();
+  }, []);
 
   // Add new equipment
   const handleAddEquipment = async () => {
@@ -203,36 +207,9 @@ export default function Home() {
   const progress = total > 0 ? Math.round((completedCount / total) * 100) : 0;
 
   const handleRoleToggle = () => {
-    if (role === "admin") {
-      // Switching from admin to operator - no password needed
-      const newRole = "operator";
-      setRole(newRole);
-      sessionStorage.setItem("role", newRole);
-    } else {
-      // Switching from operator to admin - show password modal
-      setShowPasswordModal(true);
-      setPassword("");
-      setPasswordError("");
-    }
-  };
-
-  const handlePasswordSubmit = () => {
-    if (password === "Test12345678!@") {
-      const newRole = "admin";
-      setRole(newRole);
-      sessionStorage.setItem("role", newRole);
-      setShowPasswordModal(false);
-      setPassword("");
-      setPasswordError("");
-    } else {
-      setPasswordError("密码错误，请重试");
-    }
-  };
-
-  const handlePasswordCancel = () => {
-    setShowPasswordModal(false);
-    setPassword("");
-    setPasswordError("");
+    const newRole = role === "admin" ? "operator" : "admin";
+    setRole(newRole);
+    sessionStorage.setItem("role", newRole);
   };
 
   // 渲染设备卡片
@@ -341,7 +318,7 @@ export default function Home() {
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src={`${process.env.NEXT_PUBLIC_BASE_PATH}/melecs-logo.png`} alt="Melecs Logo" width={40} height={40} className="object-contain" priority />
+            <img src="/melecs-logo.png" alt="Melecs Logo" className="w-10 h-10 object-contain" />
             <h1 className="text-xl font-bold text-gray-900">设备月度保养</h1>
           </div>
           <div className="flex items-center gap-3">
@@ -431,16 +408,8 @@ export default function Home() {
 
         {/* Loading state */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12">
             <Loader2 size={24} className="animate-spin text-blue-600" />
-            <p className="mt-4 text-sm text-gray-500">
-              {loadingTime > 0 ? `加载中... ${loadingTime}秒` : "正在连接数据库..."}
-            </p>
-            {loadingTime >= 3 && (
-              <p className="mt-2 text-xs text-gray-400">
-                首次访问可能需要 5-10 秒（数据库唤醒）
-              </p>
-            )}
           </div>
         ) : (
           <>
@@ -513,51 +482,6 @@ export default function Home() {
 
       {/* QR Code Modal */}
       {!isMobile && showQR && <QRCodeModal />}
-
-      {/* Password Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900">管理端验证</h3>
-              <button
-                onClick={handlePasswordCancel}
-                className="p-1 rounded-full hover:bg-gray-100"
-              >
-                <X size={20} className="text-gray-600" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">请输入管理端密码以切换身份</p>
-            <input
-              type="password"
-              placeholder="输入密码..."
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }}
-              onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              autoFocus
-            />
-            {passwordError && (
-              <p className="mt-2 text-xs text-red-500">{passwordError}</p>
-            )}
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handlePasswordCancel}
-                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={handlePasswordSubmit}
-                disabled={!password.trim()}
-                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                确认
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style jsx>{`
         .card-hover:hover {
