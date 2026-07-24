@@ -5,8 +5,7 @@ import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import supabase from "@/lib/supabase-browser";
 import Link from "next/link";
-import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
-import Image from "next/image";
+import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, Calendar, ChevronDown } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -309,6 +308,11 @@ export default function Home() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {visibleItems.map((eq) => renderEquipmentCard(eq, isCompleted))}
         </div>
+        {isExpanded && items.length > 4 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
+            {items.slice(4).map((eq) => renderEquipmentCard(eq, isCompleted))}
+          </div>
+        )}
       </section>
     );
   };
@@ -319,7 +323,7 @@ export default function Home() {
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/melecs-logo.png" alt="Melecs Logo" width={32} height={32} className="object-contain" />
+            <Calendar className="text-blue-600" size={24} />
             <h1 className="text-xl font-bold text-gray-900">设备月度保养</h1>
           </div>
           <div className="flex items-center gap-3">
