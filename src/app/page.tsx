@@ -308,11 +308,6 @@ export default function Home() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {visibleItems.map((eq) => renderEquipmentCard(eq, isCompleted))}
         </div>
-        {isExpanded && items.length > 4 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
-            {items.slice(4).map((eq) => renderEquipmentCard(eq, isCompleted))}
-          </div>
-        )}
       </section>
     );
   };
