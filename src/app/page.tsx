@@ -80,53 +80,39 @@ export default function Home() {
     return 61;
   };
 
-  // Fetch records for current month
+  // Fetch records and equipment list
   useEffect(() => {
-    const loadRecords = async () => {
+    const loadData = async () => {
       setLoading(true);
       setConnectionError("");
       try {
-        const { data, error } = await supabase
-          .from("maintenance_records")
-          .select("*, equipment(name)")
-          .eq("month", currentMonth);
+        // 并行加载记录和设 备列表
+        const [recordsResult, equipmentResult] = await Promise.all([
+          supabase.from("maintenance_records").select("*, equipment(name)").eq("month", currentMonth),
+          supabase.from("equipment").select("*").order("name"),
+        ]);
 
-        if (error) throw error;
+        if (recordsResult.error) throw recordsResult.error;
+        if (equipmentResult.error) throw equipmentResult.error;
 
         const map: Record<string, any> = {};
-        (data || []).forEach((r) => {
+        (recordsResult.data || []).forEach((r) => {
           map[r.equipment_id] = r;
         });
         setRecords(map);
+
+        if (equipmentResult.data && equipmentResult.data.length > 0) {
+          setEquipmentList(equipmentResult.data.map((e) => ({ id: e.id, name: e.name })));
+        }
       } catch (e: any) {
-        console.error("获取记录失败:", e);
+        console.error("数据加载失败:", e);
         setConnectionError("连接失败，请检查网络后刷新页面");
       } finally {
         setLoading(false);
       }
     };
-    loadRecords();
+    loadData();
   }, [currentMonth]);
-
-  // Fetch equipment list from Supabase
-  useEffect(() => {
-    const loadEquipment = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("equipment")
-          .select("*")
-          .order("name");
-
-        if (error) throw error;
-        if (data && data.length > 0) {
-          setEquipmentList(data.map((e) => ({ id: e.id, name: e.name })));
-        }
-      } catch (e) {
-        console.error("获取设备列表失败:", e);
-      }
-    };
-    loadEquipment();
-  }, []);
 
   // Add new equipment
   const handleAddEquipment = async () => {
