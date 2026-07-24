@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "build:github": "GITHUB_PAGES=1 next build && node scripts/fix-gh-pages-routes.js",
+    "build:github": "GITHUB_PAGES=1 next build",
     "dev": "bash ./scripts/dev.sh",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
