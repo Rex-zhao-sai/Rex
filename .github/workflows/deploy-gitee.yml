@@ -30,10 +30,11 @@ jobs:
           GITEE_PAGES: '1'
 
       - name: Deploy to Gitee
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          personal_token: ${{ secrets.GITEE_TOKEN }}
-          external_repository: rex-zhao/shebeibaoyang
-          publish_branch: master
-          publish_dir: ./out
-          force_orphan: true
+        run: |
+          cd out
+          git init
+          git add -A
+          git commit -m "Deploy to Gitee Pages"
+          git branch -M master
+          git remote add origin https://oauth2:${{ secrets.GITEE_TOKEN }}@gitee.com/rex-zhao/shebeibaoyang.git
+          git push -f origin master
