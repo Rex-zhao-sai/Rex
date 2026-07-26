@@ -1,0 +1,31 @@
+image: node:20-alpine
+
+cache:
+  paths:
+    - node_modules/
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  script:
+    - npm install -g pnpm
+    - pnpm install
+    - pnpm build
+  artifacts:
+    paths:
+      - out/
+
+pages:
+  stage: deploy
+  script:
+    - mkdir .public
+    - cp -r out/* .public/
+    - mv .public public
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
