@@ -8,8 +8,8 @@ CREATE POLICY "Allow public read access"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'maintenance-photos');
 
--- 允许认证用户上传文件
-CREATE POLICY "Allow authenticated upload"
+-- 允许所有用户上传文件（内部工具，无需认证）
+CREATE POLICY "Allow public upload"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'maintenance-photos');
 
