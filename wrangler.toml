@@ -1,9 +1,0 @@
-name = "shebeibaoyang"
-compatibility_date = "2026-07-26"
-
-[build]
-command = "pnpm build"
-output_dir = "out"
-
-[vars]
-CLOUDFLARE_PAGES = "1"
