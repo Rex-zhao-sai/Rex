@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { formatMonth } from "@/lib/storage";
+import { exportRecordsToZip } from "@/lib/export-records";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -18,10 +19,12 @@ import {
   QrCode,
   Shield,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import supabase from "@/lib/supabase-browser";
+import { Progress } from "@/components/ui/progress";
 
 type Role = "admin" | "operator";
 
@@ -44,6 +47,11 @@ export default function RecordsPage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [exportProgress, setExportProgress] = useState<{
+    current: number;
+    total: number;
+    message: string;
+  } | null>(null);
 
   // Get all unique months from records + current month
   const currentMonth = useMemo(() => {
@@ -106,34 +114,37 @@ export default function RecordsPage() {
     return EQUIPMENT_LIST.find((e) => e.id === id)?.name ?? id;
   };
 
-  const handleExport = () => {
-    const data = filtered.map((r: any) => ({
-      设备名称: getEquipmentName(r.equipment_id),
-      技术员: r.technician || "",
-      照片组数: r.photo_pairs?.filter((p: any) => p.before && p.after).length || 0,
-      备注: r.notes || "",
-      创建时间: new Date(r.created_at).toLocaleString("zh-CN"),
-      更新时间: new Date(r.updated_at).toLocaleString("zh-CN"),
-    }));
+  const handleExport = async () => {
+    if (filtered.length === 0) {
+      alert("没有可导出的记录");
+      return;
+    }
 
-    const csvContent = [
-      ["设备名称", "技术员", "照片组数", "备注", "创建时间", "更新时间"].join(","),
-      ...data.map((row) =>
-        Object.values(row)
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(",")
-      ),
-    ].join("\n");
+    try {
+      setExportProgress({
+        current: 0,
+        total: filtered.length,
+        message: "开始导出...",
+      });
 
-    const blob = new Blob(["\ufeff" + csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `保养记录_${selectedMonth}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+      await exportRecordsToZip(
+        filtered,
+        selectedMonth,
+        getEquipmentName,
+        (progress: { current: number; total: number; message: string }) => {
+          setExportProgress(progress);
+        }
+      );
+
+      // 延迟关闭进度对话框，让用户看到完成提示
+      setTimeout(() => {
+        setExportProgress(null);
+      }, 1500);
+    } catch (e: any) {
+      console.error("Export failed:", e);
+      alert("导出失败：" + e.message);
+      setExportProgress(null);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -529,6 +540,36 @@ export default function RecordsPage() {
                 >
                   确认
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Progress Dialog */}
+      {exportProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-4">
+              {exportProgress.current === exportProgress.total ? (
+                <CheckCircle2 className="w-6 h-6 text-green-500" />
+              ) : (
+                <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+              )}
+              <h3 className="text-base font-bold text-gray-900">
+                {exportProgress.current === exportProgress.total ? "导出完成" : "正在导出..."}
+              </h3>
+            </div>
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                {exportProgress.message}
+              </div>
+              <Progress
+                value={(exportProgress.current / exportProgress.total) * 100}
+                className="w-full"
+              />
+              <div className="text-xs text-gray-500 text-right">
+                {exportProgress.current} / {exportProgress.total}
               </div>
             </div>
           </div>
