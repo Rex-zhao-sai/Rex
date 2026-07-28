@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import supabase from "@/lib/supabase-browser";
+import { getCachedData, setCachedData } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
@@ -32,6 +33,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [equipmentList, setEquipmentList] = useState(EQUIPMENT_LIST);
   const [connectionError, setConnectionError] = useState("");
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const isInitialLoad = useRef(true);
 
   // Add equipment modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -61,27 +64,55 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch records for current month
+  // Fetch records for current month with caching
   useEffect(() => {
     const loadRecords = async () => {
-      setLoading(true);
+      const cacheKey = `records_${currentMonth}`;
+      const cachedRecords = getCachedData<Record<string, any>>(cacheKey);
+      
+      // 如果有缓存且是增量更新，先使用缓存数据
+      if (cachedRecords && !isInitialLoad.current) {
+        setRecords(cachedRecords);
+        setLoading(false);
+      }
+      
       setConnectionError("");
       try {
-        const { data, error } = await supabase
+        // 如果有缓存，只获取更新的数据
+        let query = supabase
           .from("maintenance_records")
           .select("*, equipment(name)")
           .eq("month", currentMonth);
+        
+        // 增量更新：只获取比缓存更新的数据
+        if (cachedRecords && lastFetchTime > 0) {
+          query = query.gt("updated_at", new Date(lastFetchTime).toISOString());
+        }
+        
+        const { data, error } = await query;
 
         if (error) throw error;
 
-        const map: Record<string, any> = {};
-        (data || []).forEach((r) => {
-          map[r.equipment_id] = r;
-        });
-        setRecords(map);
+        if (data && data.length > 0) {
+          // 合并缓存和新数据
+          const newRecords = cachedRecords ? { ...cachedRecords } : {};
+          data.forEach((r) => {
+            newRecords[r.equipment_id] = r;
+          });
+          setRecords(newRecords);
+          setCachedData(cacheKey, newRecords);
+          setLastFetchTime(Date.now());
+        } else if (!cachedRecords) {
+          setRecords({});
+        }
+        
+        isInitialLoad.current = false;
       } catch (e: any) {
         console.error("获取记录失败:", e);
-        setConnectionError("连接失败，请检查网络后刷新页面");
+        // 如果有缓存，不显示错误
+        if (!cachedRecords) {
+          setConnectionError("连接失败，请检查网络后刷新页面");
+        }
       } finally {
         setLoading(false);
       }
@@ -89,9 +120,17 @@ export default function Home() {
     loadRecords();
   }, [currentMonth]);
 
-  // Fetch equipment list from Supabase
+  // Fetch equipment list from Supabase with caching
   useEffect(() => {
     const loadEquipment = async () => {
+      const cacheKey = "equipment_list";
+      const cachedEquipment = getCachedData<any[]>(cacheKey);
+      
+      // 如果有缓存，先使用缓存数据
+      if (cachedEquipment) {
+        setEquipmentList(cachedEquipment);
+      }
+      
       try {
         const { data, error } = await supabase
           .from("equipment")
@@ -100,10 +139,13 @@ export default function Home() {
 
         if (error) throw error;
         if (data && data.length > 0) {
-          setEquipmentList(data.map((e) => ({ id: e.id, name: e.name })));
+          const newEquipmentList = data.map((e) => ({ id: e.id, name: e.name }));
+          setEquipmentList(newEquipmentList);
+          setCachedData(cacheKey, newEquipmentList);
         }
       } catch (e) {
         console.error("获取设备列表失败:", e);
+        // 如果有缓存，不显示错误
       }
     };
     loadEquipment();
@@ -338,11 +380,6 @@ export default function Home() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {visibleItems.map((eq) => renderEquipmentCard(eq, isCompleted))}
         </div>
-        {isExpanded && items.length > 4 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
-            {items.slice(4).map((eq) => renderEquipmentCard(eq, isCompleted))}
-          </div>
-        )}
       </section>
     );
   };
