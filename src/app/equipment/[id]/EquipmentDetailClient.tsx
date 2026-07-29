@@ -43,6 +43,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   const [photoPairs, setPhotoPairs] = useState<PhotoPair[]>([]);
   const [technician, setTechnician] = useState("");
   const [notes, setNotes] = useState("");
+  const [duration, setDuration] = useState(0);
   const [saved, setSaved] = useState(false);
   const [showSavedToast, setShowSavedToast] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -287,7 +288,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                   <input
                     type="number"
                     value={duration}
-                    onChange={(e) => { setDuration(e.target.value); setSaved(false); }}
+                    onChange={(e) => { setDuration(parseInt(e.target.value) || 0); setSaved(false); }}
                     disabled={isReadOnly}
                     placeholder="请输入整数"
                     min="1"
