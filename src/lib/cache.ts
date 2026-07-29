@@ -52,7 +52,7 @@ if (typeof window !== 'undefined') {
  * 判断是否需要同步（缓存超过 TTL 或无缓存）
  */
 export async function shouldSync(month: string): Promise<boolean> {
-  const lastSync = await getLastSyncTime(month);
+  const lastSync = await getLastSyncTime(`records_${month}`);
   if (!lastSync) return true;
   return Date.now() - lastSync > CACHE_TTL;
 }
