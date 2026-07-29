@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 
 export const metadata: Metadata = {
   title: '设备月度保养记录系统',
@@ -20,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased bg-gray-50 min-h-screen">
+        <ServiceWorkerRegister />
         {children}
       </body>
     </html>

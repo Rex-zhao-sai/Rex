@@ -1,65 +1,180 @@
-// localStorage 缓存工具
-const CACHE_PREFIX = "maintenance_cache_";
-const CACHE_TTL = 5 * 60 * 1000; // 5 分钟缓存
+/**
+ * 缓存工具 - IndexedDB 版本
+ * 支持离线优先架构，大容量存储，结构化查询
+ */
 
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-}
+import {
+  getDB,
+  cacheEquipmentList,
+  getCachedEquipmentList,
+  cacheRecords,
+  getCachedRecordsByMonth,
+  getLastSyncTime,
+  setMetadata,
+  getMetadata,
+  clearAllCache,
+  type CachedEquipment,
+  type CachedRecord,
+} from './indexeddb';
 
-export function getCachedData<T>(key: string): T | null {
-  if (typeof window === "undefined") return null;
-  
+// 缓存 TTL（用于判断是否需要后台同步）
+const CACHE_TTL = 30 * 60 * 1000; // 30 分钟
+
+/**
+ * 获取缓存的设备列表
+ */
+export async function getCachedEquipment(): Promise<CachedEquipment[] | null> {
+  if (typeof window === 'undefined') return null;
+
   try {
-    const cached = localStorage.getItem(CACHE_PREFIX + key);
-    if (!cached) return null;
-    
-    const entry: CacheEntry<T> = JSON.parse(cached);
-    const now = Date.now();
-    
+    const lastSync = await getLastSyncTime('equipment');
+    if (!lastSync) return null;
+
     // 检查是否过期
-    if (now - entry.timestamp > CACHE_TTL) {
-      localStorage.removeItem(CACHE_PREFIX + key);
-      return null;
+    const age = Date.now() - new Date(lastSync).getTime();
+    if (age > CACHE_TTL) {
+      console.log('[Cache] Equipment cache expired, need refresh');
+      // 不过期也返回，后台会更新
     }
-    
-    return entry.data;
+
+    const equipment = await getCachedEquipmentList();
+    console.log(`[Cache] Loaded ${equipment.length} equipment from IndexedDB`);
+    return equipment;
   } catch (e) {
-    console.error("读取缓存失败:", e);
+    console.error('[Cache] Failed to load equipment from IndexedDB:', e);
     return null;
   }
 }
 
-export function setCachedData<T>(key: string, data: T): void {
-  if (typeof window === "undefined") return;
-  
+/**
+ * 缓存设备列表
+ */
+export async function setCachedEquipment(equipment: CachedEquipment[]): Promise<void> {
+  if (typeof window === 'undefined') return;
+
   try {
-    const entry: CacheEntry<T> = {
-      data,
-      timestamp: Date.now(),
-    };
-    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(entry));
+    await cacheEquipmentList(equipment);
+    console.log(`[Cache] Cached ${equipment.length} equipment to IndexedDB`);
   } catch (e) {
-    console.error("写入缓存失败:", e);
+    console.error('[Cache] Failed to cache equipment:', e);
   }
 }
 
-export function clearCache(key?: string): void {
-  if (typeof window === "undefined") return;
-  
+/**
+ * 获取缓存的保养记录
+ */
+export async function getCachedRecords(month: string): Promise<CachedRecord[] | null> {
+  if (typeof window === 'undefined') return null;
+
   try {
-    if (key) {
-      localStorage.removeItem(CACHE_PREFIX + key);
-    } else {
-      // 清除所有缓存
-      const keys = Object.keys(localStorage);
-      keys.forEach((k) => {
-        if (k.startsWith(CACHE_PREFIX)) {
-          localStorage.removeItem(k);
-        }
+    const lastSync = await getLastSyncTime(`records_${month}`);
+    if (!lastSync) return null;
+
+    const records = await getCachedRecordsByMonth(month);
+    console.log(`[Cache] Loaded ${records.length} records for ${month} from IndexedDB`);
+    return records;
+  } catch (e) {
+    console.error('[Cache] Failed to load records from IndexedDB:', e);
+    return null;
+  }
+}
+
+/**
+ * 缓存保养记录
+ */
+export async function setCachedRecords(records: CachedRecord[]): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  try {
+    await cacheRecords(records);
+    console.log(`[Cache] Cached ${records.length} records to IndexedDB`);
+  } catch (e) {
+    console.error('[Cache] Failed to cache records:', e);
+  }
+}
+
+/**
+ * 获取上次同步时间
+ */
+export async function getLastSyncTimeFor(type: 'equipment' | `records_${string}`): Promise<string | null> {
+  return getLastSyncTime(type);
+}
+
+/**
+ * 清除所有缓存
+ */
+export async function clearAll(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  try {
+    await clearAllCache();
+    console.log('[Cache] All cache cleared');
+  } catch (e) {
+    console.error('[Cache] Failed to clear cache:', e);
+  }
+}
+
+/**
+ * 触发后台同步
+ */
+export async function triggerBackgroundSync(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  try {
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      const registration = await navigator.serviceWorker.ready;
+      // 使用类型断言避免 TypeScript 错误
+      const reg = registration as ServiceWorkerRegistration & {
+        sync: { register: (tag: string) => Promise<void> };
+      };
+      await reg.sync.register('sync-maintenance-data');
+      console.log('[Cache] Background sync registered');
+    }
+  } catch (e) {
+    console.error('[Cache] Failed to register background sync:', e);
+  }
+}
+
+/**
+ * 通知 Service Worker 同步数据
+ */
+export async function notifySync(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'TRIGGER_SYNC',
       });
     }
   } catch (e) {
-    console.error("清除缓存失败:", e);
+    console.error('[Cache] Failed to notify sync:', e);
   }
+}
+
+/**
+ * 监听同步状态
+ */
+export function onSyncStatusChange(
+  onStart?: () => void,
+  onComplete?: () => void,
+  onError?: (error: string) => void
+): () => void {
+  if (typeof window === 'undefined') return () => {};
+
+  const handler = (event: MessageEvent) => {
+    if (event.data.type === 'SYNC_START') {
+      onStart?.();
+    } else if (event.data.type === 'SYNC_COMPLETE') {
+      onComplete?.();
+    } else if (event.data.type === 'SYNC_ERROR') {
+      onError?.(event.data.error);
+    }
+  };
+
+  navigator.serviceWorker.addEventListener('message', handler);
+
+  return () => {
+    navigator.serviceWorker.removeEventListener('message', handler);
+  };
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import supabase from "@/lib/supabase-browser";
-import { getCachedData, setCachedData } from "@/lib/cache";
+import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords, triggerBackgroundSync, notifySync, onSyncStatusChange } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
@@ -64,52 +64,51 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch records for current month with caching
+  // Fetch records for current month with IndexedDB caching
   useEffect(() => {
     const loadRecords = async () => {
-      const cacheKey = `records_${currentMonth}`;
-      const cachedRecords = getCachedData<Record<string, any>>(cacheKey);
+      // 先从 IndexedDB 加载缓存
+      const cachedRecords = await getCachedRecords(currentMonth);
       
-      // 如果有缓存且是增量更新，先使用缓存数据
-      if (cachedRecords && !isInitialLoad.current) {
-        setRecords(cachedRecords);
+      // 如果有缓存，立即显示（离线优先）
+      if (cachedRecords && cachedRecords.length > 0) {
+        const recordsMap: Record<string, any> = {};
+        cachedRecords.forEach(r => {
+          recordsMap[r.equipment_id] = r;
+        });
+        setRecords(recordsMap);
         setLoading(false);
+        console.log('[Page] Loaded from IndexedDB cache');
       }
       
       setConnectionError("");
       try {
-        // 如果有缓存，只获取更新的数据
-        let query = supabase
+        // 后台从 Supabase 获取最新数据
+        const { data, error } = await supabase
           .from("maintenance_records")
           .select("*, equipment(name)")
           .eq("month", currentMonth);
-        
-        // 增量更新：只获取比缓存更新的数据
-        if (cachedRecords && lastFetchTime > 0) {
-          query = query.gt("updated_at", new Date(lastFetchTime).toISOString());
-        }
-        
-        const { data, error } = await query;
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-          // 合并缓存和新数据
-          const newRecords = cachedRecords ? { ...cachedRecords } : {};
+          const recordsMap: Record<string, any> = {};
           data.forEach((r) => {
-            newRecords[r.equipment_id] = r;
+            recordsMap[r.equipment_id] = r;
           });
-          setRecords(newRecords);
-          setCachedData(cacheKey, newRecords);
-          setLastFetchTime(Date.now());
+          setRecords(recordsMap);
+          // 写入 IndexedDB
+          await setCachedRecords(data);
+          console.log('[Page] Updated from Supabase');
         } else if (!cachedRecords) {
           setRecords({});
         }
         
-        isInitialLoad.current = false;
+        // 触发后台同步
+        triggerBackgroundSync();
       } catch (e: any) {
         console.error("获取记录失败:", e);
-        // 如果有缓存，不显示错误
+        // 如果有缓存，不显示错误（离线可用）
         if (!cachedRecords) {
           setConnectionError("连接失败，请检查网络后刷新页面");
         }
@@ -120,18 +119,20 @@ export default function Home() {
     loadRecords();
   }, [currentMonth]);
 
-  // Fetch equipment list from Supabase with caching
+  // Fetch equipment list from Supabase with IndexedDB caching
   useEffect(() => {
     const loadEquipment = async () => {
-      const cacheKey = "equipment_list";
-      const cachedEquipment = getCachedData<any[]>(cacheKey);
+      // 先从 IndexedDB 加载缓存
+      const cachedEquipment = await getCachedEquipment();
       
-      // 如果有缓存，先使用缓存数据
-      if (cachedEquipment) {
+      // 如果有缓存，立即显示（离线优先）
+      if (cachedEquipment && cachedEquipment.length > 0) {
         setEquipmentList(cachedEquipment);
+        console.log('[Page] Loaded equipment from IndexedDB cache');
       }
       
       try {
+        // 后台从 Supabase 获取最新数据
         const { data, error } = await supabase
           .from("equipment")
           .select("*")
@@ -139,13 +140,23 @@ export default function Home() {
 
         if (error) throw error;
         if (data && data.length > 0) {
-          const newEquipmentList = data.map((e) => ({ id: e.id, name: e.name }));
+          const newEquipmentList = data.map((e) => ({
+            id: e.id,
+            name: e.name,
+            category: e.category,
+            maintenance_cycle_months: e.maintenance_cycle_months,
+            last_maintenance_date: e.last_maintenance_date,
+            created_at: e.created_at,
+            updated_at: e.updated_at,
+          }));
           setEquipmentList(newEquipmentList);
-          setCachedData(cacheKey, newEquipmentList);
+          // 写入 IndexedDB
+          await setCachedEquipment(newEquipmentList);
+          console.log('[Page] Updated equipment from Supabase');
         }
       } catch (e) {
         console.error("获取设备列表失败:", e);
-        // 如果有缓存，不显示错误
+        // 如果有缓存，不显示错误（离线可用）
       }
     };
     loadEquipment();
