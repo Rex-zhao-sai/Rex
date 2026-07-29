@@ -94,7 +94,7 @@ export default function RecordsPage() {
         } else {
           const newData = data || [];
           setRecords(newData);
-          await setCachedRecords(selectedMonth, newData);
+          await setCachedRecords(newData);
           console.log("[Page] Updated records from Supabase");
         }
       } catch (e) {
