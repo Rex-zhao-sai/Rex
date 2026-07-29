@@ -10,6 +10,8 @@ export interface PhotoPair {
   id: string;
   before: PhotoRecord | null;
   after: PhotoRecord | null;
+  note: string; // 每组照片的备注
+  duration: number; // 保养时长（分钟）
 }
 
 export interface MaintenanceRecord {

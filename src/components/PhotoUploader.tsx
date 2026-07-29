@@ -5,11 +5,13 @@ import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId } from "@/lib/storage";
 import supabase from "@/lib/supabase-browser";
 import { Camera, X, Clock, Loader2 } from "lucide-react";
+import { ImagePreview } from "./ImagePreview";
 
 interface PhotoUploaderProps {
   pair: PhotoPair;
   onUpload: (pairId: string, type: "before" | "after", photo: PhotoRecord) => void;
   onRemove: (pairId: string, type: "before" | "after") => void;
+  onChange?: (pair: PhotoPair) => void;
   readOnly?: boolean;
 }
 
@@ -17,6 +19,7 @@ export function PhotoUploader({
   pair,
   onUpload,
   onRemove,
+  onChange,
   readOnly = false,
 }: PhotoUploaderProps) {
   const beforeRef = useRef<HTMLInputElement>(null);
@@ -105,15 +108,15 @@ export function PhotoUploader({
 
         {photo ? (
           <div className="relative group">
-            <img
+            <ImagePreview
               src={photo.dataUrl}
               alt={`${label} photo`}
-              className="w-full aspect-square object-cover rounded-lg border border-gray-200"
+              className="w-full aspect-square object-cover rounded-lg border border-gray-200 cursor-pointer"
             />
             {!readOnly && (
               <button
                 onClick={() => onRemove(pair.id, type)}
-                className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
                 type="button"
               >
                 <X className="w-3.5 h-3.5" />
@@ -155,9 +158,58 @@ export function PhotoUploader({
   };
 
   return (
-    <div className="flex gap-4">
-      {renderSlot("before")}
-      {renderSlot("after")}
+    <div className="space-y-3">
+      <div className="flex gap-4">
+        {renderSlot("before")}
+        {renderSlot("after")}
+      </div>
+
+      {!readOnly && (
+        <>
+          {/* 保养时长 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              保养时长 <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={pair.duration || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // 只允许正整数
+                  if (val === "" || (Number.isInteger(Number(val)) && Number(val) > 0)) {
+                    onChange?.({ ...pair, duration: val ? Number(val) : 0 });
+                  }
+                }}
+                placeholder="请输入整数（分钟）"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+              <span className="text-sm text-gray-500 whitespace-nowrap">分钟</span>
+            </div>
+          </div>
+
+          {/* 备注 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              备注 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={pair.note || ""}
+              onChange={(e) => {
+                onChange?.({ ...pair, note: e.target.value || "" });
+              }}
+              placeholder="请输入保养备注"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

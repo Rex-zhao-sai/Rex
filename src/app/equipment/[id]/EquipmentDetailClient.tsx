@@ -73,12 +73,12 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
           setExistingRecordId(data.id);
           setRecordRole((data.role as Role) || "operator");
         } else {
-          setPhotoPairs([{ id: generateId(), before: null, after: null }]);
+          setPhotoPairs([{ id: generateId(), before: null, after: null, note: "", duration: 0 }]);
         }
       } catch (e: any) {
         console.error("获取记录失败:", e);
         setConnectionError("连接失败，请检查网络后刷新页面");
-        setPhotoPairs([{ id: generateId(), before: null, after: null }]);
+        setPhotoPairs([{ id: generateId(), before: null, after: null, note: "", duration: 0 }]);
       } finally {
         setLoading(false);
       }
@@ -113,7 +113,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   const addPhotoPair = useCallback(() => {
     setPhotoPairs((prev) => [
       ...prev,
-      { id: generateId(), before: null, after: null },
+      { id: generateId(), before: null, after: null, note: "", duration: 0 },
     ]);
   }, []);
 
@@ -126,6 +126,22 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   );
 
   const handleSave = useCallback(async () => {
+    // 验证：已上传照片的组必须填写备注和保养时长
+    for (let i = 0; i < photoPairs.length; i++) {
+      const pair = photoPairs[i];
+      const hasPhotos = pair.before || pair.after;
+      if (hasPhotos) {
+        if (!pair.note || pair.note.trim() === "") {
+          alert(`第 ${i + 1} 组照片的备注为必填项`);
+          return;
+        }
+        if (!pair.duration || pair.duration <= 0) {
+          alert(`第 ${i + 1} 组照片的保养时长为必填项（必须为正整数）`);
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     const recordData = {
       equipment_id: equipmentId,
@@ -290,6 +306,11 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                     pair={pair}
                     onUpload={handlePhotoUpload}
                     onRemove={handlePhotoRemove}
+                    onChange={(updatedPair) => {
+                      const newPairs = [...photoPairs];
+                      newPairs[index] = updatedPair;
+                      setPhotoPairs(newPairs);
+                    }}
                     readOnly={isReadOnly}
                   />
                 </div>
