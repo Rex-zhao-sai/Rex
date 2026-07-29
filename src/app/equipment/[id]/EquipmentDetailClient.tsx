@@ -324,6 +324,23 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                     )}
                   </div>
 
+                  {/* 备注输入框 */}
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      value={pair.note || ""}
+                      onChange={(e) => {
+                        const newPairs = [...photoPairs];
+                        newPairs[index] = { ...newPairs[index], note: e.target.value };
+                        setPhotoPairs(newPairs);
+                        setSaved(false);
+                      }}
+                      disabled={isReadOnly}
+                      placeholder="请输入备注（必填）"
+                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
+                    />
+                  </div>
+
                   <PhotoUploader
                     pair={pair}
                     onUpload={handlePhotoUpload}
