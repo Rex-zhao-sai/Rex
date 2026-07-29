@@ -315,17 +315,8 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
             <div className="space-y-4">
               {photoPairs.map((pair, index) => (
                 <div key={pair.id} className="bg-white rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-[#111827]">第 {index + 1} 组照片</span>
-                    {photoPairs.length > 1 && !isReadOnly && (
-                      <button onClick={() => removePhotoPair(pair.id)} className="p-1 rounded-full hover:bg-red-50 text-red-500">
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* 备注输入框 */}
-                  <div className="mb-3">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-sm font-medium text-[#111827] whitespace-nowrap">第 {index + 1} 组照片</span>
                     <input
                       type="text"
                       value={pair.note || ""}
@@ -337,8 +328,13 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                       }}
                       disabled={isReadOnly}
                       placeholder="请输入备注（必填）"
-                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
+                      className="flex-1 px-3 py-1.5 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                     />
+                    {photoPairs.length > 1 && !isReadOnly && (
+                      <button onClick={() => removePhotoPair(pair.id)} className="p-1 rounded-full hover:bg-red-50 text-red-500 flex-shrink-0">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
 
                   <PhotoUploader
