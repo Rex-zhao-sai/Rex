@@ -70,6 +70,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
           setPhotoPairs((data.photo_pairs as PhotoPair[]) || []);
           setTechnician(data.technician || "");
           setNotes(data.notes || "");
+          setDuration(data.duration || 0);
           setExistingRecordId(data.id);
           setRecordRole((data.role as Role) || "operator");
         } else {
@@ -126,17 +127,19 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   );
 
   const handleSave = useCallback(async () => {
-    // 验证：已上传照片的组必须填写备注和保养时长
+    // 验证：整体保养时长必填
+    if (!duration || duration <= 0) {
+      alert("保养时长为必填项（必须为正整数）");
+      return;
+    }
+
+    // 验证：已上传照片的组必须填写备注
     for (let i = 0; i < photoPairs.length; i++) {
       const pair = photoPairs[i];
       const hasPhotos = pair.before || pair.after;
       if (hasPhotos) {
         if (!pair.note || pair.note.trim() === "") {
           alert(`第 ${i + 1} 组照片的备注为必填项`);
-          return;
-        }
-        if (!pair.duration || pair.duration <= 0) {
-          alert(`第 ${i + 1} 组照片的保养时长为必填项（必须为正整数）`);
           return;
         }
       }
@@ -148,6 +151,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       month: currentMonth,
       technician,
       notes,
+      duration,
       photo_pairs: photoPairs,
       role,
     };
@@ -264,7 +268,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            {/* Technician & Notes */}
+            {/* Technician, Duration & Notes */}
             <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-[#6B7280] mb-1">技术员</label>
@@ -276,6 +280,22 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                   placeholder="输入技术员姓名"
                   className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#6B7280] mb-1">保养时长</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={duration}
+                    onChange={(e) => { setDuration(e.target.value); setSaved(false); }}
+                    disabled={isReadOnly}
+                    placeholder="请输入整数"
+                    min="1"
+                    step="1"
+                    className="w-32 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
+                  />
+                  <span className="text-sm text-[#6B7280]">分钟</span>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-[#6B7280] mb-1">备注</label>
@@ -302,50 +322,6 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                       </button>
                     )}
                   </div>
-
-                  {/* 保养时长和备注 - 放在标题后、照片前 */}
-                  {!isReadOnly && (
-                    <div className="mb-4 space-y-3">
-                      {/* 保养时长 */}
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-[#111827] whitespace-nowrap">
-                          保养时长 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={pair.duration || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "" || (Number.isInteger(Number(val)) && Number(val) > 0)) {
-                              const newPairs = [...photoPairs];
-                              newPairs[index] = { ...pair, duration: val ? Number(val) : 0 };
-                              setPhotoPairs(newPairs);
-                            }
-                          }}
-                          placeholder="请输入整数（分钟）"
-                          className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
-                          required
-                        />
-                        <span className="text-sm text-[#6B7280] whitespace-nowrap">分钟</span>
-                      </div>
-
-                      {/* 备注 */}
-                      <input
-                        type="text"
-                        value={pair.note || ""}
-                        onChange={(e) => {
-                          const newPairs = [...photoPairs];
-                          newPairs[index] = { ...pair, note: e.target.value || "" };
-                          setPhotoPairs(newPairs);
-                        }}
-                        placeholder="请输入保养备注"
-                        className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
-                        required
-                      />
-                    </div>
-                  )}
 
                   <PhotoUploader
                     pair={pair}
