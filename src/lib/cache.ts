@@ -54,7 +54,7 @@ if (typeof window !== 'undefined') {
 export async function shouldSync(month: string): Promise<boolean> {
   const lastSync = await getLastSyncTime(`records_${month}`);
   if (!lastSync) return true;
-  return Date.now() - lastSync > CACHE_TTL;
+  return Date.now() - parseInt(lastSync) > CACHE_TTL;
 }
 
 /**
