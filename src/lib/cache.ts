@@ -61,7 +61,7 @@ export async function shouldSync(month: string): Promise<boolean> {
  * 通知同步完成
  */
 export async function notifySync(month: string): Promise<void> {
-  await setMetadata(`last_sync_${month}`, Date.now());
+  await setMetadata(`last_sync_${month}`, Date.now().toString());
 }
 
 /**
