@@ -49,6 +49,22 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * 判断是否需要同步（缓存超过 TTL 或无缓存）
+ */
+export async function shouldSync(month: string): Promise<boolean> {
+  const lastSync = await getLastSyncTime(month);
+  if (!lastSync) return true;
+  return Date.now() - lastSync > CACHE_TTL;
+}
+
+/**
+ * 通知同步完成
+ */
+export async function notifySync(month: string): Promise<void> {
+  await setMetadata(`last_sync_${month}`, Date.now());
+}
+
+/**
  * 获取缓存的设备列表
  */
 export async function getCachedEquipment(): Promise<CachedEquipment[] | null> {
