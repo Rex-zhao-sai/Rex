@@ -159,11 +159,6 @@ export function PhotoUploader({
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-4">
-        {renderSlot("before")}
-        {renderSlot("after")}
-      </div>
-
       {!readOnly && (
         <>
           {/* 保养时长 */}
@@ -210,6 +205,11 @@ export function PhotoUploader({
           </div>
         </>
       )}
+
+      <div className="flex gap-4">
+        {renderSlot("before")}
+        {renderSlot("after")}
+      </div>
     </div>
   );
 }
