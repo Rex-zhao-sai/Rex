@@ -21,6 +21,34 @@ import {
 const CACHE_TTL = 30 * 60 * 1000; // 30 分钟
 
 /**
+ * 清理旧的 localStorage 缓存（迁移到 IndexedDB 后不再需要）
+ */
+function cleanupLocalStorageCache() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('maintenance_cache_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`[Cache] Cleaned up old localStorage cache: ${key}`);
+    });
+  } catch (e) {
+    // 忽略清理错误
+  }
+}
+
+// 模块加载时自动清理旧缓存
+if (typeof window !== 'undefined') {
+  cleanupLocalStorageCache();
+}
+
+/**
  * 获取缓存的设备列表
  */
 export async function getCachedEquipment(): Promise<CachedEquipment[] | null> {
