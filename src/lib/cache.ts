@@ -180,23 +180,6 @@ export async function triggerBackgroundSync(): Promise<void> {
 }
 
 /**
- * 通知 Service Worker 同步数据
- */
-export async function notifySync(): Promise<void> {
-  if (typeof window === 'undefined') return;
-
-  try {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({
-        type: 'TRIGGER_SYNC',
-      });
-    }
-  } catch (e) {
-    console.error('[Cache] Failed to notify sync:', e);
-  }
-}
-
-/**
  * 监听同步状态
  */
 export function onSyncStatusChange(
