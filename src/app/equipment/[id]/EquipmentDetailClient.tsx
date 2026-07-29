@@ -302,6 +302,51 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                       </button>
                     )}
                   </div>
+
+                  {/* 保养时长和备注 - 放在标题后、照片前 */}
+                  {!isReadOnly && (
+                    <div className="mb-4 space-y-3">
+                      {/* 保养时长 */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-[#111827] whitespace-nowrap">
+                          保养时长 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={pair.duration || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "" || (Number.isInteger(Number(val)) && Number(val) > 0)) {
+                              const newPairs = [...photoPairs];
+                              newPairs[index] = { ...pair, duration: val ? Number(val) : 0 };
+                              setPhotoPairs(newPairs);
+                            }
+                          }}
+                          placeholder="请输入整数（分钟）"
+                          className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                          required
+                        />
+                        <span className="text-sm text-[#6B7280] whitespace-nowrap">分钟</span>
+                      </div>
+
+                      {/* 备注 */}
+                      <input
+                        type="text"
+                        value={pair.note || ""}
+                        onChange={(e) => {
+                          const newPairs = [...photoPairs];
+                          newPairs[index] = { ...pair, note: e.target.value || "" };
+                          setPhotoPairs(newPairs);
+                        }}
+                        placeholder="请输入保养备注"
+                        className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                        required
+                      />
+                    </div>
+                  )}
+
                   <PhotoUploader
                     pair={pair}
                     onUpload={handlePhotoUpload}
