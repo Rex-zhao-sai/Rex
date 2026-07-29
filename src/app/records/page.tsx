@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { formatMonth } from "@/lib/storage";
 import { exportRecordsToZip } from "@/lib/export-records";
+import { getCachedRecords, setCachedRecords, shouldSync } from "@/lib/cache";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -61,10 +62,25 @@ export default function RecordsPage() {
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
 
-  // Fetch records
+  // Fetch records with IndexedDB cache
   useEffect(() => {
     const fetchRecords = async () => {
-      setLoading(true);
+      // 1. 先从 IndexedDB 加载缓存（立即显示）
+      const cached = await getCachedRecords(selectedMonth);
+      if (cached) {
+        console.log("[Page] Loaded records from IndexedDB cache");
+        setRecords(cached);
+        setLoading(false);
+      }
+
+      // 2. 检查是否需要从 Supabase 同步
+      const needSync = await shouldSync(selectedMonth);
+      if (!needSync && cached) {
+        console.log("[Page] Cache is fresh, skip sync");
+        return;
+      }
+
+      // 3. 后台从 Supabase 获取最新数据
       try {
         let query = supabase
           .from("maintenance_records")
@@ -72,20 +88,17 @@ export default function RecordsPage() {
           .eq("month", selectedMonth)
           .order("created_at", { ascending: false });
 
-        if (selectedMonth === currentMonth) {
-          // For current month, also include records without month filter
-        }
-
         const { data, error } = await query;
         if (error) {
           console.error("Failed to fetch records:", error.message);
         } else {
-          setRecords(data || []);
+          const newData = data || [];
+          setRecords(newData);
+          await setCachedRecords(selectedMonth, newData);
+          console.log("[Page] Updated records from Supabase");
         }
       } catch (e) {
         console.error("Failed to fetch records:", e);
-      } finally {
-        setLoading(false);
       }
     };
     fetchRecords();
