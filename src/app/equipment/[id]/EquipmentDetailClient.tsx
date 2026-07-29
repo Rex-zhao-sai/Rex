@@ -128,9 +128,21 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   );
 
   const handleSave = useCallback(async () => {
+    // 验证：技术员必填
+    if (!technician || technician.trim() === "") {
+      alert("技术员为必填项");
+      return;
+    }
+
     // 验证：整体保养时长必填
     if (!duration || duration <= 0) {
       alert("保养时长为必填项（必须为正整数）");
+      return;
+    }
+
+    // 验证：备注必填
+    if (!notes || notes.trim() === "") {
+      alert("备注为必填项");
       return;
     }
 
@@ -270,44 +282,46 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
             </div>
 
             {/* Technician, Duration & Notes */}
-            <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-[#6B7280] mb-1">技术员</label>
-                <input
-                  type="text"
-                  value={technician}
-                  onChange={(e) => { setTechnician(e.target.value); setSaved(false); }}
-                  disabled={isReadOnly}
-                  placeholder="输入技术员姓名"
-                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[#6B7280] mb-1">保养时长</label>
-                <div className="flex items-center gap-2">
+            <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-[#6B7280] mb-1">技术员</label>
                   <input
-                    type="number"
-                    value={duration}
-                    onChange={(e) => { setDuration(parseInt(e.target.value) || 0); setSaved(false); }}
+                    type="text"
+                    value={technician}
+                    onChange={(e) => { setTechnician(e.target.value); setSaved(false); }}
                     disabled={isReadOnly}
-                    placeholder="请输入整数"
-                    min="1"
-                    step="1"
-                    className="w-32 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
+                    placeholder="输入技术员姓名"
+                    className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                   />
-                  <span className="text-sm text-[#6B7280]">分钟</span>
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[#6B7280] mb-1">备注</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => { setNotes(e.target.value); setSaved(false); }}
-                  disabled={isReadOnly}
-                  placeholder="输入保养备注（可选）"
-                  rows={2}
-                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280] resize-none"
-                />
+                <div className="w-32 flex-shrink-0">
+                  <label className="block text-xs font-medium text-[#6B7280] mb-1">保养时长</label>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={duration}
+                      onChange={(e) => { setDuration(parseInt(e.target.value) || 0); setSaved(false); }}
+                      disabled={isReadOnly}
+                      placeholder="0"
+                      min="1"
+                      step="1"
+                      className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
+                    />
+                    <span className="text-sm text-[#6B7280] whitespace-nowrap">分钟</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-[#6B7280] mb-1">备注</label>
+                  <input
+                    type="text"
+                    value={notes}
+                    onChange={(e) => { setNotes(e.target.value); setSaved(false); }}
+                    disabled={isReadOnly}
+                    placeholder="输入保养备注"
+                    className="w-full px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
+                  />
+                </div>
               </div>
             </div>
 
