@@ -134,9 +134,9 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       return;
     }
 
-    // 验证：整体保养时长必填
-    if (!duration || duration <= 0) {
-      alert("保养时长为必填项（必须为正整数）");
+    // 验证：整体保养时长（暂时改为非必填，等 Supabase schema cache 刷新后恢复）
+    if (duration < 0) {
+      alert("保养时长不能为负数");
       return;
     }
 
