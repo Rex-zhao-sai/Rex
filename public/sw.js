@@ -3,13 +3,16 @@
  * 拦截网络请求，返回缓存响应，后台同步数据
  */
 
-const CACHE_NAME = 'maintenance-cache-v1';
-const API_CACHE_TTL = 5 * 60 * 1000; // 5 分钟缓存
+const CACHE_NAME = 'maintenance-cache-v2';
+const API_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 小时缓存
 
 // 需要缓存的 API 路径
 const API_PATTERNS = [
   '/api/equipment',
   '/api/records',
+  '/rest/v1/equipment',
+  '/rest/v1/maintenance_records',
+  '/rest/v1/storage',
 ];
 
 // 安装事件 - 预缓存关键资源
