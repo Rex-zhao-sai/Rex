@@ -4,7 +4,7 @@
  */
 
 const CACHE_NAME = 'maintenance-cache-v2';
-const API_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 小时缓存
+const API_CACHE_TTL = 60 * 60 * 1000; // 1 小时缓存
 
 // 需要缓存的 API 路径
 const API_PATTERNS = [
