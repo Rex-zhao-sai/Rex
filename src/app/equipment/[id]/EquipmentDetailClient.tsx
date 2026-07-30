@@ -299,22 +299,6 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                 />
               </div>
               <div className="flex items-center gap-3">
-                <label className="text-xs font-medium text-[#6B7280] w-20 flex-shrink-0">保养时长</label>
-                <div className="flex items-center gap-2 flex-1">
-                  <input
-                    type="number"
-                    value={duration}
-                    onChange={(e) => { setDuration(parseInt(e.target.value) || 0); setSaved(false); }}
-                    disabled={isReadOnly}
-                    placeholder="0"
-                    min="1"
-                    step="1"
-                    className="w-32 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
-                  />
-                  <span className="text-sm text-[#6B7280]">分钟</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
                 <label className="text-xs font-medium text-[#6B7280] w-20 flex-shrink-0">备注</label>
                 <input
                   type="text"
