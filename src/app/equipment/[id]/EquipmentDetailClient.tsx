@@ -31,13 +31,34 @@ function getStoredRole(): Role {
 export function EquipmentDetailClient({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [equipmentId, setEquipmentId] = useState("");
+  const [equipment, setEquipment] = useState<any>(null);
 
   useEffect(() => {
-    params.then((p) => setEquipmentId(p.id));
+    params.then(async (p) => {
+      const id = p.id;
+      setEquipmentId(id);
+      
+      // 先从已知列表查找
+      let eq = EQUIPMENT_LIST.find((e) => e.id === id);
+      
+      // 如果不在已知列表中，从数据库查找
+      if (!eq) {
+        const { data, error } = await supabase
+          .from("equipment")
+          .select("*")
+          .eq("id", id)
+          .single();
+        
+        if (!error && data) {
+          eq = data;
+        }
+      }
+      
+      setEquipment(eq);
+    });
   }, [params]);
 
   const [role, setRole] = useState<Role>(getStoredRole);
-  const equipment = EQUIPMENT_LIST.find((e) => e.id === equipmentId);
   const currentMonth = getCurrentMonth();
 
   const [photoPairs, setPhotoPairs] = useState<PhotoPair[]>([]);
