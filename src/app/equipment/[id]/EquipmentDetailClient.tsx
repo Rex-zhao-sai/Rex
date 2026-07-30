@@ -192,6 +192,16 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       setSaved(true);
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2000);
+
+      // 保存成功后清除 Service Worker 缓存，确保能看到最新数据
+      if ('caches' in window) {
+        const cache = await caches.open('api-cache-v1');
+        // 清除设备列表和记录相关的缓存
+        await cache.delete(`${location.origin}/api/equipment`);
+        await cache.delete(`${location.origin}/api/records?month=${currentMonth}`);
+        // 清除 Supabase API 缓存
+        await cache.delete(`https://cpkqoubbwjvchbmdsish.supabase.co/rest/v1/maintenance_records?month=eq.${currentMonth}`);
+      }
     } catch (e: any) {
       alert(e.message || "保存失败，请重试");
     } finally {
