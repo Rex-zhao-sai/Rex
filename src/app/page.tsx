@@ -117,9 +117,11 @@ export default function Home() {
         // 触发后台同步
         triggerBackgroundSync();
       } catch (e: any) {
-        console.error("获取记录失败:", e);
-        // 如果有缓存，不显示错误（离线可用）
-        if (!cachedRecords) {
+        // Egress 超限时静默失败，使用缓存数据
+        if (cachedRecords) {
+          console.log('[Page] Using cached records (Supabase unavailable)');
+        } else {
+          console.error("获取记录失败:", e);
           setConnectionError("连接失败，请检查网络后刷新页面");
         }
       } finally {
