@@ -80,36 +80,23 @@ export default function Home() {
       
       setConnectionError("");
       try {
-        // 使用 RPC 函数获取摘要信息，减少 Egress 流量
+        // 后台从 Supabase 获取最新数据
         const { data, error } = await supabase
-          .rpc("get_maintenance_summary", { p_month: currentMonth });
+          .from("maintenance_records")
+          .select("*, equipment(name)")
+          .eq("month", currentMonth);
 
         if (error) throw error;
 
         if (data && data.length > 0) {
           const recordsMap: Record<string, any> = {};
-          data.forEach((r: any) => {
-            recordsMap[r.equipment_id] = {
-              equipment_id: r.equipment_id,
-              technician: r.technician,
-              photo_count: r.photo_count,
-              updated_at: r.updated_at,
-              photo_pairs: [], // 首页不需要完整照片数据
-            };
+          data.forEach((r) => {
+            recordsMap[r.equipment_id] = r;
           });
           setRecords(recordsMap);
-          // 写入 IndexedDB（轻量级数据）
-          await setCachedRecords(data.map((r: any) => ({
-            id: `${r.equipment_id}-${currentMonth}`,
-            equipment_id: r.equipment_id,
-            month: currentMonth,
-            technician: r.technician,
-            notes: '',
-            photo_pairs: [],
-            created_at: r.updated_at,
-            updated_at: r.updated_at,
-          })));
-          console.log('[Page] Updated records via RPC function');
+          // 写入 IndexedDB
+          await setCachedRecords(data);
+          console.log('[Page] Updated from Supabase');
         } else if (!cachedRecords) {
           setRecords({});
         }
@@ -117,11 +104,9 @@ export default function Home() {
         // 触发后台同步
         triggerBackgroundSync();
       } catch (e: any) {
-        // Egress 超限时静默失败，使用缓存数据
-        if (cachedRecords) {
-          console.log('[Page] Using cached records (Supabase unavailable)');
-        } else {
-          console.error("获取记录失败:", e);
+        console.error("获取记录失败:", e);
+        // 如果有缓存，不显示错误（离线可用）
+        if (!cachedRecords) {
           setConnectionError("连接失败，请检查网络后刷新页面");
         }
       } finally {
@@ -131,10 +116,68 @@ export default function Home() {
     loadRecords();
   }, [currentMonth]);
 
-  // 设备列表完全从代码读取，不查询 Supabase（减少 Egress 流量）
+  // Fetch equipment list from Supabase with IndexedDB caching
   useEffect(() => {
-    setEquipmentList(EQUIPMENT_LIST);
-    console.log(`[Page] Loaded equipment from code: ${EQUIPMENT_LIST.length} devices`);
+    const loadEquipment = async () => {
+      // 先从 IndexedDB 加载缓存
+      const cachedEquipment = await getCachedEquipment();
+      
+      // 如果有缓存，立即显示（离线优先）
+      if (cachedEquipment && cachedEquipment.length > 0) {
+        setEquipmentList(cachedEquipment);
+        console.log('[Page] Loaded equipment from IndexedDB cache');
+      }
+      
+      try {
+        // 后台从 Supabase 获取最新数据
+        const { data, error } = await supabase
+          .from("equipment")
+          .select("*")
+          .order("name");
+
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const dbEquipment = data.map((e) => ({
+            id: e.id,
+            name: e.name,
+            category: e.category,
+            maintenance_cycle_months: e.maintenance_cycle_months,
+            last_maintenance_date: e.last_maintenance_date,
+            created_at: e.created_at,
+            updated_at: e.updated_at,
+          }));
+          
+          // 合并 EQUIPMENT_LIST 和数据库数据，确保不遗漏设备
+          const dbIds = new Set(dbEquipment.map(e => e.id));
+          const mergedEquipment = [...dbEquipment];
+          
+          // 添加 EQUIPMENT_LIST 中有但数据库中没有的设备
+          for (const eq of EQUIPMENT_LIST) {
+            if (!dbIds.has(eq.id)) {
+              mergedEquipment.push({
+                id: eq.id,
+                name: eq.name,
+                category: undefined,
+                maintenance_cycle_months: undefined,
+                last_maintenance_date: undefined,
+                created_at: undefined,
+                updated_at: undefined,
+              });
+            }
+          }
+          
+          mergedEquipment.sort((a, b) => a.name.localeCompare(b.name));
+          setEquipmentList(mergedEquipment);
+          // 写入 IndexedDB
+          await setCachedEquipment(mergedEquipment);
+          console.log(`[Page] Updated equipment from Supabase: ${mergedEquipment.length} total`);
+        }
+      } catch (e) {
+        console.error("获取设备列表失败:", e);
+        // 如果有缓存，不显示错误（离线可用）
+      }
+    };
+    loadEquipment();
   }, []);
 
   // 切换分组展开状态
@@ -240,7 +283,7 @@ export default function Home() {
   // 渲染设备卡片
   const renderEquipmentCard = (eq: any, isCompleted: boolean) => {
     const record = eq.record;
-    const photoCount = record?.photo_count ?? record?.photo_pairs?.length ?? 0;
+    const photoCount = record?.photo_pairs?.length || 0;
     const lastMaintenanceDate = record?.updated_at || LAST_MAINTENANCE_FROM_EXCEL[eq.id] || null;
 
     let statusColor = "";
