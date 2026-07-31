@@ -37,10 +37,7 @@ export default function Home() {
   const isInitialLoad = useRef(true);
 
   // Add equipment modal state
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newEquipmentName, setNewEquipmentName] = useState("");
-  const [addingEquipment, setAddingEquipment] = useState(false);
-  const [addError, setAddError] = useState("");
+
 
   // QR code modal
   const [showQR, setShowQR] = useState(false);
@@ -161,39 +158,6 @@ export default function Home() {
     };
     loadEquipment();
   }, []);
-
-  // Add new equipment
-  const handleAddEquipment = async () => {
-    if (!newEquipmentName.trim()) return;
-    setAddingEquipment(true);
-    setAddError("");
-
-    try {
-      const id = newEquipmentName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      const { data, error } = await supabase
-        .from("equipment")
-        .insert({ id, name: newEquipmentName.trim() })
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === "23505") {
-          setAddError("设备名称已存在");
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      setEquipmentList((prev) => [...prev, { id: data.id, name: data.name }].sort((a, b) => a.name.localeCompare(b.name)));
-      setNewEquipmentName("");
-      setShowAddModal(false);
-    } catch (e: any) {
-      setAddError(e.message || "添加失败");
-    } finally {
-      setAddingEquipment(false);
-    }
-  };
 
   // 切换分组展开状态
   const toggleExpand = (group: string) => {
@@ -514,54 +478,7 @@ export default function Home() {
           </>
         )}
 
-        {/* Add equipment button */}
-        <div className="mb-8">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
-          >
-            <Plus size={18} />
-            <span className="font-medium">添加新设备</span>
-          </button>
-        </div>
       </main>
-
-      {/* Add equipment modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900">添加新设备</h3>
-              <button
-                onClick={() => { setShowAddModal(false); setAddError(""); setNewEquipmentName(""); }}
-                className="p-1 rounded-full hover:bg-gray-100"
-              >
-                <X size={20} className="text-gray-600" />
-              </button>
-            </div>
-            <input
-              type="text"
-              placeholder="输入设备名称..."
-              value={newEquipmentName}
-              onChange={(e) => { setNewEquipmentName(e.target.value); setAddError(""); }}
-              onKeyDown={(e) => e.key === "Enter" && handleAddEquipment()}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              autoFocus
-            />
-            {addError && (
-              <p className="mt-2 text-xs text-red-500">{addError}</p>
-            )}
-            <button
-              onClick={handleAddEquipment}
-              disabled={!newEquipmentName.trim() || addingEquipment}
-              className="w-full mt-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {addingEquipment ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              {addingEquipment ? "添加中..." : "确认添加"}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* QR Code Modal */}
       {!isMobile && showQR && <QRCodeModal />}
