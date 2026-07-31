@@ -80,10 +80,10 @@ export default function Home() {
       
       setConnectionError("");
       try {
-        // 后台从 Supabase 获取最新数据
+        // 轻量级查询：只获取设备ID和更新时间，减少 Egress 流量
         const { data, error } = await supabase
           .from("maintenance_records")
-          .select("*, equipment(name)")
+          .select("equipment_id, updated_at")
           .eq("month", currentMonth);
 
         if (error) throw error;
@@ -91,12 +91,25 @@ export default function Home() {
         if (data && data.length > 0) {
           const recordsMap: Record<string, any> = {};
           data.forEach((r) => {
-            recordsMap[r.equipment_id] = r;
+            recordsMap[r.equipment_id] = {
+              equipment_id: r.equipment_id,
+              updated_at: r.updated_at,
+              photo_pairs: [], // 首页不需要照片数据，只记录更新时间
+            };
           });
           setRecords(recordsMap);
-          // 写入 IndexedDB
-          await setCachedRecords(data);
-          console.log('[Page] Updated from Supabase');
+          // 写入 IndexedDB（轻量级数据）
+          await setCachedRecords(data.map(r => ({
+            id: `${r.equipment_id}-${currentMonth}`,
+            equipment_id: r.equipment_id,
+            month: currentMonth,
+            technician: '',
+            notes: '',
+            photo_pairs: [],
+            created_at: r.updated_at,
+            updated_at: r.updated_at,
+          })));
+          console.log('[Page] Updated lightweight records from Supabase');
         } else if (!cachedRecords) {
           setRecords({});
         }
@@ -116,68 +129,10 @@ export default function Home() {
     loadRecords();
   }, [currentMonth]);
 
-  // Fetch equipment list from Supabase with IndexedDB caching
+  // 设备列表完全从代码读取，不查询 Supabase（减少 Egress 流量）
   useEffect(() => {
-    const loadEquipment = async () => {
-      // 先从 IndexedDB 加载缓存
-      const cachedEquipment = await getCachedEquipment();
-      
-      // 如果有缓存，立即显示（离线优先）
-      if (cachedEquipment && cachedEquipment.length > 0) {
-        setEquipmentList(cachedEquipment);
-        console.log('[Page] Loaded equipment from IndexedDB cache');
-      }
-      
-      try {
-        // 后台从 Supabase 获取最新数据
-        const { data, error } = await supabase
-          .from("equipment")
-          .select("*")
-          .order("name");
-
-        if (error) throw error;
-        if (data && data.length > 0) {
-          const dbEquipment = data.map((e) => ({
-            id: e.id,
-            name: e.name,
-            category: e.category,
-            maintenance_cycle_months: e.maintenance_cycle_months,
-            last_maintenance_date: e.last_maintenance_date,
-            created_at: e.created_at,
-            updated_at: e.updated_at,
-          }));
-          
-          // 合并 EQUIPMENT_LIST 和数据库数据，确保不遗漏设备
-          const dbIds = new Set(dbEquipment.map(e => e.id));
-          const mergedEquipment = [...dbEquipment];
-          
-          // 添加 EQUIPMENT_LIST 中有但数据库中没有的设备
-          for (const eq of EQUIPMENT_LIST) {
-            if (!dbIds.has(eq.id)) {
-              mergedEquipment.push({
-                id: eq.id,
-                name: eq.name,
-                category: undefined,
-                maintenance_cycle_months: undefined,
-                last_maintenance_date: undefined,
-                created_at: undefined,
-                updated_at: undefined,
-              });
-            }
-          }
-          
-          mergedEquipment.sort((a, b) => a.name.localeCompare(b.name));
-          setEquipmentList(mergedEquipment);
-          // 写入 IndexedDB
-          await setCachedEquipment(mergedEquipment);
-          console.log(`[Page] Updated equipment from Supabase: ${mergedEquipment.length} total`);
-        }
-      } catch (e) {
-        console.error("获取设备列表失败:", e);
-        // 如果有缓存，不显示错误（离线可用）
-      }
-    };
-    loadEquipment();
+    setEquipmentList(EQUIPMENT_LIST);
+    console.log(`[Page] Loaded equipment from code: ${EQUIPMENT_LIST.length} devices`);
   }, []);
 
   // 切换分组展开状态
