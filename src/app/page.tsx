@@ -154,7 +154,15 @@ export default function Home() {
           // 添加 EQUIPMENT_LIST 中有但数据库中没有的设备
           for (const eq of EQUIPMENT_LIST) {
             if (!dbIds.has(eq.id)) {
-              mergedEquipment.push(eq);
+              mergedEquipment.push({
+                id: eq.id,
+                name: eq.name,
+                category: undefined,
+                maintenance_cycle_months: undefined,
+                last_maintenance_date: undefined,
+                created_at: undefined,
+                updated_at: undefined,
+              });
             }
           }
           
