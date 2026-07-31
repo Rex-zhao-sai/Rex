@@ -80,10 +80,10 @@ export default function Home() {
       
       setConnectionError("");
       try {
-        // 轻量级查询：只获取设备ID和更新时间，减少 Egress 流量
+        // 轻量级查询：使用视图获取摘要信息，减少 Egress 流量
         const { data, error } = await supabase
-          .from("maintenance_records")
-          .select("equipment_id, updated_at")
+          .from("maintenance_records_summary")
+          .select("equipment_id, technician, photo_count, updated_at")
           .eq("month", currentMonth);
 
         if (error) throw error;
@@ -93,8 +93,10 @@ export default function Home() {
           data.forEach((r) => {
             recordsMap[r.equipment_id] = {
               equipment_id: r.equipment_id,
+              technician: r.technician,
+              photo_count: r.photo_count,
               updated_at: r.updated_at,
-              photo_pairs: [], // 首页不需要照片数据，只记录更新时间
+              photo_pairs: [], // 首页不需要完整照片数据
             };
           });
           setRecords(recordsMap);
@@ -103,13 +105,13 @@ export default function Home() {
             id: `${r.equipment_id}-${currentMonth}`,
             equipment_id: r.equipment_id,
             month: currentMonth,
-            technician: '',
+            technician: r.technician,
             notes: '',
             photo_pairs: [],
             created_at: r.updated_at,
             updated_at: r.updated_at,
           })));
-          console.log('[Page] Updated lightweight records from Supabase');
+          console.log('[Page] Updated lightweight records from Supabase view');
         } else if (!cachedRecords) {
           setRecords({});
         }
@@ -238,7 +240,7 @@ export default function Home() {
   // 渲染设备卡片
   const renderEquipmentCard = (eq: any, isCompleted: boolean) => {
     const record = eq.record;
-    const photoCount = record?.photo_pairs?.length || 0;
+    const photoCount = record?.photo_count ?? record?.photo_pairs?.length ?? 0;
     const lastMaintenanceDate = record?.updated_at || LAST_MAINTENANCE_FROM_EXCEL[eq.id] || null;
 
     let statusColor = "";
