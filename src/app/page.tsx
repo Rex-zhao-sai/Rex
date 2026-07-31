@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import supabase from "@/lib/supabase-browser";
-import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords, triggerBackgroundSync, notifySync, onSyncStatusChange } from "@/lib/cache";
+import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords, triggerBackgroundSync, notifySync, onSyncStatusChange, getLastSyncTimeFor } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
@@ -61,7 +61,7 @@ export default function Home() {
     }
   }, []);
 
-  // Fetch records for current month with IndexedDB caching
+  // Fetch records for current month with IndexedDB caching (增量更新)
   useEffect(() => {
     const loadRecords = async () => {
       // 先从 IndexedDB 加载缓存
@@ -80,26 +80,48 @@ export default function Home() {
       
       setConnectionError("");
       try {
-        // 轻量级查询：只获取设备ID和更新时间，减少 Egress 流量
-        const { data, error } = await supabase
+        // 获取上次同步时间（用于增量更新）
+        const lastSyncTime = await getLastSyncTimeFor(`records_${currentMonth}`);
+        
+        let query = supabase
           .from("maintenance_records")
           .select("equipment_id, updated_at")
           .eq("month", currentMonth);
+        
+        // 如果有上次同步时间，只获取有更新的记录（增量更新）
+        if (lastSyncTime) {
+          query = query.gt("updated_at", lastSyncTime);
+          console.log('[Page] Incremental sync from:', lastSyncTime);
+        } else {
+          console.log('[Page] Full sync (first time)');
+        }
+        
+        const { data, error } = await query;
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const recordsMap: Record<string, any> = {};
+          // 合并缓存数据和新数据
+          const recordsMap: Record<string, any> = { ...(cachedRecords ? 
+            Object.fromEntries(cachedRecords.map(r => [r.equipment_id, {
+              equipment_id: r.equipment_id,
+              updated_at: r.updated_at,
+              photo_pairs: [],
+            }])) : {}) };
+          
+          // 更新有新数据的记录
           data.forEach((r) => {
             recordsMap[r.equipment_id] = {
               equipment_id: r.equipment_id,
               updated_at: r.updated_at,
-              photo_pairs: [], // 首页不需要照片数据，只记录更新时间
+              photo_pairs: [],
             };
           });
+          
           setRecords(recordsMap);
-          // 写入 IndexedDB（轻量级数据）
-          await setCachedRecords(data.map(r => ({
+          
+          // 写入 IndexedDB（合并后的完整数据）
+          const allRecords = Object.values(recordsMap).map((r: any) => ({
             id: `${r.equipment_id}-${currentMonth}`,
             equipment_id: r.equipment_id,
             month: currentMonth,
@@ -108,10 +130,19 @@ export default function Home() {
             photo_pairs: [],
             created_at: r.updated_at,
             updated_at: r.updated_at,
-          })));
-          console.log('[Page] Updated lightweight records from Supabase');
+          }));
+          await setCachedRecords(allRecords);
+          
+          // 更新上次同步时间
+          await notifySync(currentMonth);
+          
+          console.log(`[Page] Synced ${data.length} updated records, total ${allRecords.length} records`);
         } else if (!cachedRecords) {
           setRecords({});
+          // 即使没有数据，也更新同步时间
+          await notifySync(currentMonth);
+        } else {
+          console.log('[Page] No new updates since last sync');
         }
         
         // 触发后台同步
