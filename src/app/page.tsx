@@ -137,7 +137,7 @@ export default function Home() {
 
         if (error) throw error;
         if (data && data.length > 0) {
-          const newEquipmentList = data.map((e) => ({
+          const dbEquipment = data.map((e) => ({
             id: e.id,
             name: e.name,
             category: e.category,
@@ -146,10 +146,23 @@ export default function Home() {
             created_at: e.created_at,
             updated_at: e.updated_at,
           }));
-          setEquipmentList(newEquipmentList);
+          
+          // 合并 EQUIPMENT_LIST 和数据库数据，确保不遗漏设备
+          const dbIds = new Set(dbEquipment.map(e => e.id));
+          const mergedEquipment = [...dbEquipment];
+          
+          // 添加 EQUIPMENT_LIST 中有但数据库中没有的设备
+          for (const eq of EQUIPMENT_LIST) {
+            if (!dbIds.has(eq.id)) {
+              mergedEquipment.push(eq);
+            }
+          }
+          
+          mergedEquipment.sort((a, b) => a.name.localeCompare(b.name));
+          setEquipmentList(mergedEquipment);
           // 写入 IndexedDB
-          await setCachedEquipment(newEquipmentList);
-          console.log('[Page] Updated equipment from Supabase');
+          await setCachedEquipment(mergedEquipment);
+          console.log(`[Page] Updated equipment from Supabase: ${mergedEquipment.length} total`);
         }
       } catch (e) {
         console.error("获取设备列表失败:", e);
