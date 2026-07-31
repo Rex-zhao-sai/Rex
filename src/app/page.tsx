@@ -80,17 +80,15 @@ export default function Home() {
       
       setConnectionError("");
       try {
-        // 轻量级查询：使用视图获取摘要信息，减少 Egress 流量
+        // 使用 RPC 函数获取摘要信息，减少 Egress 流量
         const { data, error } = await supabase
-          .from("maintenance_records_summary")
-          .select("equipment_id, technician, photo_count, updated_at")
-          .eq("month", currentMonth);
+          .rpc("get_maintenance_summary", { p_month: currentMonth });
 
         if (error) throw error;
 
         if (data && data.length > 0) {
           const recordsMap: Record<string, any> = {};
-          data.forEach((r) => {
+          data.forEach((r: any) => {
             recordsMap[r.equipment_id] = {
               equipment_id: r.equipment_id,
               technician: r.technician,
@@ -101,7 +99,7 @@ export default function Home() {
           });
           setRecords(recordsMap);
           // 写入 IndexedDB（轻量级数据）
-          await setCachedRecords(data.map(r => ({
+          await setCachedRecords(data.map((r: any) => ({
             id: `${r.equipment_id}-${currentMonth}`,
             equipment_id: r.equipment_id,
             month: currentMonth,
@@ -111,7 +109,7 @@ export default function Home() {
             created_at: r.updated_at,
             updated_at: r.updated_at,
           })));
-          console.log('[Page] Updated lightweight records from Supabase view');
+          console.log('[Page] Updated records via RPC function');
         } else if (!cachedRecords) {
           setRecords({});
         }
