@@ -84,10 +84,10 @@ export default function Home() {
         // 获取上次同步时间
         const lastSyncTime = await getLastSyncTime(`records_${currentMonth}`);
         
-        // 增量查询：只获取有更新的记录
+        // 增量查询：只获取有更新的记录（使用视图减少 Egress）
         let query = supabase
-          .from("maintenance_records")
-          .select("equipment_id, updated_at")
+          .from("maintenance_summary")  // 使用视图，只返回必要字段
+          .select("equipment_id, technician, photo_count, updated_at")
           .eq("month", currentMonth);
         
         // 如果有上次同步时间，只获取更新的数据
@@ -109,11 +109,12 @@ export default function Home() {
             return acc;
           }, {} as Record<string, any>) };
           
-          data.forEach((r) => {
+          data.forEach((r: any) => {
             recordsMap[r.equipment_id] = {
               equipment_id: r.equipment_id,
+              technician: r.technician || '',
+              photo_pairs: new Array(r.photo_count || 0), // 用数组长度表示照片组数
               updated_at: r.updated_at,
-              photo_pairs: [], // 首页不需要照片数据，只记录更新时间
             };
           });
           
@@ -124,9 +125,9 @@ export default function Home() {
             id: `${r.equipment_id}-${currentMonth}`,
             equipment_id: r.equipment_id,
             month: currentMonth,
-            technician: '',
+            technician: r.technician || '',
             notes: '',
-            photo_pairs: [],
+            photo_pairs: r.photo_pairs || [],
             created_at: r.updated_at,
             updated_at: r.updated_at,
           }));
