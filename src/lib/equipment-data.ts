@@ -114,4 +114,5 @@ export const EQUIPMENT_LIST: Equipment[] = [
   { id: "wet-eop-ict", name: "Wet-EOP ICT" },
   { id: "wet-eop", name: "Wet-EOP" },
   { id: "wet-eop-run-in", name: "Wet-EOP run in" },
+  { id: "adm-ad-1-0-prog", name: "ADM_AD_1.0 PROG" },
 ];
