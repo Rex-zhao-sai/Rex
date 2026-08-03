@@ -64,14 +64,17 @@ export default function Home() {
   // Fetch records for current month with IndexedDB caching
   useEffect(() => {
     const loadRecords = async () => {
-      // 先从 IndexedDB 加载缓存
+      // 先从 IndexedDB 加载缓存（获取所有月份的记录）
       const cachedRecords = await getCachedRecords(currentMonth);
       
       // 如果有缓存，立即显示（离线优先）
       if (cachedRecords && cachedRecords.length > 0) {
         const recordsMap: Record<string, any> = {};
         cachedRecords.forEach(r => {
-          recordsMap[r.equipment_id] = r;
+          // 只保留每个设备最新的记录
+          if (!recordsMap[r.equipment_id] || new Date(r.updated_at) > new Date(recordsMap[r.equipment_id].updated_at)) {
+            recordsMap[r.equipment_id] = r;
+          }
         });
         setRecords(recordsMap);
         setLoading(false);
@@ -80,22 +83,28 @@ export default function Home() {
       
       setConnectionError("");
       try {
-        // 后台从 Supabase 获取最新数据
+        // 后台从 Supabase 获取最新数据（获取所有月份，找到最近一次保养）
         const { data, error } = await supabase
           .from("maintenance_records")
           .select("*, equipment(name)")
-          .eq("month", currentMonth);
+          .order("updated_at", { ascending: false });
 
         if (error) throw error;
 
         if (data && data.length > 0) {
           const recordsMap: Record<string, any> = {};
           data.forEach((r) => {
-            recordsMap[r.equipment_id] = r;
+            // 只保留每个设备最新的记录
+            if (!recordsMap[r.equipment_id] || new Date(r.updated_at) > new Date(recordsMap[r.equipment_id].updated_at)) {
+              recordsMap[r.equipment_id] = r;
+            }
           });
           setRecords(recordsMap);
-          // 写入 IndexedDB
-          await setCachedRecords(data);
+          // 写入 IndexedDB（只缓存当前月份的记录）
+          const currentMonthRecords = data.filter(r => r.month === currentMonth);
+          if (currentMonthRecords.length > 0) {
+            await setCachedRecords(currentMonthRecords);
+          }
           console.log('[Page] Updated from Supabase');
         } else if (!cachedRecords) {
           setRecords({});
@@ -211,11 +220,15 @@ export default function Home() {
       
       // 内联计算天数，避免闭包问题
       let days = 61; // 默认值
+      let isCurrentMonth = false;
+      
       if (record && record.updated_at) {
         const lastDate = new Date(record.updated_at);
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - lastDate.getTime());
         days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        // 检查是否本月保养
+        isCurrentMonth = record.month === currentMonth;
       } else {
         const excelDate = LAST_MAINTENANCE_FROM_EXCEL[eq.id];
         if (excelDate) {
@@ -226,7 +239,7 @@ export default function Home() {
         }
       }
 
-      if (record) {
+      if (isCurrentMonth) {
         // 本月有保养记录
         completed.push({ ...eq, days, record });
       } else if (days > 30) {
@@ -244,7 +257,7 @@ export default function Home() {
     completed.sort((a, b) => b.days - a.days);
 
     return { overdue, upcoming, completed };
-  }, [equipmentList, search, records]);
+  }, [equipmentList, search, records, currentMonth]);
 
   // Stats
   const completedCount = groupedEquipment.completed.length;
