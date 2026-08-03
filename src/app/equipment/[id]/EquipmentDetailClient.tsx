@@ -159,14 +159,13 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     }
 
     setSaving(true);
-    // 暂时移除 duration 字段，等 Supabase schema cache 刷新后恢复
+    // 暂时移除 duration 和 photo_count 字段，等 Supabase schema cache 刷新后恢复
     const recordData: any = {
       equipment_id: equipmentId,
       month: currentMonth,
       technician,
       notes,
       photo_pairs: photoPairs,
-      photo_count: photoPairs.length, // 添加照片组数
       role,
     };
     // 只有当 duration 有值时才包含（避免 schema cache 问题）
