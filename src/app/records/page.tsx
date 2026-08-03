@@ -61,6 +61,33 @@ export default function RecordsPage() {
   }, []);
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([currentMonth]);
+
+  // Fetch available months from Supabase
+  useEffect(() => {
+    const fetchAvailableMonths = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("maintenance_records")
+          .select("month")
+          .order("month", { ascending: false });
+
+        if (error) {
+          console.error("Failed to fetch available months:", error.message);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const months = new Set(data.map((r: any) => r.month));
+          months.add(currentMonth);
+          setAvailableMonths(Array.from(months).sort().reverse());
+        }
+      } catch (e) {
+        console.error("Failed to fetch available months:", e);
+      }
+    };
+    fetchAvailableMonths();
+  }, [currentMonth]);
 
   // Fetch records with IndexedDB cache
   useEffect(() => {
@@ -103,12 +130,6 @@ export default function RecordsPage() {
     };
     fetchRecords();
   }, [selectedMonth, currentMonth]);
-
-  const availableMonths = useMemo(() => {
-    const months = new Set(records.map((r: any) => r.month));
-    months.add(currentMonth);
-    return Array.from(months).sort().reverse();
-  }, [records, currentMonth]);
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
