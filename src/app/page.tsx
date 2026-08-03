@@ -87,7 +87,7 @@ export default function Home() {
         // 优化：只查询必要字段，不包含 photo_pairs（减少 Egress 流量）
         const { data, error } = await supabase
           .from("maintenance_records")
-          .select("id, equipment_id, month, technician, photo_count, notes, updated_at, equipment(name)")
+          .select("id, equipment_id, month, technician, photo_count, notes, updated_at")
           .order("updated_at", { ascending: false });
 
         if (error) throw error;
@@ -115,9 +115,14 @@ export default function Home() {
         triggerBackgroundSync();
       } catch (e: any) {
         console.error("获取记录失败:", e);
+        console.error("错误详情:", JSON.stringify(e, null, 2));
+        console.error("错误消息:", e?.message);
+        console.error("错误代码:", e?.code);
+        console.error("错误细节:", e?.details);
+        console.error("错误提示:", e?.hint);
         // 如果有缓存，不显示错误（离线可用）
         if (!cachedRecords) {
-          const errorMsg = e?.message || e?.code || "未知错误";
+          const errorMsg = e?.message || e?.code || JSON.stringify(e) || "未知错误";
           // 检查是否是 Egress 流量超限错误
           if (errorMsg.includes("egress") || errorMsg.includes("bandwidth") || errorMsg.includes("quota")) {
             setConnectionError("Supabase 服务暂时不可用（流量超限），请等待 8 月 16 日重置后刷新页面");
