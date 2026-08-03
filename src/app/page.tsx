@@ -107,7 +107,13 @@ export default function Home() {
         console.error("获取记录失败:", e);
         // 如果有缓存，不显示错误（离线可用）
         if (!cachedRecords) {
-          setConnectionError("连接失败，请检查网络后刷新页面");
+          const errorMsg = e?.message || e?.code || "未知错误";
+          // 检查是否是 Egress 流量超限错误
+          if (errorMsg.includes("egress") || errorMsg.includes("bandwidth") || errorMsg.includes("quota")) {
+            setConnectionError("Supabase 服务暂时不可用（流量超限），请等待 8 月 16 日重置后刷新页面");
+          } else {
+            setConnectionError(`连接失败：${errorMsg}。请检查网络后刷新页面`);
+          }
         }
       } finally {
         setLoading(false);
