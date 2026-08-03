@@ -18,7 +18,7 @@ import {
 } from './indexeddb';
 
 // 缓存 TTL（用于判断是否需要后台同步）
-const CACHE_TTL = 30 * 60 * 1000; // 30 分钟
+const CACHE_TTL = 60 * 60 * 1000; // 1 小时（优化：从 30 分钟增加到 1 小时，减少 API 调用）
 
 /**
  * 清理旧的 localStorage 缓存（迁移到 IndexedDB 后不再需要）

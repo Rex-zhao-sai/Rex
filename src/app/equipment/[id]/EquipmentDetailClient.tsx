@@ -166,6 +166,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       technician,
       notes,
       photo_pairs: photoPairs,
+      photo_count: photoPairs.length, // 添加照片组数
       role,
     };
     // 只有当 duration 有值时才包含（避免 schema cache 问题）

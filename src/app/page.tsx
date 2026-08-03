@@ -84,9 +84,10 @@ export default function Home() {
       setConnectionError("");
       try {
         // 后台从 Supabase 获取最新数据（获取所有月份，找到最近一次保养）
+        // 优化：只查询必要字段，不包含 photo_pairs（减少 Egress 流量）
         const { data, error } = await supabase
           .from("maintenance_records")
-          .select("*, equipment(name)")
+          .select("id, equipment_id, month, technician, photo_count, notes, updated_at, equipment(name)")
           .order("updated_at", { ascending: false });
 
         if (error) throw error;
@@ -130,6 +131,49 @@ export default function Home() {
     };
     loadRecords();
   }, [currentMonth]);
+
+  // Realtime 订阅 - 多设备同步（优化方案 5）
+  useEffect(() => {
+    const channel = supabase
+      .channel('maintenance_records_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*',  // INSERT, UPDATE, DELETE
+          schema: 'public', 
+          table: 'maintenance_records' 
+        },
+        (payload) => {
+          console.log('[Realtime] Record changed:', payload.eventType, payload.new);
+          
+          // 更新本地状态
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const newRecord = payload.new as any;
+            setRecords(prev => {
+              const updated = { ...prev };
+              // 只保留每个设备最新的记录
+              if (!updated[newRecord.equipment_id] || 
+                  new Date(newRecord.updated_at) > new Date(updated[newRecord.equipment_id].updated_at)) {
+                updated[newRecord.equipment_id] = newRecord;
+              }
+              return updated;
+            });
+          } else if (payload.eventType === 'DELETE') {
+            const oldRecord = payload.old as any;
+            setRecords(prev => {
+              const updated = { ...prev };
+              delete updated[oldRecord.equipment_id];
+              return updated;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // 清理订阅
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Fetch equipment list from Supabase with IndexedDB caching
   useEffect(() => {
@@ -302,7 +346,7 @@ export default function Home() {
   // 渲染设备卡片
   const renderEquipmentCard = (eq: any, isCompleted: boolean) => {
     const record = eq.record;
-    const photoCount = record?.photo_pairs?.length || 0;
+    const photoCount = record?.photo_count ?? record?.photo_pairs?.length ?? 0;
     const lastMaintenanceDate = record?.updated_at || LAST_MAINTENANCE_FROM_EXCEL[eq.id] || null;
 
     let statusColor = "";

@@ -3,8 +3,8 @@
  * 拦截网络请求，返回缓存响应，后台同步数据
  */
 
-const CACHE_NAME = 'maintenance-cache-v1';
-const API_CACHE_TTL = 5 * 60 * 1000; // 5 分钟缓存
+const CACHE_NAME = 'maintenance-cache-v2'; // 更新版本号以清除旧缓存
+const API_CACHE_TTL = 15 * 60 * 1000; // 15 分钟缓存（优化：从 5 分钟增加到 15 分钟）
 
 // 需要缓存的 API 路径
 const API_PATTERNS = [

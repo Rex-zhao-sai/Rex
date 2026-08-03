@@ -24,8 +24,9 @@ export interface CachedRecord {
   month: string;
   technician: string;
   notes: string;
-  photo_pairs: any[];
-  created_at: string;
+  photo_pairs?: any[];  // 可选，首页查询不包含
+  photo_count?: number;  // 新增，照片组数
+  created_at?: string;  // 可选
   updated_at: string;
 }
 
