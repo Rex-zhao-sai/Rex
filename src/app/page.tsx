@@ -113,10 +113,9 @@ export default function Home() {
             }
           });
           setRecords(recordsMap);
-          // 写入 IndexedDB（只缓存当前月份的记录）
-          const currentMonthRecords = data.filter(r => r.month === currentMonth);
-          if (currentMonthRecords.length > 0) {
-            await setCachedRecords(currentMonthRecords);
+          // 写入 IndexedDB（缓存所有月份的记录，用于首页分类）
+          if (data.length > 0) {
+            await setCachedRecords(data);
           }
           console.log('[Page] Updated from Supabase');
         } else if (!cachedRecords) {
