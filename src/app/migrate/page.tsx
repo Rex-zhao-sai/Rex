@@ -36,8 +36,13 @@ export default function MigrationPage() {
 
       if (error) throw error;
 
+      // 显示所有有 photo_pairs 的记录
+      const recordsWithPhotos = (data || []).filter((record: any) =>
+        record.photo_pairs?.length > 0
+      );
+
       // 过滤出包含 base64 照片的记录
-      const recordsWithBase64 = (data || []).filter((record: any) =>
+      const recordsWithBase64 = recordsWithPhotos.filter((record: any) =>
         record.photo_pairs?.some((pair: any) => {
           // 兼容字符串和对象两种格式
           const beforeStr = typeof pair.before === 'string' 
@@ -52,8 +57,16 @@ export default function MigrationPage() {
         })
       );
 
+      // 调试：显示不同格式的记录数量
+      const base64Count = recordsWithBase64.length;
+      const urlCount = recordsWithPhotos.length - base64Count;
+      addLog(`总记录数：${data?.length || 0}`);
+      addLog(`有照片的记录：${recordsWithPhotos.length}`);
+      addLog(`Base64 格式：${base64Count} 条`);
+      addLog(`URL 格式：${urlCount} 条`);
+
       setRecords(recordsWithBase64);
-      addLog(`找到 ${recordsWithBase64.length} 条包含 base64 照片的记录`);
+      addLog(`待迁移记录：${recordsWithBase64.length} 条`);
     } catch (e: any) {
       setError(e.message);
       addLog(`加载记录失败：${e.message}`);
