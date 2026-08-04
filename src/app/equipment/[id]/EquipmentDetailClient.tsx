@@ -6,6 +6,7 @@ import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId, getCurrentMonth } from "@/lib/storage";
 import supabase from "@/lib/supabase-browser";
+import { uploadPhotoPair } from "@/lib/github-storage";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import {
   ArrowLeft,
@@ -159,13 +160,39 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     }
 
     setSaving(true);
+    
+    // 上传照片到 GitHub Releases（如果有新照片）
+    const uploadedPhotoPairs = [...photoPairs];
+    try {
+      for (let i = 0; i < uploadedPhotoPairs.length; i++) {
+        const pair = uploadedPhotoPairs[i];
+        // 如果照片是 base64 格式，需要上传到 GitHub
+        if (pair.before && pair.before.dataUrl && pair.before.dataUrl.startsWith("data:image")) {
+          const beforeFile = base64ToFile(pair.before.dataUrl, `before-${i}.jpg`);
+          const afterFile = pair.after?.dataUrl 
+            ? base64ToFile(pair.after.dataUrl, `after-${i}.jpg`)
+            : beforeFile;
+          const urls = await uploadPhotoPair(equipmentId, beforeFile, afterFile);
+          uploadedPhotoPairs[i] = {
+            ...pair,
+            before: { ...pair.before, dataUrl: urls.before },
+            after: pair.after ? { ...pair.after, dataUrl: urls.after } : null,
+          };
+        }
+      }
+    } catch (uploadError: any) {
+      alert(`照片上传失败：${uploadError.message || "请重试"}`);
+      setSaving(false);
+      return;
+    }
+
     // 暂时移除 duration 和 photo_count 字段，等 Supabase schema cache 刷新后恢复
     const recordData: any = {
       equipment_id: equipmentId,
       month: currentMonth,
       technician,
       notes,
-      photo_pairs: photoPairs,
+      photo_pairs: uploadedPhotoPairs,
       role,
     };
     // 只有当 duration 有值时才包含（避免 schema cache 问题）
@@ -225,6 +252,19 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       setSaving(false);
     }
   }, [equipmentId, currentMonth, technician, notes, photoPairs, role, existingRecordId]);
+
+  // base64 转 File 的辅助函数
+  const base64ToFile = (base64: string, filename: string): File => {
+    const arr = base64.split(",");
+    const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
 
   const canEdit = role === "admin" || recordRole === "operator" || !existingRecordId;
   const isReadOnly = !canEdit;
