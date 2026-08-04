@@ -4,16 +4,18 @@ import { useState, useEffect } from "react";
 import supabase from "@/lib/supabase-browser";
 import { uploadPhoto } from "@/lib/github-storage";
 
+interface PhotoPair {
+  before: string | { dataUrl?: string };
+  after: string | { dataUrl?: string };
+  note?: string;
+  timestamp?: string;
+}
+
 interface MigrationRecord {
   id: string;
   equipment_id: string;
   month: string;
-  photo_pairs: Array<{
-    before: string;
-    after: string;
-    note?: string;
-    timestamp?: string;
-  }>;
+  photo_pairs: PhotoPair[];
 }
 
 export default function MigrationPage() {
@@ -116,7 +118,7 @@ export default function MigrationPage() {
             const url = await uploadPhoto(record.equipment_id, file, 'before');
             beforeUrl = url;
             addLog(`  上传 before 照片 ${pairIndex} 到 GitHub`);
-          } else if (typeof pair.before === 'object' && pair.before.dataUrl) {
+          } else if (typeof pair.before === 'object' && 'dataUrl' in pair.before && pair.before.dataUrl) {
             const file = base64ToFile(pair.before.dataUrl, `${timestamp}-before.jpg`);
             const url = await uploadPhoto(record.equipment_id, file, 'before');
             beforeUrl = url;
@@ -138,7 +140,7 @@ export default function MigrationPage() {
             const url = await uploadPhoto(record.equipment_id, file, 'after');
             afterUrl = url;
             addLog(`  上传 after 照片 ${pairIndex} 到 GitHub`);
-          } else if (typeof pair.after === 'object' && pair.after.dataUrl) {
+          } else if (typeof pair.after === 'object' && 'dataUrl' in pair.after && pair.after.dataUrl) {
             const file = base64ToFile(pair.after.dataUrl, `${timestamp}-after.jpg`);
             const url = await uploadPhoto(record.equipment_id, file, 'after');
             afterUrl = url;
