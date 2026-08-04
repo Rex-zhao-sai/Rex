@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import supabase from "@/lib/supabase-browser";
-import { uploadPhotoPair } from "@/lib/github-storage";
+import { uploadPhoto } from "@/lib/github-storage";
 
 interface MigrationRecord {
   id: string;
@@ -27,7 +27,11 @@ export default function MigrationPage() {
     loadRecords();
   }, []);
 
-    const loadRecords = async () => {
+  const addLog = (message: string) => {
+    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+  };
+
+  const loadRecords = async () => {
     try {
       // 1. 查询所有有照片的记录
       const { data: records, error } = await supabase
@@ -63,18 +67,13 @@ export default function MigrationPage() {
       addLog(`URL 格式：${urlRecords} 条`);
       addLog(`Storage 文件数：${storageFiles?.length || 0}`);
 
-      // 4. 显示待迁移记录（base64 格式）
-      setRecords(base64Records);
-      addLog(`待迁移记录：${base64Records.length} 条`);
+      // 4. 显示所有有照片的记录（包括 Base64 和 URL）
+      setRecords(recordsWithPhotos);
+      addLog(`待迁移记录：${recordsWithPhotos.length} 条`);
     } catch (e: any) {
       setError(e.message);
       addLog(`加载记录失败：${e.message}`);
     }
-  };
-
-
-  const addLog = (message: string) => {
-    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
   };
 
   const base64ToFile = (base64: string, filename: string): File => {
@@ -90,72 +89,96 @@ export default function MigrationPage() {
   };
 
   const migrateRecord = async (record: MigrationRecord) => {
-    const updatedPhotoPairs = [];
-
-    for (let i = 0; i < record.photo_pairs.length; i++) {
-      const pair = record.photo_pairs[i];
-      
-      // 获取 before 和 after 的字符串值（兼容 PhotoRecord 对象和字符串）
-      let beforeStr = '';
-      let afterStr = '';
-      
-      if (typeof pair.before === 'string') {
-        beforeStr = pair.before;
-      } else if (pair.before && typeof pair.before === 'object' && 'dataUrl' in pair.before) {
-        beforeStr = (pair.before as any).dataUrl || '';
-      }
-      
-      if (typeof pair.after === 'string') {
-        afterStr = pair.after;
-      } else if (pair.after && typeof pair.after === 'object' && 'dataUrl' in pair.after) {
-        afterStr = (pair.after as any).dataUrl || '';
-      }
-      
-      // 如果是 base64，上传到 GitHub
-      if (beforeStr.startsWith("data:image") || afterStr.startsWith("data:image")) {
-        try {
-          const beforeFile = base64ToFile(
-            beforeStr || afterStr,
-            `before-${i}.jpg`
-          );
-          const afterFile = base64ToFile(
-            afterStr || beforeStr,
-            `after-${i}.jpg`
-          );
-
-          const urls = await uploadPhotoPair(record.equipment_id, beforeFile, afterFile);
-          
-          updatedPhotoPairs.push({
-            ...pair,
-            before: urls.before,
-            after: urls.after,
-          });
-          
-          addLog(`✓ 设备 ${record.equipment_id} 第 ${i + 1} 组照片上传成功`);
-        } catch (e: any) {
-          addLog(`✗ 设备 ${record.equipment_id} 第 ${i + 1} 组照片上传失败：${e.message}`);
-          // 保留原始 base64
-          updatedPhotoPairs.push(pair);
-        }
-      } else {
-        // 已经是 URL，直接保留
-        updatedPhotoPairs.push(pair);
-      }
+    if (!record.photo_pairs?.length) {
+      addLog(`设备 ${record.equipment_id} 没有照片`);
+      return;
     }
 
-    // 更新数据库（保留原始数据作为备份，添加 migrated 标记）
-    const { error } = await supabase
-      .from("maintenance_records")
-      .update({
-        photo_pairs: updatedPhotoPairs,
-        migrated_at: new Date().toISOString(),
-      })
-      .eq("id", record.id);
+    try {
+      const newPhotoPairs = [];
+      
+      for (let i = 0; i < record.photo_pairs.length; i++) {
+        const pair = record.photo_pairs[i];
+        const pairIndex = i + 1;
+        const timestamp = pair.timestamp || new Date().toISOString();
+        
+        let beforeUrl = '';
+        let afterUrl = '';
+        
+        // 处理 before 照片
+        if (pair.before) {
+          if (typeof pair.before === 'string' && pair.before.startsWith('data:image')) {
+            // Base64 格式
+            const file = base64ToFile(pair.before, `${timestamp}-before.jpg`);
+            const result = await uploadPhoto(record.equipment_id, file, 'before', timestamp);
+            beforeUrl = result.url;
+            addLog(`  上传 before 照片 ${pairIndex}（Base64）`);
+          } else if (typeof pair.before === 'string' && pair.before.startsWith('http')) {
+            // URL 格式（Supabase Storage）- 需要下载后上传
+            addLog(`  下载 before 照片 ${pairIndex}（Storage）...`);
+            const response = await fetch(pair.before);
+            const blob = await response.blob();
+            const file = new File([blob], `${timestamp}-before.jpg`, { type: blob.type });
+            const result = await uploadPhoto(record.equipment_id, file, 'before', timestamp);
+            beforeUrl = result.url;
+            addLog(`  上传 before 照片 ${pairIndex} 到 GitHub`);
+          } else if (typeof pair.before === 'object' && pair.before.dataUrl) {
+            // 对象格式
+            const file = base64ToFile(pair.before.dataUrl, `${timestamp}-before.jpg`);
+            const result = await uploadPhoto(record.equipment_id, file, 'before', timestamp);
+            beforeUrl = result.url;
+          }
+        }
+        
+        // 处理 after 照片
+        if (pair.after) {
+          if (typeof pair.after === 'string' && pair.after.startsWith('data:image')) {
+            // Base64 格式
+            const file = base64ToFile(pair.after, `${timestamp}-after.jpg`);
+            const result = await uploadPhoto(record.equipment_id, file, 'after', timestamp);
+            afterUrl = result.url;
+            addLog(`  上传 after 照片 ${pairIndex}（Base64）`);
+          } else if (typeof pair.after === 'string' && pair.after.startsWith('http')) {
+            // URL 格式（Supabase Storage）- 需要下载后上传
+            addLog(`  下载 after 照片 ${pairIndex}（Storage）...`);
+            const response = await fetch(pair.after);
+            const blob = await response.blob();
+            const file = new File([blob], `${timestamp}-after.jpg`, { type: blob.type });
+            const result = await uploadPhoto(record.equipment_id, file, 'after', timestamp);
+            afterUrl = result.url;
+            addLog(`  上传 after 照片 ${pairIndex} 到 GitHub`);
+          } else if (typeof pair.after === 'object' && pair.after.dataUrl) {
+            // 对象格式
+            const file = base64ToFile(pair.after.dataUrl, `${timestamp}-after.jpg`);
+            const result = await uploadPhoto(record.equipment_id, file, 'after', timestamp);
+            afterUrl = result.url;
+          }
+        }
+        
+        newPhotoPairs.push({
+          before: beforeUrl,
+          after: afterUrl,
+          timestamp: timestamp,
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      // 更新数据库记录
+      const { error } = await supabase
+        .from("maintenance_records")
+        .update({
+          photo_pairs: newPhotoPairs,
+          migrated_at: new Date().toISOString(),
+        })
+        .eq("id", record.id);
 
-    if (error) {
-      addLog(`✗ 设备 ${record.equipment_id} 数据库更新失败：${error.message}`);
-    } else {
-      addLog(`✓ 设备 ${record.equipment_id} 迁移完成`);
+      if (error) throw error;
+
+      addLog(`✅ 设备 ${record.equipment_id} 迁移完成（${newPhotoPairs.length} 组照片）`);
+    } catch (e: any) {
+      addLog(`❌ 设备 ${record.equipment_id} 迁移失败：${e.message}`);
+      throw e;
     }
   };
 
@@ -165,7 +188,7 @@ export default function MigrationPage() {
       return;
     }
 
-    if (!confirm(`确定要迁移 ${records.length} 条记录吗？\n\n注意：原始 base64 数据会保留在数据库中作为备份。`)) {
+    if (!confirm(`确定要迁移 ${records.length} 条记录吗？\n\n这会将所有照片（包括 Storage 中的）迁移到 GitHub Releases。`)) {
       return;
     }
 
@@ -175,7 +198,11 @@ export default function MigrationPage() {
 
     for (let i = 0; i < records.length; i++) {
       setProgress({ current: i + 1, total: records.length });
-      await migrateRecord(records[i]);
+      try {
+        await migrateRecord(records[i]);
+      } catch (e: any) {
+        addLog(`继续下一条记录...`);
+      }
     }
 
     addLog("迁移完成！");
@@ -189,7 +216,11 @@ export default function MigrationPage() {
     }
 
     setMigrating(true);
-    await migrateRecord(record);
+    try {
+      await migrateRecord(record);
+    } catch (e: any) {
+      addLog(`迁移失败：${e.message}`);
+    }
     setMigrating(false);
   };
 
@@ -198,7 +229,7 @@ export default function MigrationPage() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">数据迁移工具</h1>
         <p className="text-gray-600 mb-6">
-          将照片从 base64 格式迁移到 GitHub Releases 存储
+          将所有照片迁移到 GitHub Releases 存储（包括 Base64 和 Storage）
         </p>
 
         {error && (
@@ -212,7 +243,7 @@ export default function MigrationPage() {
             <div>
               <h2 className="text-lg font-semibold">待迁移记录</h2>
               <p className="text-gray-600">
-                共 {records.length} 条记录包含 base64 照片
+                共 {records.length} 条记录包含照片
               </p>
             </div>
             <button
@@ -285,10 +316,10 @@ export default function MigrationPage() {
         <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <h3 className="font-semibold text-yellow-800 mb-2">注意事项</h3>
           <ul className="text-sm text-yellow-700 space-y-1">
-            <li>• 迁移过程中会保留原始 base64 数据作为备份</li>
+            <li>• 迁移过程中会保留原始数据作为备份</li>
             <li>• 迁移后的记录会添加 migrated_at 时间戳</li>
             <li>• 如果迁移失败，原始数据不会丢失</li>
-            <li>• 建议先在测试环境验证后再正式迁移</li>
+            <li>• 迁移时间取决于照片数量（约 100 张照片需要 5-10 分钟）</li>
           </ul>
         </div>
       </div>
