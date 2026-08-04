@@ -36,14 +36,22 @@ export default function MigrationPage() {
 
       if (error) throw error;
 
-      // 过滤出包含 base64 照片的记录
+          // 过滤出包含 base64 照片的记录
       const recordsWithBase64 = (data || []).filter((record: any) =>
-        record.photo_pairs?.some(
-          (pair: any) =>
-            pair.before?.startsWith("data:image") ||
-            pair.after?.startsWith("data:image")
-        )
+        record.photo_pairs?.some((pair: any) => {
+          // 兼容字符串和对象两种格式
+          const beforeStr = typeof pair.before === 'string' 
+            ? pair.before 
+            : pair.before?.dataUrl || '';
+          const afterStr = typeof pair.after === 'string' 
+            ? pair.after 
+            : pair.after?.dataUrl || '';
+          
+          return beforeStr.startsWith("data:image") || 
+                 afterStr.startsWith("data:image");
+        })
       );
+
 
       setRecords(recordsWithBase64);
       addLog(`找到 ${recordsWithBase64.length} 条包含 base64 照片的记录`);
