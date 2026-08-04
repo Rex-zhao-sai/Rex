@@ -84,10 +84,10 @@ export default function Home() {
       setConnectionError("");
       try {
         // 后台从 Supabase 获取最新数据（获取所有月份，找到最近一次保养）
-        // 暂时使用 photo_pairs（photo_count 字段因 schema cache 问题不可用）
+        // 首页不查询 photo_pairs（减少流量，照片数据只在详情页查询）
         const { data, error } = await supabase
           .from("maintenance_records")
-          .select("id, equipment_id, month, technician, photo_pairs, notes, updated_at")
+          .select("id, equipment_id, month, technician, notes, updated_at")
           .order("updated_at", { ascending: false });
 
         if (error) throw error;
