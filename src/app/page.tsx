@@ -84,10 +84,10 @@ export default function Home() {
       setConnectionError("");
       try {
         // 后台从 Supabase 获取最新数据（获取所有月份，找到最近一次保养）
-        // 首页不查询 photo_pairs（减少流量，照片数据只在详情页查询）
+        // 优化：只查询必要字段，不包含 photo_pairs（减少 Egress 流量）
         const { data, error } = await supabase
           .from("maintenance_records")
-          .select("id, equipment_id, month, technician, notes, updated_at")
+          .select("id, equipment_id, month, technician, photo_count, notes, updated_at")
           .order("updated_at", { ascending: false });
 
         if (error) throw error;
@@ -101,9 +101,10 @@ export default function Home() {
             }
           });
           setRecords(recordsMap);
-          // 写入 IndexedDB（缓存所有月份的记录，用于首页分类）
-          if (data.length > 0) {
-            await setCachedRecords(data);
+          // 写入 IndexedDB（只缓存当前月份的记录）
+          const currentMonthRecords = data.filter(r => r.month === currentMonth);
+          if (currentMonthRecords.length > 0) {
+            await setCachedRecords(currentMonthRecords);
           }
           console.log('[Page] Updated from Supabase');
         } else if (!cachedRecords) {
@@ -394,7 +395,7 @@ export default function Home() {
         </div>
         {isCompleted ? (
           <p className="text-xs text-gray-500">
-            保养人：{record.technician || "未知"}
+            保养人：{record.technician || "未知"} · {photoCount} 组照片
           </p>
         ) : lastMaintenanceDate ? (
           <p className="text-xs text-gray-500">
