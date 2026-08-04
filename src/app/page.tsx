@@ -84,23 +84,11 @@ export default function Home() {
       setConnectionError("");
       try {
         // 后台从 Supabase 获取最新数据（获取所有月份，找到最近一次保养）
-        // 优化：只查询必要字段，不包含 photo_pairs（减少 Egress 流量）
-        // 注意：photo_count 字段可能因 schema cache 问题不可用，需要回退到 photo_pairs
-        let { data, error } = await supabase
+        // 暂时使用 photo_pairs（photo_count 字段因 schema cache 问题不可用）
+        const { data, error } = await supabase
           .from("maintenance_records")
-          .select("id, equipment_id, month, technician, photo_count, notes, updated_at")
+          .select("id, equipment_id, month, technician, photo_pairs, notes, updated_at")
           .order("updated_at", { ascending: false });
-
-        // 如果 photo_count 字段不存在，回退到使用 photo_pairs
-        if (error && error.code === "42703") {
-          console.warn('[Page] photo_count field not available, falling back to photo_pairs');
-          const result = await supabase
-            .from("maintenance_records")
-            .select("id, equipment_id, month, technician, photo_pairs, notes, updated_at")
-            .order("updated_at", { ascending: false });
-          data = result.data as any;
-          error = result.error;
-        }
 
         if (error) throw error;
 
