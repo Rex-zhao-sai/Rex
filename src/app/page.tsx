@@ -85,10 +85,23 @@ export default function Home() {
       try {
         // 后台从 Supabase 获取最新数据（获取所有月份，找到最近一次保养）
         // 优化：只查询必要字段，不包含 photo_pairs（减少 Egress 流量）
-        const { data, error } = await supabase
+        // 注意：photo_count 字段可能因 PostgREST schema cache 未刷新而不存在
+        // 如果查询失败，回退到查询 photo_pairs
+        let { data, error } = await supabase
           .from("maintenance_records")
           .select("id, equipment_id, month, technician, photo_count, notes, updated_at")
           .order("updated_at", { ascending: false });
+
+        if (error && error.code === "42703") {
+          // photo_count 列不存在，回退到查询 photo_pairs
+          console.warn('[Page] photo_count column not found, falling back to photo_pairs');
+          const fallback = await supabase
+            .from("maintenance_records")
+            .select("id, equipment_id, month, technician, photo_pairs, notes, updated_at")
+            .order("updated_at", { ascending: false });
+          data = fallback.data as any;
+          error = fallback.error;
+        }
 
         if (error) throw error;
 
