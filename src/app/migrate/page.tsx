@@ -33,7 +33,6 @@ export default function MigrationPage() {
 
   const loadRecords = async () => {
     try {
-      // 1. 查询所有有照片的记录
       const { data: records, error } = await supabase
         .from("maintenance_records")
         .select("*")
@@ -41,7 +40,6 @@ export default function MigrationPage() {
 
       if (error) throw error;
 
-      // 2. 列出 Storage 中的所有照片
       const { data: storageFiles, error: storageError } = await supabase.storage
         .from("maintenance-photos")
         .list();
@@ -50,7 +48,6 @@ export default function MigrationPage() {
         addLog(`Storage 查询失败：${storageError.message}`);
       }
 
-      // 3. 统计信息
       const recordsWithPhotos = (records || []).filter((r: any) => r.photo_pairs?.length > 0);
       const base64Records = recordsWithPhotos.filter((record: any) =>
         record.photo_pairs?.some((pair: any) => {
@@ -67,7 +64,6 @@ export default function MigrationPage() {
       addLog(`URL 格式：${urlRecords} 条`);
       addLog(`Storage 文件数：${storageFiles?.length || 0}`);
 
-      // 4. 显示所有有照片的记录（包括 Base64 和 URL）
       setRecords(recordsWithPhotos);
       addLog(`待迁移记录：${recordsWithPhotos.length} 条`);
     } catch (e: any) {
@@ -108,50 +104,44 @@ export default function MigrationPage() {
         // 处理 before 照片
         if (pair.before) {
           if (typeof pair.before === 'string' && pair.before.startsWith('data:image')) {
-            // Base64 格式
             const file = base64ToFile(pair.before, `${timestamp}-before.jpg`);
-            const result = await uploadPhoto(record.equipment_id, file, 'before');
-            beforeUrl = result.url;
+            const url = await uploadPhoto(record.equipment_id, file, 'before');
+            beforeUrl = url;
             addLog(`  上传 before 照片 ${pairIndex}（Base64）`);
           } else if (typeof pair.before === 'string' && pair.before.startsWith('http')) {
-            // URL 格式（Supabase Storage）- 需要下载后上传
             addLog(`  下载 before 照片 ${pairIndex}（Storage）...`);
             const response = await fetch(pair.before);
             const blob = await response.blob();
             const file = new File([blob], `${timestamp}-before.jpg`, { type: blob.type });
-            const result = await uploadPhoto(record.equipment_id, file, 'before');
-            beforeUrl = result.url;
+            const url = await uploadPhoto(record.equipment_id, file, 'before');
+            beforeUrl = url;
             addLog(`  上传 before 照片 ${pairIndex} 到 GitHub`);
           } else if (typeof pair.before === 'object' && pair.before.dataUrl) {
-            // 对象格式
             const file = base64ToFile(pair.before.dataUrl, `${timestamp}-before.jpg`);
-            const result = await uploadPhoto(record.equipment_id, file, 'before');
-            beforeUrl = result.url;
+            const url = await uploadPhoto(record.equipment_id, file, 'before');
+            beforeUrl = url;
           }
         }
         
         // 处理 after 照片
         if (pair.after) {
           if (typeof pair.after === 'string' && pair.after.startsWith('data:image')) {
-            // Base64 格式
             const file = base64ToFile(pair.after, `${timestamp}-after.jpg`);
-            const result = await uploadPhoto(record.equipment_id, file, 'after');
-            afterUrl = result.url;
+            const url = await uploadPhoto(record.equipment_id, file, 'after');
+            afterUrl = url;
             addLog(`  上传 after 照片 ${pairIndex}（Base64）`);
           } else if (typeof pair.after === 'string' && pair.after.startsWith('http')) {
-            // URL 格式（Supabase Storage）- 需要下载后上传
             addLog(`  下载 after 照片 ${pairIndex}（Storage）...`);
             const response = await fetch(pair.after);
             const blob = await response.blob();
             const file = new File([blob], `${timestamp}-after.jpg`, { type: blob.type });
-            const result = await uploadPhoto(record.equipment_id, file, 'after');
-            afterUrl = result.url;
+            const url = await uploadPhoto(record.equipment_id, file, 'after');
+            afterUrl = url;
             addLog(`  上传 after 照片 ${pairIndex} 到 GitHub`);
           } else if (typeof pair.after === 'object' && pair.after.dataUrl) {
-            // 对象格式
             const file = base64ToFile(pair.after.dataUrl, `${timestamp}-after.jpg`);
-            const result = await uploadPhoto(record.equipment_id, file, 'after');
-            afterUrl = result.url;
+            const url = await uploadPhoto(record.equipment_id, file, 'after');
+            afterUrl = url;
           }
         }
         
@@ -164,7 +154,6 @@ export default function MigrationPage() {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      // 更新数据库记录
       const { error } = await supabase
         .from("maintenance_records")
         .update({
