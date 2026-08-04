@@ -9,6 +9,7 @@ import {
   getCachedEquipmentList,
   cacheRecords,
   getCachedRecordsByMonth,
+  getAllCachedRecords,
   getLastSyncTime,
   setMetadata,
   getMetadata,

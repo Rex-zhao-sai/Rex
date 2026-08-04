@@ -136,6 +136,12 @@ export async function getCachedRecordsByMonth(month: string): Promise<CachedReco
   return all;
 }
 
+export async function getAllCachedRecords(): Promise<CachedRecord[]> {
+  const db = await getDB();
+  const all = await db.getAll('records');
+  return all;
+}
+
 export async function getCachedRecord(id: string): Promise<CachedRecord | undefined> {
   const db = await getDB();
   return db.get('records', id);
