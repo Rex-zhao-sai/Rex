@@ -74,16 +74,32 @@ export default function MigrationPage() {
     }
   };
 
-  const base64ToFile = (base64: string, filename: string): File => {
-    const arr = base64.split(",");
-    const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
+  const base64ToFile = (base64: string, filename: string): File | null => {
+    try {
+      // 检查是否是有效的 base64 格式
+      if (!base64.includes(',')) {
+        addLog(`   无效的 base64 格式（缺少逗号）`);
+        return null;
+      }
+      
+      const arr = base64.split(',');
+      if (arr.length < 2) {
+        addLog(`  ⚠ 无效的 base64 格式`);
+        return null;
+      }
+      
+      const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename, { type: mime });
+    } catch (e: any) {
+      addLog(`   Base64 解码失败：${e.message}`);
+      return null;
     }
-    return new File([u8arr], filename, { type: mime });
   };
 
   const migrateRecord = async (record: MigrationRecord) => {
@@ -94,6 +110,7 @@ export default function MigrationPage() {
 
     try {
       const newPhotoPairs = [];
+      let hasChanges = false;
       
       for (let i = 0; i < record.photo_pairs.length; i++) {
         const pair = record.photo_pairs[i];
@@ -102,71 +119,157 @@ export default function MigrationPage() {
         
         let beforeUrl = '';
         let afterUrl = '';
+        let skipThisPair = false;
         
         // 处理 before 照片
         if (pair.before) {
           if (typeof pair.before === 'string' && pair.before.startsWith('data:image')) {
+            // Base64 格式
             const file = base64ToFile(pair.before, `${timestamp}-before.jpg`);
-            const url = await uploadPhoto(record.equipment_id, file, 'before');
-            beforeUrl = url;
-            addLog(`  上传 before 照片 ${pairIndex}（Base64）`);
-          } else if (typeof pair.before === 'string' && pair.before.startsWith('http')) {
+            if (file) {
+              try {
+                const url = await uploadPhoto(record.equipment_id, file, 'before');
+                beforeUrl = url;
+                addLog(`  上传 before 照片 ${pairIndex}（Base64）`);
+                hasChanges = true;
+              } catch (e: any) {
+                addLog(`  ✗ before 照片 ${pairIndex} 上传失败：${e.message}`);
+                beforeUrl = pair.before; // 保留原始数据
+              }
+            } else {
+              beforeUrl = pair.before; // 保留原始数据
+              skipThisPair = true;
+            }
+          } else if (typeof pair.before === 'string' && (pair.before.startsWith('http') || pair.before.startsWith('https'))) {
+            // URL 格式（Supabase Storage）- 需要下载后上传
             addLog(`  下载 before 照片 ${pairIndex}（Storage）...`);
-            const response = await fetch(pair.before);
-            const blob = await response.blob();
-            const file = new File([blob], `${timestamp}-before.jpg`, { type: blob.type });
-            const url = await uploadPhoto(record.equipment_id, file, 'before');
-            beforeUrl = url;
-            addLog(`  上传 before 照片 ${pairIndex} 到 GitHub`);
+            try {
+              const response = await fetch(pair.before);
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              const blob = await response.blob();
+              const file = new File([blob], `${timestamp}-before.jpg`, { type: blob.type || 'image/jpeg' });
+              const url = await uploadPhoto(record.equipment_id, file, 'before');
+              beforeUrl = url;
+              addLog(`  上传 before 照片 ${pairIndex} 到 GitHub`);
+              hasChanges = true;
+            } catch (e: any) {
+              addLog(`  ✗ before 照片 ${pairIndex} 下载/上传失败：${e.message}`);
+              beforeUrl = pair.before; // 保留原始 URL
+            }
           } else if (typeof pair.before === 'object' && 'dataUrl' in pair.before && pair.before.dataUrl) {
+            // 对象格式
             const file = base64ToFile(pair.before.dataUrl, `${timestamp}-before.jpg`);
-            const url = await uploadPhoto(record.equipment_id, file, 'before');
-            beforeUrl = url;
+            if (file) {
+              try {
+                const url = await uploadPhoto(record.equipment_id, file, 'before');
+                beforeUrl = url;
+                addLog(`  上传 before 照片 ${pairIndex}（对象格式）`);
+                hasChanges = true;
+              } catch (e: any) {
+                addLog(`  ✗ before 照片 ${pairIndex} 上传失败：${e.message}`);
+                beforeUrl = pair.before.dataUrl;
+              }
+            } else {
+              beforeUrl = pair.before.dataUrl;
+            }
+          } else {
+            // 未知格式，保留原值
+            beforeUrl = pair.before as string;
           }
         }
         
         // 处理 after 照片
         if (pair.after) {
           if (typeof pair.after === 'string' && pair.after.startsWith('data:image')) {
+            // Base64 格式
             const file = base64ToFile(pair.after, `${timestamp}-after.jpg`);
-            const url = await uploadPhoto(record.equipment_id, file, 'after');
-            afterUrl = url;
-            addLog(`  上传 after 照片 ${pairIndex}（Base64）`);
-          } else if (typeof pair.after === 'string' && pair.after.startsWith('http')) {
+            if (file) {
+              try {
+                const url = await uploadPhoto(record.equipment_id, file, 'after');
+                afterUrl = url;
+                addLog(`  上传 after 照片 ${pairIndex}（Base64）`);
+                hasChanges = true;
+              } catch (e: any) {
+                addLog(`  ✗ after 照片 ${pairIndex} 上传失败：${e.message}`);
+                afterUrl = pair.after;
+              }
+            } else {
+              afterUrl = pair.after;
+            }
+          } else if (typeof pair.after === 'string' && (pair.after.startsWith('http') || pair.after.startsWith('https'))) {
+            // URL 格式（Supabase Storage）
             addLog(`  下载 after 照片 ${pairIndex}（Storage）...`);
-            const response = await fetch(pair.after);
-            const blob = await response.blob();
-            const file = new File([blob], `${timestamp}-after.jpg`, { type: blob.type });
-            const url = await uploadPhoto(record.equipment_id, file, 'after');
-            afterUrl = url;
-            addLog(`  上传 after 照片 ${pairIndex} 到 GitHub`);
+            try {
+              const response = await fetch(pair.after);
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              const blob = await response.blob();
+              const file = new File([blob], `${timestamp}-after.jpg`, { type: blob.type || 'image/jpeg' });
+              const url = await uploadPhoto(record.equipment_id, file, 'after');
+              afterUrl = url;
+              addLog(`  上传 after 照片 ${pairIndex} 到 GitHub`);
+              hasChanges = true;
+            } catch (e: any) {
+              addLog(`  ✗ after 照片 ${pairIndex} 下载/上传失败：${e.message}`);
+              afterUrl = pair.after;
+            }
           } else if (typeof pair.after === 'object' && 'dataUrl' in pair.after && pair.after.dataUrl) {
+            // 对象格式
             const file = base64ToFile(pair.after.dataUrl, `${timestamp}-after.jpg`);
-            const url = await uploadPhoto(record.equipment_id, file, 'after');
-            afterUrl = url;
+            if (file) {
+              try {
+                const url = await uploadPhoto(record.equipment_id, file, 'after');
+                afterUrl = url;
+                addLog(`  上传 after 照片 ${pairIndex}（对象格式）`);
+                hasChanges = true;
+              } catch (e: any) {
+                addLog(`   after 照片 ${pairIndex} 上传失败：${e.message}`);
+                afterUrl = pair.after.dataUrl;
+              }
+            } else {
+              afterUrl = pair.after.dataUrl;
+            }
+          } else {
+            // 未知格式，保留原值
+            afterUrl = pair.after as string;
           }
         }
         
-        newPhotoPairs.push({
-          before: beforeUrl,
-          after: afterUrl,
-          timestamp: timestamp,
-        });
+        if (skipThisPair) {
+          addLog(`  ⚠ 跳过第 ${pairIndex} 组照片（base64 无效）`);
+          newPhotoPairs.push(pair);
+        } else {
+          newPhotoPairs.push({
+            before: beforeUrl,
+            after: afterUrl,
+            timestamp: timestamp,
+          });
+        }
         
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      const { error } = await supabase
-        .from("maintenance_records")
-        .update({
-          photo_pairs: newPhotoPairs,
-          migrated_at: new Date().toISOString(),
-        })
-        .eq("id", record.id);
+      // 只有当有成功上传的照片时才更新数据库
+      if (hasChanges) {
+        const { error } = await supabase
+          .from("maintenance_records")
+          .update({
+            photo_pairs: newPhotoPairs,
+            migrated_at: new Date().toISOString(),
+          })
+          .eq("id", record.id);
 
-      if (error) throw error;
-
-      addLog(`✅ 设备 ${record.equipment_id} 迁移完成（${newPhotoPairs.length} 组照片）`);
+        if (error) {
+          addLog(` 设备 ${record.equipment_id} 数据库更新失败：${error.message}`);
+        } else {
+          addLog(`✅ 设备 ${record.equipment_id} 迁移完成（${newPhotoPairs.length} 组照片）`);
+        }
+      } else {
+        addLog(`⚠ 设备 ${record.equipment_id} 没有成功上传的照片，跳过`);
+      }
     } catch (e: any) {
       addLog(`❌ 设备 ${record.equipment_id} 迁移失败：${e.message}`);
       throw e;
@@ -187,18 +290,23 @@ export default function MigrationPage() {
     setProgress({ current: 0, total: records.length });
     addLog(`开始迁移 ${records.length} 条记录...`);
 
+    let successCount = 0;
+    let failCount = 0;
+
     for (let i = 0; i < records.length; i++) {
       setProgress({ current: i + 1, total: records.length });
       try {
         await migrateRecord(records[i]);
+        successCount++;
       } catch (e: any) {
+        failCount++;
         addLog(`继续下一条记录...`);
       }
     }
 
-    addLog("迁移完成！");
+    addLog(`迁移完成！成功：${successCount}，失败：${failCount}`);
     setMigrating(false);
-    alert("迁移完成！");
+    alert(`迁移完成！成功：${successCount}，失败：${failCount}`);
   };
 
   const handleMigrateSingle = async (record: MigrationRecord) => {
