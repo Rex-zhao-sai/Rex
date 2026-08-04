@@ -394,7 +394,7 @@ export default function Home() {
         </div>
         {isCompleted ? (
           <p className="text-xs text-gray-500">
-            保养人：{record.technician || "未知"} · {photoCount} 组照片
+            保养人：{record.technician || "未知"}
           </p>
         ) : lastMaintenanceDate ? (
           <p className="text-xs text-gray-500">
