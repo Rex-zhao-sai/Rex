@@ -29,44 +29,43 @@ export default function MigrationPage() {
 
   const loadRecords = async () => {
     try {
-      const { data, error } = await supabase
+      // 1. 查询所有有照片的记录
+      const { data: records, error } = await supabase
         .from("maintenance_records")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // 显示所有有 photo_pairs 的记录
-      const recordsWithPhotos = (data || []).filter((record: any) =>
-        record.photo_pairs?.length > 0
-      );
+      // 2. 列出 Storage 中的所有照片
+      const { data: storageFiles, error: storageError } = await supabase.storage
+        .from("maintenance-photos")
+        .list();
 
-      // 过滤出包含 base64 照片的记录
-      const recordsWithBase64 = recordsWithPhotos.filter((record: any) =>
+      if (storageError) {
+        addLog(`Storage 查询失败：${storageError.message}`);
+      }
+
+      // 3. 统计信息
+      const recordsWithPhotos = (records || []).filter((r: any) => r.photo_pairs?.length > 0);
+      const base64Records = recordsWithPhotos.filter((record: any) =>
         record.photo_pairs?.some((pair: any) => {
-          // 兼容字符串和对象两种格式
-          const beforeStr = typeof pair.before === 'string' 
-            ? pair.before 
-            : pair.before?.dataUrl || '';
-          const afterStr = typeof pair.after === 'string' 
-            ? pair.after 
-            : pair.after?.dataUrl || '';
-          
-          return beforeStr.startsWith("data:image") || 
-                 afterStr.startsWith("data:image");
+          const beforeStr = typeof pair.before === 'string' ? pair.before : pair.before?.dataUrl || '';
+          const afterStr = typeof pair.after === 'string' ? pair.after : pair.after?.dataUrl || '';
+          return beforeStr.startsWith("data:image") || afterStr.startsWith("data:image");
         })
       );
+      const urlRecords = recordsWithPhotos.length - base64Records.length;
 
-      // 调试：显示不同格式的记录数量
-      const base64Count = recordsWithBase64.length;
-      const urlCount = recordsWithPhotos.length - base64Count;
-      addLog(`总记录数：${data?.length || 0}`);
+      addLog(`总记录数：${records?.length || 0}`);
       addLog(`有照片的记录：${recordsWithPhotos.length}`);
-      addLog(`Base64 格式：${base64Count} 条`);
-      addLog(`URL 格式：${urlCount} 条`);
+      addLog(`Base64 格式：${base64Records.length} 条`);
+      addLog(`URL 格式：${urlRecords} 条`);
+      addLog(`Storage 文件数：${storageFiles?.length || 0}`);
 
-      setRecords(recordsWithBase64);
-      addLog(`待迁移记录：${recordsWithBase64.length} 条`);
+      // 4. 显示待迁移记录（base64 格式）
+      setRecords(base64Records);
+      addLog(`待迁移记录：${base64Records.length} 条`);
     } catch (e: any) {
       setError(e.message);
       addLog(`加载记录失败：${e.message}`);
