@@ -159,14 +159,13 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     }
 
     setSaving(true);
-    // 暂时移除 duration 字段，等 Supabase schema cache 刷新后恢复
+    // 暂时移除 duration 和 photo_count 字段，等 Supabase schema cache 刷新后恢复
     const recordData: any = {
       equipment_id: equipmentId,
       month: currentMonth,
       technician,
       notes,
       photo_pairs: photoPairs,
-      photo_count: photoPairs.length, // 添加照片组数
       role,
     };
     // 只有当 duration 有值时才包含（避免 schema cache 问题）
@@ -194,7 +193,34 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2000);
     } catch (e: any) {
-      alert(e.message || "保存失败，请重试");
+      // 如果是 photo_count 字段错误，尝试不包含该字段重新保存
+      if (e.message?.includes("photo_count")) {
+        console.warn("photo_count column not found, saving without it");
+        try {
+          if (existingRecordId) {
+            const { error } = await supabase
+              .from("maintenance_records")
+              .update({ ...recordData, updated_at: new Date().toISOString() })
+              .eq("id", existingRecordId);
+            if (error) throw error;
+          } else {
+            const { data, error } = await supabase
+              .from("maintenance_records")
+              .insert(recordData)
+              .select()
+              .single();
+            if (error) throw error;
+            setExistingRecordId(data.id);
+          }
+          setSaved(true);
+          setShowSavedToast(true);
+          setTimeout(() => setShowSavedToast(false), 2000);
+        } catch (retryError: any) {
+          alert(retryError.message || "保存失败，请重试");
+        }
+      } else {
+        alert(e.message || "保存失败，请重试");
+      }
     } finally {
       setSaving(false);
     }
