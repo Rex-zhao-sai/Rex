@@ -174,24 +174,46 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     }
 
     try {
-      if (existingRecordId) {
-        const { error } = await supabase
-          .from("maintenance_records")
-          .update({ ...recordData, updated_at: new Date().toISOString() })
-          .eq("id", existingRecordId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from("maintenance_records")
-          .insert(recordData)
-          .select()
-          .single();
-        if (error) throw error;
-        setExistingRecordId(data.id);
+      let success = false;
+      let lastError: any = null;
+
+      // 最多重试 2 次（处理 PostgREST schema cache 未刷新的情况）
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          if (existingRecordId) {
+            const { error } = await supabase
+              .from("maintenance_records")
+              .update({ ...recordData, updated_at: new Date().toISOString() })
+              .eq("id", existingRecordId);
+            if (error) throw error;
+          } else {
+            const { data, error } = await supabase
+              .from("maintenance_records")
+              .insert(recordData)
+              .select()
+              .single();
+            if (error) throw error;
+            setExistingRecordId(data.id);
+          }
+          success = true;
+          break;
+        } catch (e: any) {
+          lastError = e;
+          // 如果是外键约束错误，等待 3 秒后重试
+          if (e.code === "23503" && attempt < 2) {
+            console.log(`[Save] 外键约束错误，等待 3 秒后重试 (${attempt}/2)...`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          } else {
+            throw e;
+          }
+        }
       }
-      setSaved(true);
-      setShowSavedToast(true);
-      setTimeout(() => setShowSavedToast(false), 2000);
+
+      if (success) {
+        setSaved(true);
+        setShowSavedToast(true);
+        setTimeout(() => setShowSavedToast(false), 2000);
+      }
     } catch (e: any) {
       alert(e.message || "保存失败，请重试");
     } finally {
