@@ -110,7 +110,7 @@ export default function MigrationPage() {
           if (typeof pair.before === 'string' && pair.before.startsWith('data:image')) {
             // Base64 格式
             const file = base64ToFile(pair.before, `${timestamp}-before.jpg`);
-            const result = await uploadPhoto(record.equipment_id, file, 'before', timestamp);
+            const result = await uploadPhoto(record.equipment_id, file, 'before');
             beforeUrl = result.url;
             addLog(`  上传 before 照片 ${pairIndex}（Base64）`);
           } else if (typeof pair.before === 'string' && pair.before.startsWith('http')) {
@@ -119,13 +119,13 @@ export default function MigrationPage() {
             const response = await fetch(pair.before);
             const blob = await response.blob();
             const file = new File([blob], `${timestamp}-before.jpg`, { type: blob.type });
-            const result = await uploadPhoto(record.equipment_id, file, 'before', timestamp);
+            const result = await uploadPhoto(record.equipment_id, file, 'before');
             beforeUrl = result.url;
             addLog(`  上传 before 照片 ${pairIndex} 到 GitHub`);
           } else if (typeof pair.before === 'object' && pair.before.dataUrl) {
             // 对象格式
             const file = base64ToFile(pair.before.dataUrl, `${timestamp}-before.jpg`);
-            const result = await uploadPhoto(record.equipment_id, file, 'before', timestamp);
+            const result = await uploadPhoto(record.equipment_id, file, 'before');
             beforeUrl = result.url;
           }
         }
@@ -135,7 +135,7 @@ export default function MigrationPage() {
           if (typeof pair.after === 'string' && pair.after.startsWith('data:image')) {
             // Base64 格式
             const file = base64ToFile(pair.after, `${timestamp}-after.jpg`);
-            const result = await uploadPhoto(record.equipment_id, file, 'after', timestamp);
+            const result = await uploadPhoto(record.equipment_id, file, 'after');
             afterUrl = result.url;
             addLog(`  上传 after 照片 ${pairIndex}（Base64）`);
           } else if (typeof pair.after === 'string' && pair.after.startsWith('http')) {
@@ -144,13 +144,13 @@ export default function MigrationPage() {
             const response = await fetch(pair.after);
             const blob = await response.blob();
             const file = new File([blob], `${timestamp}-after.jpg`, { type: blob.type });
-            const result = await uploadPhoto(record.equipment_id, file, 'after', timestamp);
+            const result = await uploadPhoto(record.equipment_id, file, 'after');
             afterUrl = result.url;
             addLog(`  上传 after 照片 ${pairIndex} 到 GitHub`);
           } else if (typeof pair.after === 'object' && pair.after.dataUrl) {
             // 对象格式
             const file = base64ToFile(pair.after.dataUrl, `${timestamp}-after.jpg`);
-            const result = await uploadPhoto(record.equipment_id, file, 'after', timestamp);
+            const result = await uploadPhoto(record.equipment_id, file, 'after');
             afterUrl = result.url;
           }
         }
