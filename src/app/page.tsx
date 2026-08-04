@@ -92,7 +92,7 @@ export default function Home() {
           .select("id, equipment_id, month, technician, photo_count, notes, updated_at")
           .order("updated_at", { ascending: false });
 
-        if (error && error.code === "42703") {
+        if (error && (error.code === "42703" || error.message?.includes("photo_count"))) {
           // photo_count 列不存在，回退到查询 photo_pairs
           console.warn('[Page] photo_count column not found, falling back to photo_pairs');
           const fallback = await supabase
