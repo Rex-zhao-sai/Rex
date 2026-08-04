@@ -174,46 +174,64 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     }
 
     try {
-      let success = false;
-      let lastError: any = null;
+      // 使用 RPC 函数保存数据（绕过 PostgREST schema cache 问题）
+      const recordId = existingRecordId || generateId();
+      const { error } = await supabase.rpc("insert_maintenance_record", {
+        p_id: recordId,
+        p_equipment_id: recordData.equipment_id,
+        p_month: recordData.month,
+        p_technician: recordData.technician,
+        p_notes: recordData.notes,
+        p_photo_pairs: recordData.photo_pairs,
+        p_role: recordData.role,
+      });
 
-      // 最多重试 2 次（处理 PostgREST schema cache 未刷新的情况）
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        try {
-          if (existingRecordId) {
-            const { error } = await supabase
-              .from("maintenance_records")
-              .update({ ...recordData, updated_at: new Date().toISOString() })
-              .eq("id", existingRecordId);
-            if (error) throw error;
-          } else {
-            const { data, error } = await supabase
-              .from("maintenance_records")
-              .insert(recordData)
-              .select()
-              .single();
-            if (error) throw error;
-            setExistingRecordId(data.id);
+      if (error) {
+        // 如果 RPC 函数不存在，回退到直接插入（带重试）
+        if (error.code === "42883") {
+          console.log("[Save] RPC 函数不存在，使用直接插入...");
+          let success = false;
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              if (existingRecordId) {
+                const { error: updateError } = await supabase
+                  .from("maintenance_records")
+                  .update({ ...recordData, updated_at: new Date().toISOString() })
+                  .eq("id", existingRecordId);
+                if (updateError) throw updateError;
+              } else {
+                const { data, error: insertError } = await supabase
+                  .from("maintenance_records")
+                  .insert(recordData)
+                  .select()
+                  .single();
+                if (insertError) throw insertError;
+                setExistingRecordId(data.id);
+              }
+              success = true;
+              break;
+            } catch (e: any) {
+              if (e.code === "23503" && attempt < 2) {
+                console.log(`[Save] 外键约束错误，等待 3 秒后重试 (${attempt}/2)...`);
+                await new Promise(resolve => setTimeout(resolve, 3000));
+              } else {
+                throw e;
+              }
+            }
           }
-          success = true;
-          break;
-        } catch (e: any) {
-          lastError = e;
-          // 如果是外键约束错误，等待 3 秒后重试
-          if (e.code === "23503" && attempt < 2) {
-            console.log(`[Save] 外键约束错误，等待 3 秒后重试 (${attempt}/2)...`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
-          } else {
-            throw e;
-          }
+          if (!success) throw new Error("保存失败");
+        } else {
+          throw error;
+        }
+      } else {
+        if (!existingRecordId) {
+          setExistingRecordId(recordId);
         }
       }
 
-      if (success) {
-        setSaved(true);
-        setShowSavedToast(true);
-        setTimeout(() => setShowSavedToast(false), 2000);
-      }
+      setSaved(true);
+      setShowSavedToast(true);
+      setTimeout(() => setShowSavedToast(false), 2000);
     } catch (e: any) {
       alert(e.message || "保存失败，请重试");
     } finally {
