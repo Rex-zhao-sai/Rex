@@ -7,6 +7,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 import { createClient } from '@supabase/supabase-js';
 import turso from './turso';
+import type { Client } from '@libsql/client';
 
 // Supabase 客户端
 const supabase = createClient(
@@ -31,14 +32,14 @@ async function migrateData() {
   console.log('\n数据迁移完成！');
 }
 
-async function migrateEquipmentList(turso: NonNullable<typeof turso>) {
+async function migrateEquipmentList(db: Client) {
   console.log('📦 迁移设备清单...');
 
   // 直接从前端代码导入设备清单（更可靠）
   const { EQUIPMENT_LIST } = await import('./equipment-data');
   
   for (const eq of EQUIPMENT_LIST) {
-    await turso.execute({
+    await db.execute({
       sql: `INSERT OR IGNORE INTO equipment_list (id, name, category) VALUES (?, ?, ?)`,
       args: [eq.id, eq.name, ''],
     });
@@ -46,8 +47,8 @@ async function migrateEquipmentList(turso: NonNullable<typeof turso>) {
   console.log(`  ✅ 已导入 ${EQUIPMENT_LIST.length} 个设备`);
 }
 
-async function migrateMaintenanceRecords(turso: NonNullable<typeof turso>) {
-  console.log('\n📋 迁移保养记录...');
+async function migrateMaintenanceRecords(db: Client) {
+  console.log('\n 迁移保养记录...');
 
   // 从 Supabase 查询所有保养记录
   const { data: records, error } = await supabase
@@ -68,7 +69,7 @@ async function migrateMaintenanceRecords(turso: NonNullable<typeof turso>) {
   let successCount = 0;
   for (const record of records) {
     try {
-      await turso.execute({
+      await db.execute({
         sql: `INSERT OR IGNORE INTO maintenance_records 
               (id, equipment_id, month, technician, notes, photo_pairs, photo_count, role, duration, created_at, updated_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -88,7 +89,7 @@ async function migrateMaintenanceRecords(turso: NonNullable<typeof turso>) {
       });
       successCount++;
     } catch (e) {
-      console.error(`   迁移记录失败: ${record.id}`, e);
+      console.error(`  迁移记录失败：${record.id}`, e);
     }
   }
 
