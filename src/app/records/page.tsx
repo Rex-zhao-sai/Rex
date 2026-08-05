@@ -431,7 +431,7 @@ export default function RecordsPage() {
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <Link
-                              href={`/equipment/${record.equipment_id}`}
+                              href={`/equipment?id=${record.equipment_id}`}
                               className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -503,7 +503,7 @@ export default function RecordsPage() {
                         <p className="text-xs text-gray-400 text-center">还有 {completedPairs.length - 3} 组照片...</p>
                       )}
                     </div>
-                    <Link href={`/equipment/${record.equipment_id}`} className="mt-3 block text-center text-xs text-blue-600 hover:underline">
+                    <Link href={`/equipment?id=${record.equipment_id}`} className="mt-3 block text-center text-xs text-blue-600 hover:underline">
                       查看完整记录 →
                     </Link>
                   </div>

@@ -433,7 +433,7 @@ export default function Home() {
     return (
       <div key={eq.id} className="relative group">
         <Link
-          href={`/equipment/${eq.id}`}
+          href={`/equipment?id=${eq.id}`}
           className={`bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border-l-4 ${statusColor} card-hover block`}
         >
           <div className="flex items-start justify-between mb-2">
