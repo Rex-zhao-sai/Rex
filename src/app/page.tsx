@@ -6,7 +6,7 @@ import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import { getAllEquipment, getAllRecords, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
 import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords } from "@/lib/cache";
 import Link from "next/link";
-import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown, Pencil, Trash2, TrendingUp, AlertTriangle, CalendarCheck, Activity } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -51,6 +51,13 @@ export default function Home() {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [deletingEquipment, setDeletingEquipment] = useState<any>(null);
   const [deletingEquipmentFlag, setDeletingEquipmentFlag] = useState(false);
+
+  // Recent activity state
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<"all" | "overdue" | "upcoming" | "completed">("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
 
   // QR code modal
@@ -198,6 +205,36 @@ export default function Home() {
     loadEquipment();
   }, []);
 
+  // Fetch recent activities from Turso
+  useEffect(() => {
+    const loadRecentActivities = async () => {
+      try {
+        const allRecords = await getAllRecords();
+        if (allRecords && allRecords.length > 0) {
+          // 获取最近的 5 条记录
+          const recent = allRecords
+            .filter((r) => r.updated_at)
+            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+            .slice(0, 5);
+          
+          // 获取设备名称
+          const activities = recent.map((r) => {
+            const eq = equipmentList.find((e) => e.id === r.equipment_id);
+            return {
+              ...r,
+              equipment_name: eq?.name || r.equipment_id,
+            };
+          });
+          
+          setRecentActivities(activities);
+        }
+      } catch (e) {
+        console.error("获取最近活动失败:", e);
+      }
+    };
+    loadRecentActivities();
+  }, [equipmentList]);
+
   // 切换分组展开状态
   const toggleExpand = (group: string) => {
     setExpandedGroups((prev) => ({
@@ -268,6 +305,22 @@ export default function Home() {
   const overdueCount = groupedEquipment.overdue.length;
   const total = equipmentList.length;
   const progress = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+  // 格式化时间戳
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return "刚刚";
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    return date.toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
+  };
 
   const handleRoleToggle = () => {
     if (role === "admin") {
@@ -590,30 +643,84 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Progress overview card */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📅</span>
-              <h2 className="text-lg font-semibold text-gray-900">{currentMonth} 保养进度</h2>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-gray-900">
-                {completedCount}/{total} <span className="text-sm text-gray-500">({progress}%)</span>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <TrendingUp size={16} className="text-blue-600" />
               </div>
             </div>
+            <div className="text-2xl font-bold text-gray-900">{progress}%</div>
+            <div className="text-xs text-gray-500 mt-1">本月完成率</div>
+            <div className="text-xs text-gray-400 mt-1">{completedCount}/{total} 台</div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            ></div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Clock size={16} className="text-yellow-600" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-yellow-600">{upcomingCount}</div>
+            <div className="text-xs text-gray-500 mt-1">即将到期</div>
+            <div className="text-xs text-gray-400 mt-1">7 天内保养</div>
           </div>
-          <div className="flex items-center gap-6 text-sm text-gray-600 flex-wrap">
-            <span>已完成 <span className="font-semibold text-green-600">{completedCount}</span></span>
-            <span>即将到期 <span className="font-semibold text-yellow-600">{upcomingCount}</span></span>
-            <span>超期 <span className="font-semibold text-red-600">{overdueCount}</span></span>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                <AlertCircle size={16} className="text-red-600" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-red-600">{overdueCount}</div>
+            <div className="text-xs text-gray-500 mt-1">超期未保养</div>
+            <div className="text-xs text-gray-400 mt-1">需要立即处理</div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle2 size={16} className="text-green-600" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-green-600">{completedCount}</div>
+            <div className="text-xs text-gray-500 mt-1">本月已完成</div>
+            <div className="text-xs text-gray-400 mt-1">保养任务</div>
           </div>
         </div>
+
+        {/* Recent Activities */}
+        {recentActivities.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity size={18} className="text-gray-700" />
+              <h3 className="text-sm font-semibold text-gray-900">最近活动</h3>
+            </div>
+            <div className="space-y-2">
+              {recentActivities.map((activity) => (
+                <Link
+                  key={activity.id}
+                  href={`/equipment?id=${activity.equipment_id}`}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 size={14} className="text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">{activity.equipment_name}</div>
+                      <div className="text-xs text-gray-500">{activity.technician || "未指定"}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                    {formatTimestamp(activity.updated_at)}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative mb-6">
