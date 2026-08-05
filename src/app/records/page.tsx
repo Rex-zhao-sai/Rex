@@ -128,6 +128,22 @@ export default function RecordsPage() {
     fetchRecords();
   }, [selectedMonth, currentMonth]);
 
+  // Fetch all equipment from Turso for name lookup
+  useEffect(() => {
+    const fetchEquipment = async () => {
+      try {
+        const data = await tursoApi.getAllEquipment();
+        if (data) {
+          setAllEquipment(data);
+          console.log("[Page] Loaded equipment list from Turso:", data.length);
+        }
+      } catch (e) {
+        console.error("Failed to fetch equipment list:", e);
+      }
+    };
+    fetchEquipment();
+  }, []);
+
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     if (!keyword) return records;
