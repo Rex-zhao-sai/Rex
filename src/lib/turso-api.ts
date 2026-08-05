@@ -71,6 +71,26 @@ export async function addEquipment(name: string, category: string = ''): Promise
   return { id, name, category };
 }
 
+// 更新设备名称
+export async function updateEquipment(id: string, name: string, category: string = ''): Promise<boolean> {
+  if (!isTursoAvailable()) return false;
+  await turso!.execute({
+    sql: `UPDATE equipment_list SET name = ?, category = ? WHERE id = ?`,
+    args: [name, category, id],
+  });
+  return true;
+}
+
+// 删除设备
+export async function deleteEquipment(id: string): Promise<boolean> {
+  if (!isTursoAvailable()) return false;
+  await turso!.execute({
+    sql: `DELETE FROM equipment_list WHERE id = ?`,
+    args: [id],
+  });
+  return true;
+}
+
 // ==================== 保养记录操作 ====================
 
 // 获取所有保养记录（用于首页）

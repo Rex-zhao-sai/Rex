@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
-import { getAllEquipment, getAllRecords, addEquipment } from "@/lib/turso-api";
+import { getAllEquipment, getAllRecords, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
 import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords } from "@/lib/cache";
 import Link from "next/link";
-import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
+import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -41,6 +41,18 @@ export default function Home() {
   const [newEquipmentName, setNewEquipmentName] = useState("");
   const [newEquipmentCategory, setNewEquipmentCategory] = useState("");
   const [addingEquipment, setAddingEquipment] = useState(false);
+
+  // Edit equipment modal state
+  const [showEditEquipmentModal, setShowEditEquipmentModal] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState<any>(null);
+  const [editEquipmentName, setEditEquipmentName] = useState("");
+  const [editEquipmentCategory, setEditEquipmentCategory] = useState("");
+  const [updatingEquipment, setUpdatingEquipment] = useState(false);
+
+  // Delete confirm modal state
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deletingEquipment, setDeletingEquipment] = useState<any>(null);
+  const [deletingEquipmentFlag, setDeletingEquipmentFlag] = useState(false);
 
 
   // QR code modal
@@ -327,6 +339,79 @@ export default function Home() {
     }
   };
 
+  // 编辑设备
+  const handleEditEquipment = async () => {
+    if (!editEquipmentName.trim() || !editingEquipment) return;
+    if (role !== "admin") {
+      alert("只有管理端可以编辑设备");
+      return;
+    }
+
+    setUpdatingEquipment(true);
+    try {
+      const success = await updateEquipment(editingEquipment.id, editEquipmentName.trim(), editEquipmentCategory.trim());
+      if (success) {
+        // 更新设备列表
+        setEquipmentList(prev => {
+          const updated = prev.map(eq =>
+            eq.id === editingEquipment.id
+              ? { ...eq, name: editEquipmentName.trim(), category: editEquipmentCategory.trim() }
+              : eq
+          );
+          updated.sort((a, b) => a.name.localeCompare(b.name));
+          return updated;
+        });
+        // 更新 IndexedDB 缓存
+        const updatedList = equipmentList.map(eq =>
+          eq.id === editingEquipment.id
+            ? { ...eq, name: editEquipmentName.trim(), category: editEquipmentCategory.trim() }
+            : eq
+        );
+        updatedList.sort((a, b) => a.name.localeCompare(b.name));
+        await setCachedEquipment(updatedList);
+        // 关闭弹窗并清空表单
+        setShowEditEquipmentModal(false);
+        setEditingEquipment(null);
+        setEditEquipmentName("");
+        setEditEquipmentCategory("");
+      }
+    } catch (e) {
+      console.error("编辑设备失败:", e);
+      alert("编辑设备失败，请重试");
+    } finally {
+      setUpdatingEquipment(false);
+    }
+  };
+
+  // 删除设备
+  const handleDeleteEquipment = async () => {
+    if (!deletingEquipment) return;
+    if (role !== "admin") {
+      alert("只有管理端可以删除设备");
+      return;
+    }
+
+    setDeletingEquipmentFlag(true);
+    try {
+      const success = await deleteEquipment(deletingEquipment.id);
+      if (success) {
+        // 更新设备列表
+        setEquipmentList(prev => prev.filter(eq => eq.id !== deletingEquipment.id));
+        // 更新 IndexedDB 缓存
+        const updatedList = equipmentList.filter(eq => eq.id !== deletingEquipment.id);
+        await setCachedEquipment(updatedList);
+        // 关闭弹窗
+        setShowDeleteConfirmModal(false);
+        setDeletingEquipment(null);
+      }
+    } catch (e) {
+      console.error("删除设备失败:", e);
+      alert("删除设备失败，请重试");
+    } finally {
+      setDeletingEquipmentFlag(false);
+    }
+  };
+
   // 渲染设备卡片
   const renderEquipmentCard = (eq: any, isCompleted: boolean) => {
     const record = eq.record;
@@ -345,7 +430,7 @@ export default function Home() {
       // 超期未保养 (>30 天)
       statusColor = "border-red-500";
       statusIcon = <AlertCircle size={16} className="text-red-500" />;
-      statusText = `🔴 ${eq.days}天前`;
+      statusText = ` ${eq.days}天前`;
     } else {
       // 即将到期 (<30 天)
       statusColor = "border-yellow-500";
@@ -354,34 +439,64 @@ export default function Home() {
     }
 
     return (
-      <Link
-        key={eq.id}
-        href={`/equipment/${eq.id}`}
-        className={`bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border-l-4 ${statusColor} card-hover block`}
-      >
-        <div className="flex items-start justify-between mb-2">
-          <h4 className="font-semibold text-gray-900 text-sm truncate">{eq.name}</h4>
-          {statusIcon}
-        </div>
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-            isCompleted ? "bg-green-100 text-green-700" :
-            eq.days > 30 ? "bg-red-100 text-red-700" :
-            "bg-yellow-100 text-yellow-700"
-          }`}>
-            {statusText}
-          </span>
-        </div>
-        {isCompleted ? (
-          <p className="text-xs text-gray-500">
-            保养人：{record.technician || "未知"} · {photoCount} 组照片
-          </p>
-        ) : lastMaintenanceDate ? (
-          <p className="text-xs text-gray-500">
-            上次保养：{new Date(lastMaintenanceDate).toLocaleDateString("zh-CN")}
-          </p>
-        ) : null}
-      </Link>
+      <div key={eq.id} className="relative group">
+        <Link
+          href={`/equipment/${eq.id}`}
+          className={`bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border-l-4 ${statusColor} card-hover block`}
+        >
+          <div className="flex items-start justify-between mb-2">
+            <h4 className="font-semibold text-gray-900 text-sm truncate flex-1">{eq.name}</h4>
+            {statusIcon}
+          </div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+              isCompleted ? "bg-green-100 text-green-700" :
+              eq.days > 30 ? "bg-red-100 text-red-700" :
+              "bg-yellow-100 text-yellow-700"
+            }`}>
+              {statusText}
+            </span>
+          </div>
+          {isCompleted ? (
+            <p className="text-xs text-gray-500">
+              保养人：{record.technician || "未知"} · {photoCount} 组照片
+            </p>
+          ) : lastMaintenanceDate ? (
+            <p className="text-xs text-gray-500">
+              上次保养：{new Date(lastMaintenanceDate).toLocaleDateString("zh-CN")}
+            </p>
+          ) : null}
+        </Link>
+        {/* 管理端操作按钮 */}
+        {role === "admin" && (
+          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setEditingEquipment(eq);
+                setEditEquipmentName(eq.name);
+                setEditEquipmentCategory(eq.category || "");
+                setShowEditEquipmentModal(true);
+              }}
+              className="p-1.5 bg-white rounded-lg shadow-md hover:bg-blue-50 transition-colors"
+              title="编辑设备"
+            >
+              <Pencil size={14} className="text-blue-600" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setDeletingEquipment(eq);
+                setShowDeleteConfirmModal(true);
+              }}
+              className="p-1.5 bg-white rounded-lg shadow-md hover:bg-red-50 transition-colors"
+              title="删除设备"
+            >
+              <Trash2 size={14} className="text-red-600" />
+            </button>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -668,6 +783,126 @@ export default function Home() {
                   </>
                 ) : (
                   "确认添加"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Equipment Modal */}
+      {showEditEquipmentModal && editingEquipment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-900">编辑设备</h3>
+              <button
+                onClick={() => {
+                  setShowEditEquipmentModal(false);
+                  setEditingEquipment(null);
+                  setEditEquipmentName("");
+                  setEditEquipmentCategory("");
+                }}
+                className="p-1 rounded-full hover:bg-gray-100"
+              >
+                <X size={20} className="text-gray-600" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">设备名称 *</label>
+                <input
+                  type="text"
+                  placeholder="输入设备名称..."
+                  value={editEquipmentName}
+                  onChange={(e) => setEditEquipmentName(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">设备分类</label>
+                <input
+                  type="text"
+                  placeholder="输入设备分类（可选）..."
+                  value={editEquipmentCategory}
+                  onChange={(e) => setEditEquipmentCategory(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditEquipmentModal(false);
+                  setEditingEquipment(null);
+                  setEditEquipmentName("");
+                  setEditEquipmentCategory("");
+                }}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleEditEquipment}
+                disabled={!editEquipmentName.trim() || updatingEquipment}
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {updatingEquipment ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    保存中...
+                  </>
+                ) : (
+                  "确认保存"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {showDeleteConfirmModal && deletingEquipment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-900">确认删除</h3>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmModal(false);
+                  setDeletingEquipment(null);
+                }}
+                className="p-1 rounded-full hover:bg-gray-100"
+              >
+                <X size={20} className="text-gray-600" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-2">确定要删除设备</p>
+            <p className="text-base font-semibold text-gray-900 mb-4">"{deletingEquipment.name}"吗？</p>
+            <p className="text-xs text-red-500 mb-6">⚠️ 删除后不可恢复，该设备的保养记录也将被删除</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmModal(false);
+                  setDeletingEquipment(null);
+                }}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDeleteEquipment}
+                disabled={deletingEquipmentFlag}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {deletingEquipmentFlag ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    删除中...
+                  </>
+                ) : (
+                  "确认删除"
                 )}
               </button>
             </div>
