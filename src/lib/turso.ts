@@ -1,11 +1,7 @@
 import { createClient } from '@libsql/client';
-import dotenv from 'dotenv';
-import path from 'path';
-
-// 加载环境变量
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Turso 数据库客户端
+// 注意：NEXT_PUBLIC_ 前缀的环境变量会自动暴露给客户端
 const turso = createClient({
   url: process.env.NEXT_PUBLIC_TURSO_URL!,
   authToken: process.env.TURSO_AUTH_TOKEN!,
