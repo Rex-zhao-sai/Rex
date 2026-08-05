@@ -414,7 +414,18 @@ export default function RecordsPage() {
                         <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(record.updated_at).toLocaleString("zh-CN")}
+                            {(() => {
+                              const date = new Date(record.updated_at);
+                              // 如果是 UTC 时间（旧数据），需要转换
+                              // 通过检查是否有 Z 后缀或 T 分隔符判断
+                              if (record.updated_at && !record.updated_at.includes('Z') && !record.updated_at.includes('T')) {
+                                // 旧数据格式：2026-08-05 02:46:43（实际是 UTC）
+                                // 需要当作 UTC 解析
+                                const utcDate = new Date(record.updated_at + 'Z');
+                                return utcDate.toLocaleString("zh-CN");
+                              }
+                              return date.toLocaleString("zh-CN");
+                            })()}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">

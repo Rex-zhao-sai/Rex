@@ -34,8 +34,9 @@ function generateUUID(): string {
 }
 
 // 格式化日期
+// 格式化日期为 ISO 字符串（带时区信息）
 function formatDate(date: Date): string {
-  return date.toISOString().replace('T', ' ').substring(0, 19);
+  return date.toISOString();
 }
 
 // ==================== 设备清单操作 ====================
