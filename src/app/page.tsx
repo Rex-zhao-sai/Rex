@@ -544,16 +544,14 @@ export default function Home() {
               </div>
             )}
 
-            {/* Add equipment button - admin only */}
-            {role === "admin" && (
-              <button
-                onClick={() => setShowAddEquipmentModal(true)}
-                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors flex items-center justify-center gap-2 mb-8"
-              >
-                <Plus size={20} />
-                <span className="font-medium">添加新设备</span>
-              </button>
-            )}
+            {/* Add equipment button - 操作端和管理端都可见 */}
+            <button
+              onClick={() => setShowAddEquipmentModal(true)}
+              className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors flex items-center justify-center gap-2 mb-8"
+            >
+              <Plus size={20} />
+              <span className="font-medium">添加新设备</span>
+            </button>
           </>
         )}
 
