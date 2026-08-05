@@ -15,18 +15,23 @@ const supabase = createClient(
 );
 
 async function migrateData() {
+  if (!turso) {
+    console.error(' Turso 不可用：请检查环境变量');
+    return;
+  }
+
   console.log('开始迁移数据...\n');
 
   // 1. 迁移设备清单
-  await migrateEquipmentList();
+  await migrateEquipmentList(turso);
 
   // 2. 迁移保养记录
-  await migrateMaintenanceRecords();
+  await migrateMaintenanceRecords(turso);
 
   console.log('\n数据迁移完成！');
 }
 
-async function migrateEquipmentList() {
+async function migrateEquipmentList(turso: NonNullable<typeof turso>) {
   console.log('📦 迁移设备清单...');
 
   // 直接从前端代码导入设备清单（更可靠）
@@ -41,7 +46,7 @@ async function migrateEquipmentList() {
   console.log(`  ✅ 已导入 ${EQUIPMENT_LIST.length} 个设备`);
 }
 
-async function migrateMaintenanceRecords() {
+async function migrateMaintenanceRecords(turso: NonNullable<typeof turso>) {
   console.log('\n📋 迁移保养记录...');
 
   // 从 Supabase 查询所有保养记录
@@ -55,7 +60,7 @@ async function migrateMaintenanceRecords() {
   }
 
   if (!records || records.length === 0) {
-    console.log('  ⚠️  没有保养记录需要迁移');
+    console.log('  ️  没有保养记录需要迁移');
     return;
   }
 

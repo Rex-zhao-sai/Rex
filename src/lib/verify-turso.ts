@@ -8,6 +8,11 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 import turso from './turso';
 
 async function verifyData() {
+  if (!turso) {
+    console.error(' Turso 不可用：请检查环境变量');
+    return;
+  }
+
   console.log('验证 Turso 数据...\n');
 
   // 1. 查询设备数量

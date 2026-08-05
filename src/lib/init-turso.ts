@@ -10,6 +10,11 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 import turso from './turso';
 
 async function initDatabase() {
+  if (!turso) {
+    console.error(' Turso 不可用：请检查环境变量 NEXT_PUBLIC_TURSO_URL 和 NEXT_PUBLIC_TURSO_AUTH_TOKEN');
+    return;
+  }
+
   console.log('开始初始化 Turso 数据库...');
 
   // 创建设备清单表
