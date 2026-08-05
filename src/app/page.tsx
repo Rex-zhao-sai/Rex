@@ -25,7 +25,7 @@ export default function Home() {
     if (typeof window !== "undefined" && window.innerWidth < 768) return "operator";
     return getStoredRole();
   });
-  const [records, setRecords] = useState<Record<string, any>>({});
+  const [records, setRecords] = useState<any[]>([]);
   const [currentMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -105,7 +105,7 @@ export default function Home() {
             recordsMap[r.equipment_id] = r;
           }
         });
-        setRecords(recordsMap);
+        setRecords(Object.values(recordsMap));
         setLoading(false);
         console.log('[Page] Loaded from IndexedDB cache');
       }
@@ -123,12 +123,12 @@ export default function Home() {
               recordsMap[r.equipment_id] = r;
             }
           });
-          setRecords(recordsMap);
+          setRecords(Object.values(recordsMap));
           // 写入 IndexedDB（缓存所有月份的记录）
           await setCachedRecords(data);
           console.log('[Page] Updated from Turso');
         } else if (!cachedRecords) {
-          setRecords({});
+          setRecords([]);
         }
       } catch (e: any) {
         console.error("获取记录失败:", e);
@@ -331,7 +331,7 @@ export default function Home() {
     const completed: any[] = [];    // 本月已完成
 
     list.forEach((eq) => {
-      const record = records[eq.id];
+      const record = records.find((r: any) => r.equipment_id === eq.id);
       
       // 内联计算天数，避免闭包问题
       let days = 61; // 默认值
