@@ -78,9 +78,12 @@ export async function getRecordsByMonth(month: string): Promise<MaintenanceRecor
           ORDER BY updated_at DESC`,
     args: [month],
   });
-  return result.rows as unknown as MaintenanceRecord[];
+  // 解析 photo_pairs JSON 字符串
+  return result.rows.map(row => ({
+    ...row,
+    photo_pairs: typeof row.photo_pairs === 'string' ? JSON.parse(row.photo_pairs) : row.photo_pairs,
+  })) as unknown as MaintenanceRecord[];
 }
-
 // 根据设备 ID 和月份获取记录
 export async function getRecordByEquipmentAndMonth(
   equipmentId: string,
@@ -93,7 +96,12 @@ export async function getRecordByEquipmentAndMonth(
           LIMIT 1`,
     args: [equipmentId, month],
   });
-  return result.rows.length > 0 ? (result.rows[0] as unknown as MaintenanceRecord) : null;
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return {
+    ...row,
+    photo_pairs: typeof row.photo_pairs === 'string' ? JSON.parse(row.photo_pairs) : row.photo_pairs,
+  } as unknown as MaintenanceRecord;
 }
 
 // 根据设备 ID 获取最新记录（任何月份）
@@ -105,7 +113,12 @@ export async function getLatestRecordByEquipment(equipmentId: string): Promise<M
           LIMIT 1`,
     args: [equipmentId],
   });
-  return result.rows.length > 0 ? (result.rows[0] as unknown as MaintenanceRecord) : null;
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return {
+    ...row,
+    photo_pairs: typeof row.photo_pairs === 'string' ? JSON.parse(row.photo_pairs) : row.photo_pairs,
+  } as unknown as MaintenanceRecord;
 }
 
 // 保存保养记录（插入或更新）
