@@ -92,40 +92,34 @@ export default function RecordsPage() {
   // Fetch records with IndexedDB cache
   useEffect(() => {
     const fetchRecords = async () => {
+      setLoading(true);
+      
       // 1. 先从 IndexedDB 加载缓存（立即显示）
       const cached = await getCachedRecords(selectedMonth);
       if (cached) {
         console.log("[Page] Loaded records from IndexedDB cache");
-        setRecords(cached);
-        setLoading(false);
+        // 缓存数据也按时间排序
+        const sortedCached = [...cached].sort((a, b) => {
+          const dateA = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+          const dateB = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        setRecords(sortedCached);
       }
 
-      // 2. 检查是否需要从 Supabase 同步
-      const needSync = await shouldSync(selectedMonth);
-      if (!needSync && cached) {
-        console.log("[Page] Cache is fresh, skip sync");
-        return;
-      }
-
-      // 3. 后台从 Supabase 获取最新数据
+      // 2. 后台从 Turso 获取最新数据（总是获取最新）
       try {
-        let query = supabase
-          .from("maintenance_records")
-          .select("*, equipment(name)")
-          .eq("month", selectedMonth)
-          .order("created_at", { ascending: false });
-
-        const { data, error } = await query;
-        if (error) {
-          console.error("Failed to fetch records:", error.message);
-        } else {
+        const data = await tursoApi.getRecordsByMonth(selectedMonth);
+        if (data) {
           const newData = data || [];
           setRecords(newData);
           await setCachedRecords(newData);
-          console.log("[Page] Updated records from Supabase");
+          console.log("[Page] Updated records from Turso");
         }
       } catch (e) {
         console.error("Failed to fetch records:", e);
+      } finally {
+        setLoading(false);
       }
     };
     fetchRecords();
