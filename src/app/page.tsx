@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { EQUIPMENT_LIST } from "@/lib/equipment-data";
+import { EQUIPMENT_LIST, type Equipment } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import { getAllEquipment, getAllRecords, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
 import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords } from "@/lib/cache";
@@ -31,7 +31,7 @@ export default function Home() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
   const [loading, setLoading] = useState(true);
-  const [equipmentList, setEquipmentList] = useState(EQUIPMENT_LIST);
+  const [equipmentList, setEquipmentList] = useState<Equipment[]>(EQUIPMENT_LIST);
   const [connectionError, setConnectionError] = useState("");
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const isInitialLoad = useRef(true);
@@ -58,6 +58,14 @@ export default function Home() {
   // Filter state
   const [statusFilter, setStatusFilter] = useState<"all" | "overdue" | "upcoming" | "completed">("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+
+  // Animation state for numbers
+  const [animatedStats, setAnimatedStats] = useState({
+    completed: 0,
+    upcoming: 0,
+    overdue: 0,
+    total: 0,
+  });
 
 
   // QR code modal
@@ -161,7 +169,7 @@ export default function Home() {
       
       // 如果有缓存，立即显示（离线优先）
       if (cachedEquipment && cachedEquipment.length > 0) {
-        setEquipmentList(cachedEquipment);
+        setEquipmentList(cachedEquipment.map(e => ({ id: e.id, name: e.name, category: e.category || '' })));
         console.log('[Page] Loaded equipment from IndexedDB cache');
       }
       
@@ -234,6 +242,73 @@ export default function Home() {
     };
     loadRecentActivities();
   }, [equipmentList]);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const total = equipmentList.length;
+    const completed = records.filter((r: any) => r.photo_pairs && r.photo_pairs.length > 0).length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    
+    const now = new Date();
+    const overdue = equipmentList.filter((eq) => {
+      const record = records.find((r: any) => r.equipment_id === eq.id);
+      if (!record) return true;
+      const daysSince = Math.floor((now.getTime() - new Date(record.updated_at).getTime()) / (1000 * 60 * 60 * 24));
+      return daysSince > 30;
+    }).length;
+    
+    const dueSoon = equipmentList.filter((eq) => {
+      const record = records.find((r: any) => r.equipment_id === eq.id);
+      if (!record) return true;
+      const daysSince = Math.floor((now.getTime() - new Date(record.updated_at).getTime()) / (1000 * 60 * 60 * 24));
+      return daysSince >= 20 && daysSince <= 30;
+    }).length;
+    
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const completedThisWeek = records.filter((r: any) => {
+      if (!r.updated_at) return false;
+      return new Date(r.updated_at) >= weekStart;
+    }).length;
+    
+    return { total, completed, completionRate, overdue, dueSoon, completedThisWeek };
+  }, [equipmentList, records]);
+
+  // Number animation effect
+  useEffect(() => {
+    const targetStats = {
+      completed: stats.completed,
+      upcoming: stats.dueSoon,
+      overdue: stats.overdue,
+      total: equipmentList.length,
+    };
+
+    const duration = 1500; // ms
+    const steps = 60;
+    const interval = duration / steps;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      const easeProgress = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+
+      setAnimatedStats({
+        completed: Math.round(targetStats.completed * easeProgress),
+        upcoming: Math.round(targetStats.upcoming * easeProgress),
+        overdue: Math.round(targetStats.overdue * easeProgress),
+        total: Math.round(targetStats.total * easeProgress),
+      });
+
+      if (step >= steps) {
+        clearInterval(timer);
+        setAnimatedStats(targetStats);
+      }
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [stats.completed, stats.dueSoon, stats.overdue, equipmentList.length]);
 
   // 切换分组展开状态
   const toggleExpand = (group: string) => {
@@ -587,9 +662,16 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
+    <div className="min-h-screen bg-[#F9FAFB] relative">
+      {/* Tech Background Effect */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-pulse"></div>
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-pulse" style={{animationDelay: '2s'}}></div>
+        <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-pulse" style={{animationDelay: '4s'}}></div>
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={`${basePath}/melecs-logo.png?v=5`} alt="Melecs Logo" className="w-10 h-10 object-contain" />
@@ -641,86 +723,105 @@ export default function Home() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 py-6 relative z-10">
+        {/* Grid Background */}
+        <div className="absolute inset-0 opacity-[0.02]" style={{
+          backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }}></div>
+
         {/* Progress overview card */}
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <TrendingUp size={16} className="text-blue-600" />
+        {/* Statistics Cards with Ring Chart */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Ring Progress Chart */}
+          <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-300 rounded-full blur-xl"></div>
+            </div>
+            <div className="relative z-10 flex items-center gap-6">
+              <div className="relative">
+                <svg width="100" height="100" className="transform -rotate-90">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="8"
+                    fill="none"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke="white"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - animatedStats.total > 0 ? animatedStats.completed / animatedStats.total : 0)}`}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl font-bold">{progress}%</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm opacity-80 mb-1">本月完成率</div>
+                <div className="text-3xl font-bold">{animatedStats.completed}<span className="text-lg opacity-60">/{animatedStats.total}</span></div>
+                <div className="text-xs opacity-60 mt-1">台设备已保养</div>
               </div>
             </div>
-            <div className="text-2xl font-bold text-gray-900">{progress}%</div>
-            <div className="text-xs text-gray-500 mt-1">本月完成率</div>
-            <div className="text-xs text-gray-400 mt-1">{completedCount}/{total} 台</div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Clock size={16} className="text-yellow-600" />
+          {/* Stats Grid */}
+          <div className="md:col-span-2 grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                  <Clock size={16} className="text-yellow-600" />
+                </div>
               </div>
+              <div className="text-2xl font-bold text-gray-900">{animatedStats.upcoming}</div>
+              <div className="text-xs text-gray-500 mt-1">即将到期</div>
+              <div className="text-xs text-gray-400 mt-1">7 天内保养</div>
             </div>
-            <div className="text-2xl font-bold text-yellow-600">{upcomingCount}</div>
-            <div className="text-xs text-gray-500 mt-1">即将到期</div>
-            <div className="text-xs text-gray-400 mt-1">7 天内保养</div>
-          </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                <AlertCircle size={16} className="text-red-600" />
+            <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                  <AlertCircle size={16} className="text-red-600" />
+                </div>
               </div>
+              <div className="text-2xl font-bold text-red-600">{animatedStats.overdue}</div>
+              <div className="text-xs text-gray-500 mt-1">超期未保养</div>
+              <div className="text-xs text-gray-400 mt-1">需要立即处理</div>
             </div>
-            <div className="text-2xl font-bold text-red-600">{overdueCount}</div>
-            <div className="text-xs text-gray-500 mt-1">超期未保养</div>
-            <div className="text-xs text-gray-400 mt-1">需要立即处理</div>
-          </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle2 size={16} className="text-green-600" />
+            <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CheckCircle2 size={16} className="text-green-600" />
+                </div>
               </div>
+              <div className="text-2xl font-bold text-green-600">{animatedStats.completed}</div>
+              <div className="text-xs text-gray-500 mt-1">本月已完成</div>
+              <div className="text-xs text-gray-400 mt-1">保养任务</div>
             </div>
-            <div className="text-2xl font-bold text-green-600">{completedCount}</div>
-            <div className="text-xs text-gray-500 mt-1">本月已完成</div>
-            <div className="text-xs text-gray-400 mt-1">保养任务</div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp size={16} className="text-blue-600" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-gray-900">{animatedStats.total}</div>
+              <div className="text-xs text-gray-500 mt-1">设备总数</div>
+              <div className="text-xs text-gray-400 mt-1">全部设备</div>
+            </div>
           </div>
         </div>
-
-        {/* Recent Activities */}
-        {recentActivities.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm p-4 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity size={18} className="text-gray-700" />
-              <h3 className="text-sm font-semibold text-gray-900">最近活动</h3>
-            </div>
-            <div className="space-y-2">
-              {recentActivities.map((activity) => (
-                <Link
-                  key={activity.id}
-                  href={`/equipment?id=${activity.equipment_id}`}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 size={14} className="text-blue-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">{activity.equipment_name}</div>
-                      <div className="text-xs text-gray-500">{activity.technician || "未指定"}</div>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-400 flex-shrink-0 ml-2">
-                    {formatTimestamp(activity.updated_at)}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Search */}
         <div className="relative mb-6">

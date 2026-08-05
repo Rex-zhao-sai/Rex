@@ -27,6 +27,7 @@ export interface MaintenanceRecord {
 export interface Equipment {
   id: string;
   name: string;
+  category?: string;
 }
 
 export const EQUIPMENT_LIST: Equipment[] = [
