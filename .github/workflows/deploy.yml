@@ -28,6 +28,9 @@ jobs:
           cache: pnpm
       - run: pnpm install
       - run: pnpm run build:github
+        env:
+          NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
+          NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
