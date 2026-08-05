@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
-import supabase from "@/lib/supabase-browser";
-import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords, triggerBackgroundSync, notifySync, onSyncStatusChange } from "@/lib/cache";
+import { getAllEquipment, getAllRecords } from "@/lib/turso-api";
+import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
@@ -72,7 +72,7 @@ export default function Home() {
         const recordsMap: Record<string, any> = {};
         cachedRecords.forEach(r => {
           // 只保留每个设备最新的记录
-          if (!recordsMap[r.equipment_id] || new Date(r.updated_at) > new Date(recordsMap[r.equipment_id].updated_at)) {
+          if (!recordsMap[r.equipment_id] || new Date(r.updated_at || '') > new Date(recordsMap[r.equipment_id].updated_at || '')) {
             recordsMap[r.equipment_id] = r;
           }
         });
@@ -83,27 +83,8 @@ export default function Home() {
       
       setConnectionError("");
       try {
-        // 后台从 Supabase 获取最新数据（获取所有月份，找到最近一次保养）
-        // 优化：只查询必要字段，不包含 photo_pairs（减少 Egress 流量）
-        // 注意：photo_count 字段可能因 PostgREST schema cache 未刷新而不存在
-        // 如果查询失败，回退到查询 photo_pairs
-        let { data, error } = await supabase
-          .from("maintenance_records")
-          .select("id, equipment_id, month, technician, photo_count, notes, updated_at")
-          .order("updated_at", { ascending: false });
-
-        if (error && (error.code === "42703" || error.message?.includes("photo_count"))) {
-          // photo_count 列不存在，回退到查询 photo_pairs
-          console.warn('[Page] photo_count column not found, falling back to photo_pairs');
-          const fallback = await supabase
-            .from("maintenance_records")
-            .select("id, equipment_id, month, technician, photo_pairs, notes, updated_at")
-            .order("updated_at", { ascending: false });
-          data = fallback.data as any;
-          error = fallback.error;
-        }
-
-        if (error) throw error;
+        // 从 Turso 获取最新数据
+        const data = await getAllRecords();
 
         if (data && data.length > 0) {
           const recordsMap: Record<string, any> = {};
@@ -116,13 +97,10 @@ export default function Home() {
           setRecords(recordsMap);
           // 写入 IndexedDB（缓存所有月份的记录）
           await setCachedRecords(data);
-          console.log('[Page] Updated from Supabase');
+          console.log('[Page] Updated from Turso');
         } else if (!cachedRecords) {
           setRecords({});
         }
-        
-        // 触发后台同步
-        triggerBackgroundSync();
       } catch (e: any) {
         console.error("获取记录失败:", e);
         console.error("错误详情:", JSON.stringify(e, null, 2));
@@ -147,50 +125,7 @@ export default function Home() {
     loadRecords();
   }, [currentMonth]);
 
-  // Realtime 订阅 - 多设备同步（优化方案 5）
-  useEffect(() => {
-    const channel = supabase
-      .channel('maintenance_records_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*',  // INSERT, UPDATE, DELETE
-          schema: 'public', 
-          table: 'maintenance_records' 
-        },
-        (payload) => {
-          console.log('[Realtime] Record changed:', payload.eventType, payload.new);
-          
-          // 更新本地状态
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const newRecord = payload.new as any;
-            setRecords(prev => {
-              const updated = { ...prev };
-              // 只保留每个设备最新的记录
-              if (!updated[newRecord.equipment_id] || 
-                  new Date(newRecord.updated_at) > new Date(updated[newRecord.equipment_id].updated_at)) {
-                updated[newRecord.equipment_id] = newRecord;
-              }
-              return updated;
-            });
-          } else if (payload.eventType === 'DELETE') {
-            const oldRecord = payload.old as any;
-            setRecords(prev => {
-              const updated = { ...prev };
-              delete updated[oldRecord.equipment_id];
-              return updated;
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    // 清理订阅
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Fetch equipment list from Supabase with IndexedDB caching
+  // Fetch equipment list from Turso with IndexedDB caching
   useEffect(() => {
     const loadEquipment = async () => {
       // 先从 IndexedDB 加载缓存
@@ -203,22 +138,14 @@ export default function Home() {
       }
       
       try {
-        // 后台从 Supabase 获取最新数据
-        const { data, error } = await supabase
-          .from("equipment")
-          .select("*")
-          .order("name");
+        // 从 Turso 获取最新数据
+        const data = await getAllEquipment();
 
-        if (error) throw error;
         if (data && data.length > 0) {
           const dbEquipment = data.map((e) => ({
             id: e.id,
             name: e.name,
-            category: e.category,
-            maintenance_cycle_months: e.maintenance_cycle_months,
-            last_maintenance_date: e.last_maintenance_date,
-            created_at: e.created_at,
-            updated_at: e.updated_at,
+            category: e.category || '',
           }));
           
           // 合并 EQUIPMENT_LIST 和数据库数据，确保不遗漏设备
@@ -231,11 +158,7 @@ export default function Home() {
               mergedEquipment.push({
                 id: eq.id,
                 name: eq.name,
-                category: undefined,
-                maintenance_cycle_months: undefined,
-                last_maintenance_date: undefined,
-                created_at: undefined,
-                updated_at: undefined,
+                category: '',
               });
             }
           }
@@ -244,7 +167,7 @@ export default function Home() {
           setEquipmentList(mergedEquipment);
           // 写入 IndexedDB
           await setCachedEquipment(mergedEquipment);
-          console.log(`[Page] Updated equipment from Supabase: ${mergedEquipment.length} total`);
+          console.log(`[Page] Updated equipment from Turso: ${mergedEquipment.length} total`);
         }
       } catch (e) {
         console.error("获取设备列表失败:", e);

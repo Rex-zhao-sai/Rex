@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId, getCurrentMonth } from "@/lib/storage";
-import supabase from "@/lib/supabase-browser";
+import { getRecordByEquipmentAndMonth, saveRecord } from "@/lib/turso-api";
 import { uploadPhotoPair } from "@/lib/github-storage";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import {
@@ -59,17 +59,12 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       setLoading(true);
       setConnectionError("");
       try {
-        const { data, error } = await supabase
-          .from("maintenance_records")
-          .select("*")
-          .eq("equipment_id", equipmentId)
-          .eq("month", currentMonth)
-          .maybeSingle();
-
-        if (error) throw error;
+        const data = await getRecordByEquipmentAndMonth(equipmentId, currentMonth);
 
         if (data) {
-          setPhotoPairs((data.photo_pairs as PhotoPair[]) || []);
+          // 解析 photo_pairs（JSON 字符串）
+          const photoPairs = data.photo_pairs ? (typeof data.photo_pairs === 'string' ? JSON.parse(data.photo_pairs) : data.photo_pairs) : [];
+          setPhotoPairs(photoPairs);
           setTechnician(data.technician || "");
           setNotes(data.notes || "");
           setDuration(data.duration || 0);
@@ -201,53 +196,17 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     }
 
     try {
-      if (existingRecordId) {
-        const { error } = await supabase
-          .from("maintenance_records")
-          .update({ ...recordData, updated_at: new Date().toISOString() })
-          .eq("id", existingRecordId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from("maintenance_records")
-          .insert(recordData)
-          .select()
-          .single();
-        if (error) throw error;
-        setExistingRecordId(data.id);
+      const result = await saveRecord(recordData);
+      
+      if (!result.success) {
+        throw new Error(result.error || "保存失败");
       }
+      
       setSaved(true);
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2000);
     } catch (e: any) {
-      // 如果是 photo_count 字段错误，尝试不包含该字段重新保存
-      if (e.message?.includes("photo_count")) {
-        console.warn("photo_count column not found, saving without it");
-        try {
-          if (existingRecordId) {
-            const { error } = await supabase
-              .from("maintenance_records")
-              .update({ ...recordData, updated_at: new Date().toISOString() })
-              .eq("id", existingRecordId);
-            if (error) throw error;
-          } else {
-            const { data, error } = await supabase
-              .from("maintenance_records")
-              .insert(recordData)
-              .select()
-              .single();
-            if (error) throw error;
-            setExistingRecordId(data.id);
-          }
-          setSaved(true);
-          setShowSavedToast(true);
-          setTimeout(() => setShowSavedToast(false), 2000);
-        } catch (retryError: any) {
-          alert(retryError.message || "保存失败，请重试");
-        }
-      } else {
-        alert(e.message || "保存失败，请重试");
-      }
+      alert(e.message || "保存失败，请重试");
     } finally {
       setSaving(false);
     }

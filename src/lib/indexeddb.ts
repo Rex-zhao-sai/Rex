@@ -11,23 +11,23 @@ const DB_VERSION = 1;
 export interface CachedEquipment {
   id: string;
   name: string;
-  category: string;
-  maintenance_cycle_months: number;
-  last_maintenance_date: string | null;
-  created_at: string;
-  updated_at: string;
+  category?: string;
+  maintenance_cycle_months?: number;
+  last_maintenance_date?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CachedRecord {
   id: string;
   equipment_id: string;
   month: string;
-  technician: string;
-  notes: string;
+  technician?: string;
+  notes?: string;
   photo_pairs?: any[];  // 可选，首页查询不包含
   photo_count?: number;  // 新增，照片组数
   created_at?: string;  // 可选
-  updated_at: string;
+  updated_at?: string;
 }
 
 interface MaintenanceDB {

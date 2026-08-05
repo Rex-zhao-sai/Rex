@@ -35,7 +35,7 @@ async function migrateEquipmentList() {
   for (const eq of EQUIPMENT_LIST) {
     await turso.execute({
       sql: `INSERT OR IGNORE INTO equipment_list (id, name, category) VALUES (?, ?, ?)`,
-      args: [eq.id, eq.name, eq.category || ''],
+      args: [eq.id, eq.name, ''],
     });
   }
   console.log(`  ✅ 已导入 ${EQUIPMENT_LIST.length} 个设备`);
