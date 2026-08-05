@@ -60,6 +60,17 @@ export async function getEquipmentById(id: string): Promise<Equipment | null> {
   return result.rows.length > 0 ? (result.rows[0] as unknown as Equipment) : null;
 }
 
+// 添加新设备
+export async function addEquipment(name: string, category: string = ''): Promise<Equipment | null> {
+  if (!isTursoAvailable()) return null;
+  const id = generateUUID();
+  await turso!.execute({
+    sql: `INSERT INTO equipment_list (id, name, category) VALUES (?, ?, ?)`,
+    args: [id, name, category],
+  });
+  return { id, name, category };
+}
+
 // ==================== 保养记录操作 ====================
 
 // 获取所有保养记录（用于首页）

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
-import { getAllEquipment, getAllRecords } from "@/lib/turso-api";
+import { getAllEquipment, getAllRecords, addEquipment } from "@/lib/turso-api";
 import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown } from "lucide-react";
@@ -37,6 +37,10 @@ export default function Home() {
   const isInitialLoad = useRef(true);
 
   // Add equipment modal state
+  const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
+  const [newEquipmentName, setNewEquipmentName] = useState("");
+  const [newEquipmentCategory, setNewEquipmentCategory] = useState("");
+  const [addingEquipment, setAddingEquipment] = useState(false);
 
 
   // QR code modal
@@ -288,6 +292,41 @@ export default function Home() {
     setPasswordError("");
   };
 
+  // 添加新设备
+  const handleAddEquipment = async () => {
+    if (!newEquipmentName.trim()) return;
+    if (role !== "admin") {
+      alert("只有管理端可以添加设备");
+      return;
+    }
+
+    setAddingEquipment(true);
+    try {
+      const newEquipment = await addEquipment(newEquipmentName.trim(), newEquipmentName.trim());
+      if (newEquipment) {
+        // 更新设备列表
+        setEquipmentList(prev => {
+          const updated = [...prev, { id: newEquipment.id, name: newEquipment.name, category: newEquipment.category || '' }];
+          updated.sort((a, b) => a.name.localeCompare(b.name));
+          return updated;
+        });
+        // 更新 IndexedDB 缓存
+        const updatedList = [...equipmentList, { id: newEquipment.id, name: newEquipment.name, category: newEquipment.category || '' }];
+        updatedList.sort((a, b) => a.name.localeCompare(b.name));
+        await setCachedEquipment(updatedList);
+        // 关闭弹窗并清空表单
+        setShowAddEquipmentModal(false);
+        setNewEquipmentName("");
+        setNewEquipmentCategory("");
+      }
+    } catch (e) {
+      console.error("添加设备失败:", e);
+      alert("添加设备失败，请重试");
+    } finally {
+      setAddingEquipment(false);
+    }
+  };
+
   // 渲染设备卡片
   const renderEquipmentCard = (eq: any, isCompleted: boolean) => {
     const record = eq.record;
@@ -504,6 +543,17 @@ export default function Home() {
                 没有找到匹配的设备
               </div>
             )}
+
+            {/* Add equipment button - admin only */}
+            {role === "admin" && (
+              <button
+                onClick={() => setShowAddEquipmentModal(true)}
+                className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors flex items-center justify-center gap-2 mb-8"
+              >
+                <Plus size={20} />
+                <span className="font-medium">添加新设备</span>
+              </button>
+            )}
           </>
         )}
 
@@ -551,6 +601,76 @@ export default function Home() {
                 className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 确认
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Equipment Modal */}
+      {showAddEquipmentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-900">添加新设备</h3>
+              <button
+                onClick={() => {
+                  setShowAddEquipmentModal(false);
+                  setNewEquipmentName("");
+                  setNewEquipmentCategory("");
+                }}
+                className="p-1 rounded-full hover:bg-gray-100"
+              >
+                <X size={20} className="text-gray-600" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">设备名称 *</label>
+                <input
+                  type="text"
+                  placeholder="输入设备名称..."
+                  value={newEquipmentName}
+                  onChange={(e) => setNewEquipmentName(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">设备分类</label>
+                <input
+                  type="text"
+                  placeholder="输入设备分类（可选）..."
+                  value={newEquipmentCategory}
+                  onChange={(e) => setNewEquipmentCategory(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowAddEquipmentModal(false);
+                  setNewEquipmentName("");
+                  setNewEquipmentCategory("");
+                }}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleAddEquipment}
+                disabled={!newEquipmentName.trim() || addingEquipment}
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {addingEquipment ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    添加中...
+                  </>
+                ) : (
+                  "确认添加"
+                )}
               </button>
             </div>
           </div>
