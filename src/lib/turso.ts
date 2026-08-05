@@ -4,7 +4,7 @@ import { createClient } from '@libsql/client';
 // 注意：NEXT_PUBLIC_ 前缀的环境变量会自动暴露给客户端
 const turso = createClient({
   url: process.env.NEXT_PUBLIC_TURSO_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
+  authToken: process.env.NEXT_PUBLIC_TURSO_AUTH_TOKEN!,
 });
 
 export default turso;
