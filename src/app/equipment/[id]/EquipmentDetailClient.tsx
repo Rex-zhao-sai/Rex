@@ -26,7 +26,7 @@ type Role = "admin" | "operator";
 
 function getStoredRole(): Role {
   if (typeof window === "undefined") return "operator";
-  return (sessionStorage.getItem("role") as Role) || "operator";
+  return (sessionStorage.getItem("userRole") as Role) || "operator";
 }
 
 export function EquipmentDetailClient({ params }: { params: Promise<{ id: string }> }) {
@@ -271,13 +271,13 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
           <h1 className="text-base font-bold text-[#111827] truncate">{equipment.name}</h1>
           <div className="ml-auto flex items-center gap-1.5">
             <button
-              onClick={() => { setRole("operator"); sessionStorage.setItem("role", "operator"); }}
+              onClick={() => { setRole("operator"); sessionStorage.setItem("userRole", "operator"); }}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${role === "operator" ? "bg-[#2563EB] text-white" : "bg-[#F3F4F6] text-[#6B7280]"}`}
             >
               <User size={12} className="inline mr-1" />操作端
             </button>
             <button
-              onClick={() => { setRole("admin"); sessionStorage.setItem("role", "admin"); }}
+              onClick={() => { setRole("admin"); sessionStorage.setItem("userRole", "admin"); }}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${role === "admin" ? "bg-[#2563EB] text-white" : "bg-[#F3F4F6] text-[#6B7280]"}`}
             >
               <Shield size={12} className="inline mr-1" />管理端

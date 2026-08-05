@@ -32,7 +32,7 @@ type Role = "admin" | "operator";
 
 function getStoredRole(): Role {
   if (typeof window === "undefined") return "operator";
-  return (sessionStorage.getItem("role") as Role) || "operator";
+  return (sessionStorage.getItem("userRole") as Role) || "operator";
 }
 
 export default function RecordsPage() {
@@ -192,7 +192,7 @@ export default function RecordsPage() {
     if (role === "admin") {
       // 已经是管理端，可以切换回操作端
       setRole("operator");
-      sessionStorage.setItem("role", "operator");
+      sessionStorage.setItem("userRole", "operator");
     } else {
       // 需要输入密码才能进入管理端
       setShowPasswordModal(true);
@@ -204,7 +204,7 @@ export default function RecordsPage() {
   const handlePasswordSubmit = () => {
     if (password === ADMIN_PASSWORD) {
       setRole("admin");
-      sessionStorage.setItem("role", "admin");
+      sessionStorage.setItem("userRole", "admin");
       setShowPasswordModal(false);
       setPassword("");
       setPasswordError("");
@@ -262,7 +262,7 @@ export default function RecordsPage() {
             {/* Role Toggle */}
             <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
               <button
-                onClick={() => { setRole("operator"); sessionStorage.setItem("role", "operator"); }}
+                onClick={() => { setRole("operator"); sessionStorage.setItem("userRole", "operator"); }}
                 className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
                   role === "operator" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500"
                 }`}

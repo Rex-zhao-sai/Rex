@@ -14,7 +14,7 @@ type Role = "admin" | "operator";
 
 function getStoredRole(): Role {
   if (typeof window === "undefined") return "operator";
-  return (sessionStorage.getItem("role") as Role) || "operator";
+  return (sessionStorage.getItem("userRole") as Role) || "operator";
 }
 
 export default function Home() {
@@ -260,7 +260,7 @@ export default function Home() {
       // Switching from admin to operator - no password needed
       const newRole = "operator";
       setRole(newRole);
-      sessionStorage.setItem("role", newRole);
+      sessionStorage.setItem("userRole", newRole);
     } else {
       // Switching from operator to admin - show password modal
       setShowPasswordModal(true);
@@ -273,7 +273,7 @@ export default function Home() {
     if (password === "Test12345678!@") {
       const newRole = "admin";
       setRole(newRole);
-      sessionStorage.setItem("role", newRole);
+      sessionStorage.setItem("userRole", newRole);
       setShowPasswordModal(false);
       setPassword("");
       setPasswordError("");
