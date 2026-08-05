@@ -123,6 +123,13 @@ export default function Home() {
       }
     };
     loadRecords();
+
+    // 每 30 秒自动刷新
+    const interval = setInterval(loadRecords, 30000);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, [currentMonth]);
 
   // Fetch equipment list from Turso with IndexedDB caching

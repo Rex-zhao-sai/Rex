@@ -70,6 +70,17 @@ export async function getAllRecords(): Promise<MaintenanceRecord[]> {
   return result.rows as unknown as MaintenanceRecord[];
 }
 
+// 获取指定月份的所有记录（用于记录页面）
+export async function getRecordsByMonth(month: string): Promise<MaintenanceRecord[]> {
+  const result = await turso.execute({
+    sql: `SELECT * FROM maintenance_records
+          WHERE month = ?
+          ORDER BY updated_at DESC`,
+    args: [month],
+  });
+  return result.rows as unknown as MaintenanceRecord[];
+}
+
 // 根据设备 ID 和月份获取记录
 export async function getRecordByEquipmentAndMonth(
   equipmentId: string,

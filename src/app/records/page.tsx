@@ -25,6 +25,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import supabase from "@/lib/supabase-browser";
+import * as tursoApi from "@/lib/turso-api";
 import { Progress } from "@/components/ui/progress";
 
 type Role = "admin" | "operator";
@@ -178,8 +179,7 @@ export default function RecordsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("确定要删除这条记录吗？此操作不可恢复。")) return;
     try {
-      const { error } = await supabase.from("maintenance_records").delete().eq("id", id);
-      if (error) throw new Error(error.message);
+      await tursoApi.deleteRecord(id);
       setRecords((prev) => prev.filter((r: any) => r.id !== id));
     } catch (e: any) {
       alert("删除失败：" + e.message);

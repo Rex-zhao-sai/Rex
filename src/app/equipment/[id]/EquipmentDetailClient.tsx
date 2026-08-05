@@ -55,7 +55,10 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     if (!equipmentId) return;
+    let cancelled = false;
+
     const loadRecord = async () => {
+      if (cancelled) return;
       setLoading(true);
       setConnectionError("");
       try {
@@ -78,10 +81,18 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
         setConnectionError("连接失败，请检查网络后刷新页面");
         setPhotoPairs([{ id: generateId(), before: null, after: null, note: "", duration: 0 }]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     loadRecord();
+
+    // 每 30 秒自动刷新
+    const interval = setInterval(loadRecord, 30000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [equipmentId, currentMonth]);
 
   const handlePhotoUpload = useCallback(
