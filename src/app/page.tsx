@@ -879,7 +879,7 @@ export default function Home() {
               </button>
             </div>
             <p className="text-sm text-gray-600 mb-2">确定要删除设备</p>
-            <p className="text-base font-semibold text-gray-900 mb-4">"{deletingEquipment.name}"吗？</p>
+            <p className="text-base font-semibold text-gray-900 mb-4">&ldquo;{deletingEquipment.name}&rdquo;吗？</p>
             <p className="text-xs text-red-500 mb-6">⚠️ 删除后不可恢复，该设备的保养记录也将被删除</p>
             <div className="flex gap-2">
               <button
