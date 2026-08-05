@@ -1,7 +1,7 @@
 // Turso 数据访问层
 // 替代 Supabase 的查询接口
 
-import turso from './turso';
+import turso, { isTursoAvailable } from './turso';
 
 // 类型定义
 export interface Equipment {
@@ -43,7 +43,8 @@ function formatDate(date: Date): string {
 
 // 获取所有设备
 export async function getAllEquipment(): Promise<Equipment[]> {
-  const result = await turso.execute({
+  if (!isTursoAvailable()) return [];
+  const result = await turso!.execute({
     sql: `SELECT id, name, category FROM equipment_list ORDER BY name`,
   });
   return result.rows as unknown as Equipment[];
@@ -51,7 +52,8 @@ export async function getAllEquipment(): Promise<Equipment[]> {
 
 // 根据 ID 获取设备
 export async function getEquipmentById(id: string): Promise<Equipment | null> {
-  const result = await turso.execute({
+  if (!isTursoAvailable()) return null;
+  const result = await turso!.execute({
     sql: `SELECT id, name, category FROM equipment_list WHERE id = ?`,
     args: [id],
   });
@@ -62,7 +64,8 @@ export async function getEquipmentById(id: string): Promise<Equipment | null> {
 
 // 获取所有保养记录（用于首页）
 export async function getAllRecords(): Promise<MaintenanceRecord[]> {
-  const result = await turso.execute({
+  if (!isTursoAvailable()) return [];
+  const result = await turso!.execute({
     sql: `SELECT id, equipment_id, month, technician, photo_count, notes, updated_at
           FROM maintenance_records
           ORDER BY updated_at DESC`,
@@ -72,7 +75,8 @@ export async function getAllRecords(): Promise<MaintenanceRecord[]> {
 
 // 获取指定月份的所有记录（用于记录页面）
 export async function getRecordsByMonth(month: string): Promise<MaintenanceRecord[]> {
-  const result = await turso.execute({
+  if (!isTursoAvailable()) return [];
+  const result = await turso!.execute({
     sql: `SELECT * FROM maintenance_records
           WHERE month = ?
           ORDER BY updated_at DESC`,
@@ -89,7 +93,8 @@ export async function getRecordByEquipmentAndMonth(
   equipmentId: string,
   month: string
 ): Promise<MaintenanceRecord | null> {
-  const result = await turso.execute({
+  if (!isTursoAvailable()) return null;
+  const result = await turso!.execute({
     sql: `SELECT * FROM maintenance_records
           WHERE equipment_id = ? AND month = ?
           ORDER BY updated_at DESC
@@ -106,7 +111,8 @@ export async function getRecordByEquipmentAndMonth(
 
 // 根据设备 ID 获取最新记录（任何月份）
 export async function getLatestRecordByEquipment(equipmentId: string): Promise<MaintenanceRecord | null> {
-  const result = await turso.execute({
+  if (!isTursoAvailable()) return null;
+  const result = await turso!.execute({
     sql: `SELECT * FROM maintenance_records
           WHERE equipment_id = ?
           ORDER BY updated_at DESC
@@ -132,6 +138,7 @@ export async function saveRecord(record: {
   role?: string;
   duration?: number;
 }): Promise<{ success: boolean; error?: string }> {
+  if (!isTursoAvailable()) return { success: false, error: 'Turso 不可用' };
   try {
     const now = formatDate(new Date());
     const id = generateUUID();
@@ -141,7 +148,7 @@ export async function saveRecord(record: {
 
     if (existing) {
       // 更新现有记录
-      await turso.execute({
+      await turso!.execute({
         sql: `UPDATE maintenance_records
               SET technician = ?, notes = ?, photo_pairs = ?, photo_count = ?,
                   role = ?, duration = ?, updated_at = ?
@@ -159,7 +166,7 @@ export async function saveRecord(record: {
       });
     } else {
       // 插入新记录
-      await turso.execute({
+      await turso!.execute({
         sql: `INSERT INTO maintenance_records
               (id, equipment_id, month, technician, notes, photo_pairs, photo_count, role, duration, created_at, updated_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -187,8 +194,9 @@ export async function saveRecord(record: {
 
 // 删除保养记录
 export async function deleteRecord(id: string): Promise<{ success: boolean; error?: string }> {
+  if (!isTursoAvailable()) return { success: false, error: 'Turso 不可用' };
   try {
-    await turso.execute({
+    await turso!.execute({
       sql: `DELETE FROM maintenance_records WHERE id = ?`,
       args: [id],
     });
@@ -202,7 +210,8 @@ export async function deleteRecord(id: string): Promise<{ success: boolean; erro
 
 // 获取设备总数
 export async function getEquipmentCount(): Promise<number> {
-  const result = await turso.execute({
+  if (!isTursoAvailable()) return 0;
+  const result = await turso!.execute({
     sql: `SELECT COUNT(*) as count FROM equipment_list`,
   });
   return Number(result.rows[0].count);
@@ -210,7 +219,8 @@ export async function getEquipmentCount(): Promise<number> {
 
 // 获取保养记录总数
 export async function getRecordCount(): Promise<number> {
-  const result = await turso.execute({
+  if (!isTursoAvailable()) return 0;
+  const result = await turso!.execute({
     sql: `SELECT COUNT(*) as count FROM maintenance_records`,
   });
   return Number(result.rows[0].count);
