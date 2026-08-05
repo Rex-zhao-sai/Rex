@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId, getCurrentMonth } from "@/lib/storage";
-import { getRecordByEquipmentAndMonth, saveRecord } from "@/lib/turso-api";
+import { getRecordByEquipmentAndMonth, saveRecord, getEquipmentById } from "@/lib/turso-api";
 import { uploadPhotoPair } from "@/lib/github-storage";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import {
@@ -32,13 +32,33 @@ function getStoredRole(): Role {
 export function EquipmentDetailClient({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [equipmentId, setEquipmentId] = useState("");
+  const [equipment, setEquipment] = useState<any>(null);
+  const [equipmentLoading, setEquipmentLoading] = useState(true);
 
   useEffect(() => {
     params.then((p) => setEquipmentId(p.id));
   }, [params]);
 
+  useEffect(() => {
+    if (!equipmentId) return;
+    setEquipmentLoading(true);
+    // 先从静态列表查找
+    const staticEquipment = EQUIPMENT_LIST.find((e) => e.id === equipmentId);
+    if (staticEquipment) {
+      setEquipment(staticEquipment);
+      setEquipmentLoading(false);
+    } else {
+      // 从 Turso 数据库查找新添加的设备
+      getEquipmentById(equipmentId).then((eq) => {
+        if (eq) {
+          setEquipment({ id: eq.id, name: eq.name, category: eq.category });
+        }
+        setEquipmentLoading(false);
+      });
+    }
+  }, [equipmentId]);
+
   const [role, setRole] = useState<Role>(getStoredRole);
-  const equipment = EQUIPMENT_LIST.find((e) => e.id === equipmentId);
   const currentMonth = getCurrentMonth();
 
   const [photoPairs, setPhotoPairs] = useState<PhotoPair[]>([]);
@@ -240,6 +260,14 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   const isReadOnly = !canEdit;
 
   if (!equipmentId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-[#2563EB]" />
+      </div>
+    );
+  }
+
+  if (equipmentLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 size={24} className="animate-spin text-[#2563EB]" />
