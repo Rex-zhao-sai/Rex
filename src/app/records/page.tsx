@@ -26,6 +26,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import supabase from "@/lib/supabase-browser";
 import * as tursoApi from "@/lib/turso-api";
+import type { Equipment } from "@/lib/turso-api";
 import { Progress } from "@/components/ui/progress";
 
 type Role = "admin" | "operator";
@@ -44,6 +45,7 @@ export default function RecordsPage() {
     return getStoredRole();
   });
   const [records, setRecords] = useState<any[]>([]);
+  const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -130,17 +132,17 @@ export default function RecordsPage() {
     const keyword = search.trim().toLowerCase();
     if (!keyword) return records;
     return records.filter((r: any) => {
-      const eq = EQUIPMENT_LIST.find((e) => e.id === r.equipment_id);
+      const eq = allEquipment.find((e) => e.id === r.equipment_id);
       return eq?.name.toLowerCase().includes(keyword);
     });
-  }, [records, search]);
+  }, [records, search, allEquipment]);
 
   const completedCount = filtered.filter(
     (r: any) => r.photo_pairs && r.photo_pairs.length > 0 && r.photo_pairs.some((p: any) => p.before || p.after)
   ).length;
 
   const getEquipmentName = (id: string) => {
-    return EQUIPMENT_LIST.find((e) => e.id === id)?.name ?? id;
+    return allEquipment.find((e) => e.id === id)?.name ?? id;
   };
 
   const handleExport = async () => {
