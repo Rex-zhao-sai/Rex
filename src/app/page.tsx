@@ -39,14 +39,12 @@ export default function Home() {
   // Add equipment modal state
   const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
   const [newEquipmentName, setNewEquipmentName] = useState("");
-  const [newEquipmentCategory, setNewEquipmentCategory] = useState("");
   const [addingEquipment, setAddingEquipment] = useState(false);
 
   // Edit equipment modal state
   const [showEditEquipmentModal, setShowEditEquipmentModal] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<any>(null);
   const [editEquipmentName, setEditEquipmentName] = useState("");
-  const [editEquipmentCategory, setEditEquipmentCategory] = useState("");
   const [updatingEquipment, setUpdatingEquipment] = useState(false);
 
   // Delete confirm modal state
@@ -304,32 +302,27 @@ export default function Home() {
     setPasswordError("");
   };
 
-  // 添加新设备
+  // 添加新设备（操作端和管理端都可以）
   const handleAddEquipment = async () => {
     if (!newEquipmentName.trim()) return;
-    if (role !== "admin") {
-      alert("只有管理端可以添加设备");
-      return;
-    }
 
     setAddingEquipment(true);
     try {
-      const newEquipment = await addEquipment(newEquipmentName.trim(), newEquipmentName.trim());
+      const newEquipment = await addEquipment(newEquipmentName.trim(), '');
       if (newEquipment) {
         // 更新设备列表
         setEquipmentList(prev => {
-          const updated = [...prev, { id: newEquipment.id, name: newEquipment.name, category: newEquipment.category || '' }];
+          const updated = [...prev, { id: newEquipment.id, name: newEquipment.name, category: '' }];
           updated.sort((a, b) => a.name.localeCompare(b.name));
           return updated;
         });
         // 更新 IndexedDB 缓存
-        const updatedList = [...equipmentList, { id: newEquipment.id, name: newEquipment.name, category: newEquipment.category || '' }];
+        const updatedList = [...equipmentList, { id: newEquipment.id, name: newEquipment.name, category: '' }];
         updatedList.sort((a, b) => a.name.localeCompare(b.name));
         await setCachedEquipment(updatedList);
         // 关闭弹窗并清空表单
         setShowAddEquipmentModal(false);
         setNewEquipmentName("");
-        setNewEquipmentCategory("");
       }
     } catch (e) {
       console.error("添加设备失败:", e);
@@ -339,7 +332,7 @@ export default function Home() {
     }
   };
 
-  // 编辑设备
+  // 编辑设备（仅管理端）
   const handleEditEquipment = async () => {
     if (!editEquipmentName.trim() || !editingEquipment) return;
     if (role !== "admin") {
@@ -349,13 +342,13 @@ export default function Home() {
 
     setUpdatingEquipment(true);
     try {
-      const success = await updateEquipment(editingEquipment.id, editEquipmentName.trim(), editEquipmentCategory.trim());
+      const success = await updateEquipment(editingEquipment.id, editEquipmentName.trim(), '');
       if (success) {
         // 更新设备列表
         setEquipmentList(prev => {
           const updated = prev.map(eq =>
             eq.id === editingEquipment.id
-              ? { ...eq, name: editEquipmentName.trim(), category: editEquipmentCategory.trim() }
+              ? { ...eq, name: editEquipmentName.trim(), category: '' }
               : eq
           );
           updated.sort((a, b) => a.name.localeCompare(b.name));
@@ -364,7 +357,7 @@ export default function Home() {
         // 更新 IndexedDB 缓存
         const updatedList = equipmentList.map(eq =>
           eq.id === editingEquipment.id
-            ? { ...eq, name: editEquipmentName.trim(), category: editEquipmentCategory.trim() }
+            ? { ...eq, name: editEquipmentName.trim(), category: '' }
             : eq
         );
         updatedList.sort((a, b) => a.name.localeCompare(b.name));
@@ -749,23 +742,12 @@ export default function Home() {
                   autoFocus
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">设备分类</label>
-                <input
-                  type="text"
-                  placeholder="输入设备分类（可选）..."
-                  value={newEquipmentCategory}
-                  onChange={(e) => setNewEquipmentCategory(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
             </div>
             <div className="flex gap-2 mt-6">
               <button
                 onClick={() => {
                   setShowAddEquipmentModal(false);
                   setNewEquipmentName("");
-                  setNewEquipmentCategory("");
                 }}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
               >
@@ -820,16 +802,6 @@ export default function Home() {
                   autoFocus
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">设备分类</label>
-                <input
-                  type="text"
-                  placeholder="输入设备分类（可选）..."
-                  value={editEquipmentCategory}
-                  onChange={(e) => setEditEquipmentCategory(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
             </div>
             <div className="flex gap-2 mt-6">
               <button
@@ -837,7 +809,6 @@ export default function Home() {
                   setShowEditEquipmentModal(false);
                   setEditingEquipment(null);
                   setEditEquipmentName("");
-                  setEditEquipmentCategory("");
                 }}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
               >
