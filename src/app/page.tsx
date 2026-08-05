@@ -366,7 +366,6 @@ export default function Home() {
         setShowEditEquipmentModal(false);
         setEditingEquipment(null);
         setEditEquipmentName("");
-        setEditEquipmentCategory("");
       }
     } catch (e) {
       console.error("编辑设备失败:", e);
@@ -468,7 +467,6 @@ export default function Home() {
                 e.preventDefault();
                 setEditingEquipment(eq);
                 setEditEquipmentName(eq.name);
-                setEditEquipmentCategory(eq.category || "");
                 setShowEditEquipmentModal(true);
               }}
               className="p-1.5 bg-white rounded-lg shadow-md hover:bg-blue-50 transition-colors"
@@ -723,7 +721,6 @@ export default function Home() {
                 onClick={() => {
                   setShowAddEquipmentModal(false);
                   setNewEquipmentName("");
-                  setNewEquipmentCategory("");
                 }}
                 className="p-1 rounded-full hover:bg-gray-100"
               >
@@ -783,7 +780,6 @@ export default function Home() {
                   setShowEditEquipmentModal(false);
                   setEditingEquipment(null);
                   setEditEquipmentName("");
-                  setEditEquipmentCategory("");
                 }}
                 className="p-1 rounded-full hover:bg-gray-100"
               >
