@@ -35,10 +35,7 @@ export default function MigrationPage() {
 
   const loadRecords = async () => {
     try {
-<<<<<<< HEAD
       // 1. 查询所有有照片的记录
-=======
->>>>>>> 4ac44cbfa7f10558554ba3b820aece6553c6d2cb
       const { data: records, error } = await supabase
         .from("maintenance_records")
         .select("*")
@@ -46,10 +43,7 @@ export default function MigrationPage() {
 
       if (error) throw error;
 
-<<<<<<< HEAD
       // 2. 列出 Storage 中的所有照片
-=======
->>>>>>> 4ac44cbfa7f10558554ba3b820aece6553c6d2cb
       const { data: storageFiles, error: storageError } = await supabase.storage
         .from("maintenance-photos")
         .list();
@@ -58,10 +52,7 @@ export default function MigrationPage() {
         addLog(`Storage 查询失败：${storageError.message}`);
       }
 
-<<<<<<< HEAD
       // 3. 统计信息
-=======
->>>>>>> 4ac44cbfa7f10558554ba3b820aece6553c6d2cb
       const recordsWithPhotos = (records || []).filter((r: any) => r.photo_pairs?.length > 0);
       const base64Records = recordsWithPhotos.filter((record: any) =>
         record.photo_pairs?.some((pair: any) => {
@@ -78,14 +69,9 @@ export default function MigrationPage() {
       addLog(`URL 格式：${urlRecords} 条`);
       addLog(`Storage 文件数：${storageFiles?.length || 0}`);
 
-<<<<<<< HEAD
       // 4. 显示待迁移记录（base64 格式）
       setRecords(base64Records);
       addLog(`待迁移记录：${base64Records.length} 条`);
-=======
-      setRecords(recordsWithPhotos);
-      addLog(`待迁移记录：${recordsWithPhotos.length} 条`);
->>>>>>> 4ac44cbfa7f10558554ba3b820aece6553c6d2cb
     } catch (e: any) {
       setError(e.message);
       addLog(`加载记录失败：${e.message}`);
