@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
@@ -72,13 +72,22 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   const [recordRole, setRecordRole] = useState<Role>("operator");
   const [connectionError, setConnectionError] = useState("");
   const [saving, setSaving] = useState(false);
+  
+  // 使用 ref 跟踪 saved 状态，避免轮询闭包问题
+  const savedRef = useRef(saved);
+  useEffect(() => {
+    savedRef.current = saved;
+  }, [saved]);
 
   useEffect(() => {
     if (!equipmentId) return;
     let cancelled = false;
 
-    const loadRecord = async () => {
+    const loadRecord = async (force = false) => {
       if (cancelled) return;
+      // 如果用户有未保存的修改，跳过轮询（除非强制刷新）
+      if (!force && !savedRef.current) return;
+      
       setLoading(true);
       setConnectionError("");
       try {
@@ -104,10 +113,10 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
         if (!cancelled) setLoading(false);
       }
     };
-    loadRecord();
+    loadRecord(true); // 首次加载强制刷新
 
-    // 每 30 秒自动刷新
-    const interval = setInterval(loadRecord, 30000);
+    // 每 30 秒自动刷新（如果有未保存的修改则跳过）
+    const interval = setInterval(() => loadRecord(false), 30000);
 
     return () => {
       cancelled = true;
