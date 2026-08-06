@@ -41,15 +41,19 @@ export function EquipmentDetailClient({
   const [equipment, setEquipment] = useState<any>(null);
   const [equipmentLoading, setEquipmentLoading] = useState(true);
 
-  // 从 URL searchParams 读取月份（优先级高于 initialMonth）
-  useEffect(() => {
-    const monthParam = searchParams.get("month");
-    if (monthParam) {
-      setMonth(monthParam);
-    } else if (initialMonth) {
-      setMonth(initialMonth);
+  // 初始化月份：优先从 URL searchParams 读取，其次使用 initialMonth，最后使用当前月份
+  const getInitialMonth = () => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const monthParam = params.get("month");
+      if (monthParam) return monthParam;
     }
-  }, [searchParams, initialMonth]);
+    return initialMonth || getCurrentMonth();
+  };
+
+  const [role, setRole] = useState<Role>(getStoredRole);
+  const [month, setMonth] = useState(getInitialMonth);
+  const currentMonth = month;
 
   useEffect(() => {
     if (!equipmentId) return;
@@ -69,10 +73,6 @@ export function EquipmentDetailClient({
       });
     }
   }, [equipmentId]);
-
-  const [role, setRole] = useState<Role>(getStoredRole);
-  const [month, setMonth] = useState(getCurrentMonth());
-  const currentMonth = month;
 
   const [photoPairs, setPhotoPairs] = useState<PhotoPair[]>([]);
   const [technician, setTechnician] = useState("");
@@ -158,18 +158,39 @@ export function EquipmentDetailClient({
 
   // 手动加载照片
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [loadPhotosError, setLoadPhotosError] = useState("");
   const handleLoadPhotos = async () => {
     if (!equipmentId || !existingRecordId) return;
     setLoadingPhotos(true);
+    setLoadPhotosError("");
     try {
-      const fullData = await getRecordByEquipmentAndMonth(equipmentId, currentMonth);
+      // 添加超时处理（10 秒）
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("加载超时")), 10000)
+      );
+      
+      const fullData = await Promise.race([
+        getRecordByEquipmentAndMonth(equipmentId, currentMonth),
+        timeoutPromise
+      ]) as any;
+      
       if (fullData && fullData.photo_pairs) {
-        const photoPairs = typeof fullData.photo_pairs === 'string' ? JSON.parse(fullData.photo_pairs) : fullData.photo_pairs;
-        setPhotoPairs(photoPairs);
-        setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
+        const photoPairs = typeof fullData.photo_pairs === 'string' 
+          ? JSON.parse(fullData.photo_pairs) 
+          : fullData.photo_pairs;
+        
+        if (Array.isArray(photoPairs) && photoPairs.length > 0) {
+          setPhotoPairs(photoPairs);
+          setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
+        } else {
+          setLoadPhotosError("该记录没有照片");
+        }
+      } else {
+        setLoadPhotosError("该记录没有照片");
       }
-    } catch (err) {
-      console.warn("加载照片失败:", err);
+    } catch (err: any) {
+      console.error("加载照片失败:", err);
+      setLoadPhotosError(err.message || "加载照片失败，请重试");
     } finally {
       setLoadingPhotos(false);
     }
@@ -450,7 +471,7 @@ export function EquipmentDetailClient({
               <button
                 onClick={handleLoadPhotos}
                 disabled={loadingPhotos}
-                className="w-full mb-4 py-2.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-[#6B7280] text-sm font-medium hover:bg-[#F3F4F6] transition-colors flex items-center justify-center gap-2"
+                className="w-full mb-2 py-2.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-[#6B7280] text-sm font-medium hover:bg-[#F3F4F6] transition-colors flex items-center justify-center gap-2"
               >
                 {loadingPhotos ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -459,6 +480,13 @@ export function EquipmentDetailClient({
                 )}
                 {loadingPhotos ? "加载照片中..." : "加载已有照片"}
               </button>
+            )}
+            
+            {loadPhotosError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
+                <AlertCircle size={16} />
+                <span>{loadPhotosError}</span>
+              </div>
             )}
 
             {/* Photo pairs */}
