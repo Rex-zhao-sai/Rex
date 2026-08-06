@@ -116,7 +116,7 @@ export function EquipmentDetailClient({
       setLoading(true);
       setConnectionError("");
       try {
-        // 先加载不含照片的记录（快速）
+        // 只加载不含照片的记录（快速）
         const data = await getRecordWithoutPhotos(equipmentId, currentMonth);
 
         if (data) {
@@ -126,25 +126,10 @@ export function EquipmentDetailClient({
           setExistingRecordId(data.id);
           setRecordRole((data.role as Role) || "operator");
           
-          // 然后尝试加载照片（可能较慢）
-          try {
-            const fullData = await getRecordByEquipmentAndMonth(equipmentId, currentMonth);
-            if (fullData && fullData.photo_pairs) {
-              const photoPairs = typeof fullData.photo_pairs === 'string' ? JSON.parse(fullData.photo_pairs) : fullData.photo_pairs;
-              setPhotoPairs(photoPairs);
-              setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
-            } else {
-              const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
-              setPhotoPairs([newPair]);
-              setExistingPairIds(new Set());
-            }
-          } catch (photoErr) {
-            console.warn("加载照片失败，显示基本信息:", photoErr);
-            // 照片加载失败，显示空照片组
-            const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
-            setPhotoPairs([newPair]);
-            setExistingPairIds(new Set());
-          }
+          // 不自动加载照片，显示空照片组
+          const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
+          setPhotoPairs([newPair]);
+          setExistingPairIds(new Set());
         } else {
           const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
           setPhotoPairs([newPair]);
@@ -162,14 +147,33 @@ export function EquipmentDetailClient({
     };
     loadRecord(true); // 首次加载强制刷新
 
-    // 每 30 秒自动刷新（如果有未保存的修改或照片则跳过）
-    const interval = setInterval(() => loadRecord(false), 30000);
+    // 每 60 秒自动刷新（如果有未保存的修改或照片则跳过）
+    const interval = setInterval(() => loadRecord(false), 60000);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
   }, [equipmentId, currentMonth]);
+
+  // 手动加载照片
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const handleLoadPhotos = async () => {
+    if (!equipmentId || !existingRecordId) return;
+    setLoadingPhotos(true);
+    try {
+      const fullData = await getRecordByEquipmentAndMonth(equipmentId, currentMonth);
+      if (fullData && fullData.photo_pairs) {
+        const photoPairs = typeof fullData.photo_pairs === 'string' ? JSON.parse(fullData.photo_pairs) : fullData.photo_pairs;
+        setPhotoPairs(photoPairs);
+        setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
+      }
+    } catch (err) {
+      console.warn("加载照片失败:", err);
+    } finally {
+      setLoadingPhotos(false);
+    }
+  };
 
   // 判断照片组是否可以被当前角色编辑
   // 操作端只能编辑新增的照片组（不在 existingPairIds 中）
@@ -440,6 +444,22 @@ export function EquipmentDetailClient({
                 />
               </div>
             </div>
+
+            {/* Load photos button - only show when record exists and photos not loaded */}
+            {existingRecordId && photoPairs.length === 1 && !photoPairs[0].before && !photoPairs[0].after && (
+              <button
+                onClick={handleLoadPhotos}
+                disabled={loadingPhotos}
+                className="w-full mb-4 py-2.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-[#6B7280] text-sm font-medium hover:bg-[#F3F4F6] transition-colors flex items-center justify-center gap-2"
+              >
+                {loadingPhotos ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <FileText size={16} />
+                )}
+                {loadingPhotos ? "加载照片中..." : "加载已有照片"}
+              </button>
+            )}
 
             {/* Photo pairs */}
             <div className="space-y-4">
