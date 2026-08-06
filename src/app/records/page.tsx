@@ -151,7 +151,7 @@ export default function RecordsPage() {
   }, [records, search, allEquipment]);
 
   const completedCount = filtered.filter(
-    (r: any) => r.photo_pairs && r.photo_pairs.length > 0 && r.photo_pairs.some((p: any) => p.before || p.after)
+    (r: any) => r.photo_count > 0
   ).length;
 
   const getEquipmentName = (id: string) => {
