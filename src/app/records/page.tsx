@@ -409,7 +409,7 @@ export default function RecordsPage() {
                     <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">技术员</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">照片组数</th>
                     <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">备注</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">更新时间</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">保养时间</th>
                     <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                   </tr>
                 </thead>
@@ -442,13 +442,13 @@ export default function RecordsPage() {
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {(() => {
-                              const date = new Date(record.updated_at);
+                              const date = new Date(record.created_at);
                               // 如果是 UTC 时间（旧数据），需要转换
                               // 通过检查是否有 Z 后缀或 T 分隔符判断
-                              if (record.updated_at && !record.updated_at.includes('Z') && !record.updated_at.includes('T')) {
+                              if (record.created_at && !record.created_at.includes('Z') && !record.created_at.includes('T')) {
                                 // 旧数据格式：2026-08-05 02:46:43（实际是 UTC）
                                 // 需要当作 UTC 解析
-                                const utcDate = new Date(record.updated_at + 'Z');
+                                const utcDate = new Date(record.created_at + 'Z');
                                 return utcDate.toLocaleString("zh-CN");
                               }
                               return date.toLocaleString("zh-CN");
