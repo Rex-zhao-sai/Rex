@@ -162,33 +162,40 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     []
   );
 
+  // 权限控制：
+  // - 管理端：可以修改所有内容
+  // - 操作端查看已有记录：不能修改技术员/备注/照片备注，但可以上传照片和添加新照片组
+  // - 操作端新建记录：可以填写所有内容
+  const canEditFields = role === "admin" || !existingRecordId;
+  const canAddPhotos = true; // 所有人都可以上传照片
+  const isReadOnly = role === "operator" && !!existingRecordId && recordRole === "admin";
+
   const handleSave = useCallback(async () => {
-    // 验证：技术员必填
-    if (!technician || technician.trim() === "") {
-      alert("技术员为必填项");
-      return;
+    // 管理端或新建记录时需要验证字段
+    if (canEditFields) {
+      // 验证：技术员必填
+      if (!technician || technician.trim() === "") {
+        alert("技术员为必填项");
+        return;
+      }
+
+      // 验证：备注必填
+      if (!notes || notes.trim() === "") {
+        alert("备注为必填项");
+        return;
+      }
     }
 
-    // 验证：整体保养时长（暂时改为非必填，等 Supabase schema cache 刷新后恢复）
-    if (duration < 0) {
-      alert("保养时长不能为负数");
-      return;
-    }
-
-    // 验证：备注必填
-    if (!notes || notes.trim() === "") {
-      alert("备注为必填项");
-      return;
-    }
-
-    // 验证：已上传照片的组必须填写备注
-    for (let i = 0; i < photoPairs.length; i++) {
-      const pair = photoPairs[i];
-      const hasPhotos = pair.before || pair.after;
-      if (hasPhotos) {
-        if (!pair.note || pair.note.trim() === "") {
-          alert(`第 ${i + 1} 组照片的备注为必填项`);
-          return;
+    // 验证：已上传照片的组必须填写备注（仅管理端或新建记录时）
+    if (canEditFields) {
+      for (let i = 0; i < photoPairs.length; i++) {
+        const pair = photoPairs[i];
+        const hasPhotos = pair.before || pair.after;
+        if (hasPhotos) {
+          if (!pair.note || pair.note.trim() === "") {
+            alert(`第 ${i + 1} 组照片的备注为必填项`);
+            return;
+          }
         }
       }
     }
@@ -230,10 +237,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     } finally {
       setSaving(false);
     }
-  }, [equipmentId, currentMonth, technician, notes, photoPairs, role, existingRecordId]);
-
-  const canEdit = role === "admin" || recordRole === "operator" || !existingRecordId;
-  const isReadOnly = !canEdit;
+  }, [equipmentId, currentMonth, technician, notes, photoPairs, role, existingRecordId, canEditFields]);
 
   if (!equipmentId) {
     return (
@@ -300,12 +304,12 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* Read-only notice */}
-      {isReadOnly && (
+      {/* Read-only notice for operator viewing admin-created record */}
+      {!canEditFields && (
         <div className="max-w-2xl mx-auto px-4 pt-3">
-          <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-800">
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800">
             <Lock size={16} />
-            当前记录由管理端创建，操作端仅可查看
+            操作端仅可上传照片，无法修改已保存的内容（技术员/备注/照片备注）
           </div>
         </div>
       )}
@@ -334,7 +338,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                   type="text"
                   value={technician}
                   onChange={(e) => { setTechnician(e.target.value); setSaved(false); }}
-                  disabled={isReadOnly}
+                  disabled={!canEditFields}
                   placeholder="输入技术员姓名"
                   className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                 />
@@ -345,7 +349,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                   type="text"
                   value={notes}
                   onChange={(e) => { setNotes(e.target.value); setSaved(false); }}
-                  disabled={isReadOnly}
+                  disabled={!canEditFields}
                   placeholder="输入保养备注"
                   className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                 />
@@ -367,11 +371,11 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                         setPhotoPairs(newPairs);
                         setSaved(false);
                       }}
-                      disabled={isReadOnly}
+                      disabled={!canEditFields}
                       placeholder="请输入备注（必填）"
                       className="flex-1 px-3 py-1.5 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                     />
-                    {photoPairs.length > 1 && !isReadOnly && (
+                    {photoPairs.length > 1 && canEditFields && (
                       <button onClick={() => removePhotoPair(pair.id)} className="p-1 rounded-full hover:bg-red-50 text-red-500 flex-shrink-0">
                         <Trash2 size={16} />
                       </button>
@@ -387,40 +391,36 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                       newPairs[index] = updatedPair;
                       setPhotoPairs(newPairs);
                     }}
-                    readOnly={isReadOnly}
+                    readOnly={false}
                   />
                 </div>
               ))}
             </div>
 
             {/* Add pair button */}
-            {!isReadOnly && (
-              <button
-                onClick={addPhotoPair}
-                className="w-full mt-4 py-3 border-2 border-dashed border-[#D1D5DB] rounded-xl text-[#6B7280] text-sm font-medium hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus size={18} />
-                添加照片组
-              </button>
-            )}
+            <button
+              onClick={addPhotoPair}
+              className="w-full mt-4 py-3 border-2 border-dashed border-[#D1D5DB] rounded-xl text-[#6B7280] text-sm font-medium hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex items-center justify-center gap-2"
+            >
+              <Plus size={18} />
+              添加照片组
+            </button>
 
             {/* Save button */}
-            {!isReadOnly && (
-              <button
-                onClick={handleSave}
-                disabled={saving || saved}
-                className="w-full mt-6 py-3 bg-[#2563EB] text-white rounded-xl text-sm font-medium hover:bg-[#1D4ED8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {saving ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : saved ? (
-                  <CheckCircle2 size={18} />
-                ) : (
-                  <Save size={18} />
-                )}
-                {saving ? "保存中..." : saved ? "已保存" : "保存记录"}
-              </button>
-            )}
+            <button
+              onClick={handleSave}
+              disabled={saving || saved}
+              className="w-full mt-6 py-3 bg-[#2563EB] text-white rounded-xl text-sm font-medium hover:bg-[#1D4ED8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : saved ? (
+                <CheckCircle2 size={18} />
+              ) : (
+                <Save size={18} />
+              )}
+              {saving ? "保存中..." : saved ? "已保存" : "保存记录"}
+            </button>
           </>
         )}
       </div>
