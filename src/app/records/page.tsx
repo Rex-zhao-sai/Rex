@@ -44,6 +44,7 @@ export default function RecordsPage() {
     return getStoredRole();
   });
   const [records, setRecords] = useState<any[]>([]);
+  const [recordsWithPhotos, setRecordsWithPhotos] = useState<any[]>([]);
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
@@ -108,6 +109,12 @@ export default function RecordsPage() {
           setRecords(newData);
           await setCachedRecords(newData);
           console.log("[Page] Updated records from Turso");
+        }
+        // 3. 获取有照片的记录（用于照片预览）
+        const photosData = await tursoApi.getRecordsWithPhotosByMonth(selectedMonth);
+        if (photosData) {
+          setRecordsWithPhotos(photosData);
+          console.log("[Page] Loaded records with photos:", photosData.length);
         }
       } catch (e) {
         console.error("Failed to fetch records:", e);
@@ -466,14 +473,14 @@ export default function RecordsPage() {
         </div>
 
         {/* Photo Preview Section */}
-        {filtered.length > 0 && (
+        {recordsWithPhotos.length > 0 && (
           <div className="mt-6">
             <h2 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-gray-400" />
               保养照片预览
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map((record: any) => {
+              {recordsWithPhotos.map((record: any) => {
                 const completedPairs = record.photo_pairs?.filter(
                   (p: any) => p.before && p.after
                 ) || [];

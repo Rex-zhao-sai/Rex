@@ -104,13 +104,31 @@ export async function getAllRecords(): Promise<MaintenanceRecord[]> {
   return result.rows as unknown as MaintenanceRecord[];
 }
 
-// 获取指定月份的所有记录（用于记录页面）
+// 获取指定月份的所有记录（用于记录页面，不查询 photo_pairs 避免内存不足）
 export async function getRecordsByMonth(month: string): Promise<MaintenanceRecord[]> {
   if (!isTursoAvailable()) return [];
   const result = await turso!.execute({
-    sql: `SELECT * FROM maintenance_records
+    sql: `SELECT id, equipment_id, month, technician_name, notes, photo_count, created_at, updated_at
+          FROM maintenance_records
           WHERE month = ?
           ORDER BY updated_at DESC`,
+    args: [month],
+  });
+  // 不解析 photo_pairs，返回空数组（记录页列表只需要 photo_count）
+  return result.rows.map(row => ({
+    ...row,
+    photo_pairs: [],
+  })) as unknown as MaintenanceRecord[];
+}
+
+// 获取指定月份有照片的记录（用于照片预览，只查询前 5 条有照片的记录）
+export async function getRecordsWithPhotosByMonth(month: string): Promise<MaintenanceRecord[]> {
+  if (!isTursoAvailable()) return [];
+  const result = await turso!.execute({
+    sql: `SELECT * FROM maintenance_records
+          WHERE month = ? AND photo_count > 0
+          ORDER BY updated_at DESC
+          LIMIT 5`,
     args: [month],
   });
   // 解析 photo_pairs JSON 字符串
