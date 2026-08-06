@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
-import { getAllEquipment, getRecordsByMonth, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
+import { getAllEquipment, getRecordsByMonth, getLatestRecordPerEquipment, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
 import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown, Pencil, Trash2 } from "lucide-react";
@@ -134,19 +134,17 @@ export default function Home() {
       }
       
       try {
-        // 只查询当前月份数据（减少查询时间）
-        const currentMonthData = await getRecordsByMonth(currentMonth);
+        // 获取每个设备的最新记录（用于超期判断）
+        const latestRecords = await getLatestRecordPerEquipment();
 
-        if (isMounted && currentMonthData && currentMonthData.length > 0) {
+        if (isMounted && latestRecords && latestRecords.length > 0) {
           const recordsMap: Record<string, any> = {};
-          currentMonthData.forEach((r) => {
-            if (!recordsMap[r.equipment_id] || new Date(r.created_at) > new Date(recordsMap[r.equipment_id].created_at)) {
-              recordsMap[r.equipment_id] = r;
-            }
+          latestRecords.forEach((r) => {
+            recordsMap[r.equipment_id] = r;
           });
           setRecords(recordsMap);
           // 写入 IndexedDB（缓存当前月份记录）
-          await setCachedRecords(currentMonthData);
+          await setCachedRecords(latestRecords);
           console.log('[Page] Updated from Turso');
           isInitialFetchDone = true;
         } else if (isMounted && !cachedRecords) {

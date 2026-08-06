@@ -148,6 +148,25 @@ export async function getAvailableMonths(): Promise<string[]> {
   return result.rows.map(row => row[0] as string);
 }
 
+// 获取每个设备的最新记录（用于首页超期判断）
+export async function getLatestRecordPerEquipment(): Promise<MaintenanceRecord[]> {
+  if (!isTursoAvailable()) return [];
+  const result = await turso!.execute({
+    sql: `SELECT r.id, r.equipment_id, r.month, r.technician, r.notes, r.photo_count, r.created_at, r.updated_at
+          FROM maintenance_records r
+          INNER JOIN (
+            SELECT equipment_id, MAX(created_at) as max_created_at
+            FROM maintenance_records
+            GROUP BY equipment_id
+          ) latest ON r.equipment_id = latest.equipment_id AND r.created_at = latest.max_created_at
+          ORDER BY r.created_at DESC`,
+  });
+  return result.rows.map(row => ({
+    ...row,
+    photo_pairs: [],
+  })) as unknown as MaintenanceRecord[];
+}
+
 // 根据设备 ID 和月份获取记录
 // 获取记录（不含 photo_pairs，快速查询）
 export async function getRecordWithoutPhotos(

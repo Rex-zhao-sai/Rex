@@ -147,7 +147,7 @@ export function PhotoUploader({
     const labelColor = type === "before" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700";
 
     // 优先使用 dataUrl（本地预览），否则使用 s3Url（从 S3 加载）
-    const photoSrc = photo?.dataUrl || photo?.s3Url || "";
+    const photoSrc = photo?.dataUrl || photo?.s3Url || null;
 
     return (
       <div className="flex-1 min-w-0">
@@ -157,7 +157,7 @@ export function PhotoUploader({
           </span>
         </div>
 
-        {photo ? (
+        {photo && photoSrc ? (
           <div className="relative group">
             <ImagePreview
               src={photoSrc}
