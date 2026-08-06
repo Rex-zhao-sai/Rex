@@ -174,8 +174,8 @@ export default function Home() {
     
     loadRecords(false);
 
-    // 每 60 秒自动刷新（降低频率）
-    const interval = setInterval(() => loadRecords(true), 60000);
+    // 每 5 分钟自动刷新（保养记录不需要高频更新）
+    const interval = setInterval(() => loadRecords(true), 5 * 60 * 1000);
 
     return () => {
       isMounted = false;
