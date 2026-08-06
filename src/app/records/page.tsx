@@ -401,9 +401,7 @@ export default function RecordsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filtered.map((record: any) => {
-                    const completedPairs = record.photo_pairs?.filter(
-                      (p: any) => p.before && p.after
-                    ).length || 0;
+                    const completedPairs = record.photo_count || 0;
                     return (
                       <tr key={record.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3">
