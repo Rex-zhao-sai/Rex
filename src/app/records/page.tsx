@@ -44,7 +44,6 @@ export default function RecordsPage() {
     return getStoredRole();
   });
   const [records, setRecords] = useState<any[]>([]);
-  const [recordsWithPhotos, setRecordsWithPhotos] = useState<any[]>([]);
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQR, setShowQR] = useState(false);
@@ -109,12 +108,6 @@ export default function RecordsPage() {
           setRecords(newData);
           await setCachedRecords(newData);
           console.log("[Page] Updated records from Turso");
-        }
-        // 3. 获取有照片的记录（用于照片预览）
-        const photosData = await tursoApi.getRecordsWithPhotosByMonth(selectedMonth);
-        if (photosData) {
-          setRecordsWithPhotos(photosData);
-          console.log("[Page] Loaded records with photos:", photosData.length);
         }
       } catch (e) {
         console.error("Failed to fetch records:", e);
@@ -469,62 +462,6 @@ export default function RecordsPage() {
             </div>
           )}
         </div>
-
-        {/* Photo Preview Section */}
-        {recordsWithPhotos.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              保养照片预览
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recordsWithPhotos.map((record: any) => {
-                const completedPairs = record.photo_pairs?.filter(
-                  (p: any) => p.before && p.after
-                ) || [];
-                if (completedPairs.length === 0) return null;
-                return (
-                  <div key={record.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-gray-900 truncate">
-                        {getEquipmentName(record.equipment_id)}
-                      </span>
-                      <span className="text-xs text-gray-400">{completedPairs.length}组</span>
-                    </div>
-                    <div className="space-y-3">
-                      {completedPairs.slice(0, 3).map((pair: any, idx: number) => (
-                        <div key={pair.id} className="flex gap-2">
-                          {pair.before && (
-                            <div className="flex-1">
-                              <div className="relative">
-                                <img src={pair.before.dataUrl} alt={`Before #${idx + 1}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100" />
-                                <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">Before</span>
-                              </div>
-                            </div>
-                          )}
-                          {pair.after && (
-                            <div className="flex-1">
-                              <div className="relative">
-                                <img src={pair.after.dataUrl} alt={`After #${idx + 1}`} className="w-full aspect-square object-cover rounded-lg border border-gray-100" />
-                                <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded">After</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {completedPairs.length > 3 && (
-                        <p className="text-xs text-gray-400 text-center">还有 {completedPairs.length - 3} 组照片...</p>
-                      )}
-                    </div>
-                    <Link href={`/equipment?id=${record.equipment_id}`} className="mt-3 block text-center text-xs text-blue-600 hover:underline">
-                      查看完整记录 →
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* QR Code Modal */}
