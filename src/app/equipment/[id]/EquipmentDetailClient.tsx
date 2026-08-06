@@ -261,6 +261,19 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       setSaved(true);
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2000);
+      
+      // 保存成功后重新加载数据，确保页面显示最新状态
+      const data = await getRecordByEquipmentAndMonth(equipmentId, currentMonth);
+      if (data) {
+        const photoPairs = data.photo_pairs ? (typeof data.photo_pairs === 'string' ? JSON.parse(data.photo_pairs) : data.photo_pairs) : [];
+        setPhotoPairs(photoPairs);
+        setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
+        setTechnician(data.technician || "");
+        setNotes(data.notes || "");
+        setDuration(data.duration || 0);
+        setExistingRecordId(data.id);
+        setRecordRole((data.role as Role) || "operator");
+      }
     } catch (e: any) {
       alert(e.message || "保存失败，请重试");
     } finally {
