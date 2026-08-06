@@ -195,13 +195,19 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
 
     setSaving(true);
     
-    // 照片已经在上传时存储到 GitHub Releases，直接保存记录
+    // 照片已经在上传时存储到 Turso，直接保存记录
+    // 计算有照片的组数（before 或 after 不为空的组）
+    const photoCount = photoPairs.filter(
+      (p) => (p.before && p.before !== "") || (p.after && p.after !== "")
+    ).length;
+
     const recordData: any = {
       equipment_id: equipmentId,
       month: currentMonth,
       technician,
       notes,
       photo_pairs: photoPairs,
+      photo_count: photoCount,
       role,
     };
     // 只有当 duration 有值时才包含（避免 schema cache 问题）
