@@ -154,8 +154,11 @@ export function EquipmentDetailClient({
                   return;
                 }
                 
+                // 显示加载状态
+                setLoading(true);
+                
                 const timeoutPromise = new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error("照片加载超时 (60 秒)")), 60000)
+                  setTimeout(() => reject(new Error("照片加载超时 (90 秒)")), 90000)
                 );
                 
                 const fullData = await Promise.race([
@@ -182,6 +185,8 @@ export function EquipmentDetailClient({
               } catch (photoErr) {
                 console.error("[EquipmentDetail] 加载照片失败:", photoErr);
                 // 照片加载失败，保持空照片组
+              } finally {
+                setLoading(false);
               }
             };
             
@@ -454,8 +459,9 @@ export function EquipmentDetailClient({
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-4 pb-24">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 size={24} className="animate-spin text-[#2563EB]" />
+            <p className="text-sm text-[#6B7280]">正在加载记录...</p>
           </div>
         ) : (
           <>
@@ -466,6 +472,19 @@ export function EquipmentDetailClient({
                 <span>{currentMonth} 保养记录</span>
               </div>
             </div>
+            
+            {/* Photo loading indicator */}
+            {existingRecordId && photoPairs.length === 0 && !saved && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 size={16} className="animate-spin text-[#2563EB]" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-[#111827]">正在加载照片...</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5">历史照片数据较大，首次加载需要一些时间</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Technician, Duration & Notes */}
             <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
