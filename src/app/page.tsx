@@ -277,11 +277,11 @@ export default function Home() {
       if (isCurrentMonth) {
         // 本月有保养记录
         completed.push({ ...eq, days, record });
-      } else if (days > 30) {
-        // 超期未保养 (>30 天)
+      } else if (days > 60) {
+        // 超期未保养 (>60 天，即超过 2 个月未保养)
         overdue.push({ ...eq, days });
       } else {
-        // 即将到期 (<30 天但本月未保养)
+        // 即将到期 (30-60 天，即上个月保养了但本月还没保养)
         upcoming.push({ ...eq, days });
       }
     });
