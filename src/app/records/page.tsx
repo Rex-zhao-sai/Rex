@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import supabase from "@/lib/supabase-browser";
 import * as tursoApi from "@/lib/turso-api";
 import type { Equipment } from "@/lib/turso-api";
 import { Progress } from "@/components/ui/progress";
@@ -66,24 +65,15 @@ export default function RecordsPage() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [availableMonths, setAvailableMonths] = useState<string[]>([currentMonth]);
 
-  // Fetch available months from Supabase
+  // Fetch available months from Turso
   useEffect(() => {
     const fetchAvailableMonths = async () => {
       try {
-        const { data, error } = await supabase
-          .from("maintenance_records")
-          .select("month")
-          .order("month", { ascending: false });
-
-        if (error) {
-          console.error("Failed to fetch available months:", error.message);
-          return;
-        }
-
-        if (data && data.length > 0) {
-          const months = new Set(data.map((r: any) => r.month));
-          months.add(currentMonth);
-          setAvailableMonths(Array.from(months).sort().reverse());
+        const months = await tursoApi.getAvailableMonths();
+        if (months && months.length > 0) {
+          const allMonths = new Set(months);
+          allMonths.add(currentMonth);
+          setAvailableMonths(Array.from(allMonths).sort().reverse());
         }
       } catch (e) {
         console.error("Failed to fetch available months:", e);

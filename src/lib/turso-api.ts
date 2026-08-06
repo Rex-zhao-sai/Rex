@@ -119,6 +119,16 @@ export async function getRecordsByMonth(month: string): Promise<MaintenanceRecor
     photo_pairs: typeof row.photo_pairs === 'string' ? JSON.parse(row.photo_pairs) : row.photo_pairs,
   })) as unknown as MaintenanceRecord[];
 }
+
+// 获取所有有记录的月份列表
+export async function getAvailableMonths(): Promise<string[]> {
+  if (!isTursoAvailable()) return [];
+  const result = await turso!.execute({
+    sql: `SELECT DISTINCT month FROM maintenance_records ORDER BY month DESC`,
+  });
+  return result.rows.map(row => row[0] as string);
+}
+
 // 根据设备 ID 和月份获取记录
 export async function getRecordByEquipmentAndMonth(
   equipmentId: string,
