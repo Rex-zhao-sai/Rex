@@ -128,8 +128,9 @@ export function EquipmentDetailClient({
           
           // 自动加载照片（带超时处理）
           try {
+            console.log('[EquipmentDetail] 开始加载照片数据...', { equipmentId, currentMonth });
             const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error("照片加载超时")), 15000)
+              setTimeout(() => reject(new Error("照片加载超时 (30 秒)")), 30000)
             );
             
             const fullData = await Promise.race([
@@ -137,10 +138,15 @@ export function EquipmentDetailClient({
               timeoutPromise
             ]) as any;
             
+            console.log('[EquipmentDetail] 照片数据加载完成:', fullData ? '有数据' : '无数据', 
+              fullData?.photo_pairs ? `photo_pairs 类型：${typeof fullData.photo_pairs}` : 'photo_pairs 为空');
+            
             if (fullData && fullData.photo_pairs) {
               const photoPairs = typeof fullData.photo_pairs === 'string' 
                 ? JSON.parse(fullData.photo_pairs) 
                 : fullData.photo_pairs;
+              
+              console.log('[EquipmentDetail] 解析后的照片组数量:', Array.isArray(photoPairs) ? photoPairs.length : '不是数组');
               
               if (Array.isArray(photoPairs) && photoPairs.length > 0) {
                 setPhotoPairs(photoPairs);
@@ -151,12 +157,13 @@ export function EquipmentDetailClient({
                 setExistingPairIds(new Set());
               }
             } else {
+              console.log('[EquipmentDetail] 记录没有照片数据');
               const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
               setPhotoPairs([newPair]);
               setExistingPairIds(new Set());
             }
           } catch (photoErr) {
-            console.warn("加载照片失败，显示空照片组:", photoErr);
+            console.error("[EquipmentDetail] 加载照片失败:", photoErr);
             const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
             setPhotoPairs([newPair]);
             setExistingPairIds(new Set());
