@@ -74,11 +74,15 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   // 记录已有照片组的 ID（从数据库加载的），操作端只能对新增的照片组操作
   const [existingPairIds, setExistingPairIds] = useState<Set<string>>(new Set());
   
-  // 使用 ref 跟踪 saved 状态，避免轮询闭包问题
+  // 使用 ref 跟踪 saved 状态和 photoPairs，避免轮询闭包问题
   const savedRef = useRef(saved);
+  const photoPairsRef = useRef(photoPairs);
   useEffect(() => {
     savedRef.current = saved;
   }, [saved]);
+  useEffect(() => {
+    photoPairsRef.current = photoPairs;
+  }, [photoPairs]);
 
   useEffect(() => {
     if (!equipmentId) return;
@@ -88,6 +92,12 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       if (cancelled) return;
       // 如果用户有未保存的修改，跳过轮询（除非强制刷新）
       if (!force && !savedRef.current) return;
+      
+      // 检查是否有未保存的照片（有 before 或 after 但没有 id 的新照片组）
+      const hasUnsavedPhotos = photoPairsRef.current.some(
+        (pair) => pair.before || pair.after
+      );
+      if (!force && hasUnsavedPhotos) return;
       
       setLoading(true);
       setConnectionError("");
@@ -122,7 +132,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     };
     loadRecord(true); // 首次加载强制刷新
 
-    // 每 30 秒自动刷新（如果有未保存的修改则跳过）
+    // 每 30 秒自动刷新（如果有未保存的修改或照片则跳过）
     const interval = setInterval(() => loadRecord(false), 30000);
 
     return () => {
@@ -304,7 +314,20 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
               <User size={12} className="inline mr-1" />操作端
             </button>
             <button
-              onClick={() => { setRole("admin"); sessionStorage.setItem("userRole", "admin"); }}
+              onClick={() => {
+                if (role === "admin") {
+                  setRole("operator");
+                  sessionStorage.setItem("userRole", "operator");
+                } else {
+                  const password = prompt("请输入管理端密码：");
+                  if (password === "admin123") {
+                    setRole("admin");
+                    sessionStorage.setItem("userRole", "admin");
+                  } else if (password !== null) {
+                    alert("密码错误");
+                  }
+                }
+              }}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${role === "admin" ? "bg-[#2563EB] text-white" : "bg-[#F3F4F6] text-[#6B7280]"}`}
             >
               <Shield size={12} className="inline mr-1" />管理端
