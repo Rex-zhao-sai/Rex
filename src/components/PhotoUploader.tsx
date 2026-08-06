@@ -5,6 +5,7 @@ import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId } from "@/lib/storage";
 import { Camera, X, Clock, Loader2 } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
+import { uploadToS3 } from "@/lib/s3";
 
 interface PhotoUploaderProps {
   pair: PhotoPair;
@@ -29,21 +30,28 @@ export function PhotoUploader({
     async (type: "before" | "after", file: File) => {
       setProcessing(type);
       try {
-        // 压缩照片后转换为 base64
-        const dataUrl = await compressAndConvertToBase64(file);
+        // 压缩照片
+        const compressedBlob = await compressImage(file);
+        
+        // 上传到 S3
+        const s3Url = await uploadToS3(compressedBlob, file.name, pair.id, type);
+        
+        // 同时保留 base64 用于本地预览（小图）
+        const dataUrl = await blobToBase64(compressedBlob);
 
         const now = new Date();
         const photoRecord: PhotoRecord = {
           id: generateId(),
           type,
-          dataUrl: dataUrl,
+          dataUrl: dataUrl, // 用于本地预览
+          s3Url: s3Url,     // 用于持久化存储
           timestamp: now.toISOString(),
           fileName: file.name,
         };
         onUpload(pair.id, type, photoRecord);
       } catch (error: any) {
         console.error("Photo upload error:", error);
-        alert(`照片处理失败：${error.message}`);
+        alert(`照片上传失败：${error.message}`);
       } finally {
         setProcessing(null);
       }
@@ -51,15 +59,14 @@ export function PhotoUploader({
     [pair.id, onUpload]
   );
 
-  // 压缩照片并转换为 base64（最大 800px，质量 0.7）
-  const compressAndConvertToBase64 = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+  // 压缩图片为 Blob（最大 800px，质量 0.7）
+  const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
 
       reader.onload = (e) => {
         img.onload = () => {
-          // 计算压缩后的尺寸
           let width = img.width;
           let height = img.height;
 
@@ -68,7 +75,6 @@ export function PhotoUploader({
             width = maxWidth;
           }
 
-          // 创建 canvas 并绘制压缩后的图片
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
@@ -81,12 +87,18 @@ export function PhotoUploader({
 
           ctx.drawImage(img, 0, 0, width, height);
 
-          // 转换为 base64（JPEG 格式，指定质量）
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-
-          console.log(`[PhotoCompress] ${file.name}: ${img.width}x${img.height} -> ${width}x${height}, 原始 ${(file.size / 1024).toFixed(0)}KB -> 压缩后 ${(compressedDataUrl.length * 0.75 / 1024).toFixed(0)}KB`);
-
-          resolve(compressedDataUrl);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                console.log(`[PhotoCompress] ${file.name}: ${img.width}x${img.height} -> ${width}x${height}, 原始 ${(file.size / 1024).toFixed(0)}KB -> 压缩后 ${(blob.size / 1024).toFixed(0)}KB`);
+                resolve(blob);
+              } else {
+                reject(new Error('图片压缩失败'));
+              }
+            },
+            'image/jpeg',
+            quality
+          );
         };
 
         img.onerror = () => reject(new Error('图片加载失败'));
@@ -95,6 +107,16 @@ export function PhotoUploader({
 
       reader.onerror = () => reject(new Error('文件读取失败'));
       reader.readAsDataURL(file);
+    });
+  };
+
+  // Blob 转 Base64（用于本地预览）
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Blob 转 Base64 失败'));
+      reader.readAsDataURL(blob);
     });
   };
 
@@ -124,6 +146,9 @@ export function PhotoUploader({
     const label = type === "before" ? "Before" : "After";
     const labelColor = type === "before" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700";
 
+    // 优先使用 dataUrl（本地预览），否则使用 s3Url（从 S3 加载）
+    const photoSrc = photo?.dataUrl || photo?.s3Url || "";
+
     return (
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-2">
@@ -135,7 +160,7 @@ export function PhotoUploader({
         {photo ? (
           <div className="relative group">
             <ImagePreview
-              src={photo.dataUrl}
+              src={photoSrc}
               alt={`${label} photo`}
               className="w-full aspect-square object-cover rounded-lg border border-gray-200 cursor-pointer"
             />
