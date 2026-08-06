@@ -7,6 +7,7 @@ import { EquipmentDetailClientWrapper } from "./EquipmentDetailClientWrapper";
 function EquipmentContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  const month = searchParams.get("month");
 
   if (!id) {
     return (
@@ -16,7 +17,7 @@ function EquipmentContent() {
     );
   }
 
-  return <EquipmentDetailClientWrapper equipmentId={id} />;
+  return <EquipmentDetailClientWrapper equipmentId={id} month={month || undefined} />;
 }
 
 export default function EquipmentPage() {

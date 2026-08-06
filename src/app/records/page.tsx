@@ -458,7 +458,7 @@ export default function RecordsPage() {
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <Link
-                              href={`/equipment?id=${record.equipment_id}`}
+                              href={`/equipment?id=${record.equipment_id}&month=${selectedMonth}`}
                               className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
                             >
                               <Eye className="w-3.5 h-3.5" />

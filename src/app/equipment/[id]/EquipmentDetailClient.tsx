@@ -28,7 +28,13 @@ function getStoredRole(): Role {
   return (sessionStorage.getItem("userRole") as Role) || "operator";
 }
 
-export function EquipmentDetailClient({ params }: { params: Promise<{ id: string }> }) {
+export function EquipmentDetailClient({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ month?: string }>;
+}) {
   const router = useRouter();
   const [equipmentId, setEquipmentId] = useState("");
   const [equipment, setEquipment] = useState<any>(null);
@@ -37,6 +43,15 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   useEffect(() => {
     params.then((p) => setEquipmentId(p.id));
   }, [params]);
+
+  // 从 searchParams 读取月份
+  useEffect(() => {
+    searchParams.then((sp) => {
+      if (sp.month) {
+        setMonth(sp.month);
+      }
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     if (!equipmentId) return;
@@ -58,7 +73,8 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   }, [equipmentId]);
 
   const [role, setRole] = useState<Role>(getStoredRole);
-  const currentMonth = getCurrentMonth();
+  const [month, setMonth] = useState(getCurrentMonth());
+  const currentMonth = month;
 
   const [photoPairs, setPhotoPairs] = useState<PhotoPair[]>([]);
   const [technician, setTechnician] = useState("");

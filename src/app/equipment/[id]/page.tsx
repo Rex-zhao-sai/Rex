@@ -5,6 +5,6 @@ export function generateStaticParams() {
   return EQUIPMENT_LIST.map((eq) => ({ id: eq.id }));
 }
 
-export default function EquipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  return <EquipmentDetailClient params={params} />;
+export default function EquipmentDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ month?: string }> }) {
+  return <EquipmentDetailClient params={params} searchParams={searchParams} />;
 }
