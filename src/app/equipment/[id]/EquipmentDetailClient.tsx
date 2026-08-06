@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId, getCurrentMonth } from "@/lib/storage";
@@ -29,29 +29,27 @@ function getStoredRole(): Role {
 }
 
 export function EquipmentDetailClient({
-  params,
-  searchParams,
+  equipmentId: initialEquipmentId,
+  initialMonth,
 }: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ month?: string }>;
+  equipmentId: string;
+  initialMonth?: string;
 }) {
   const router = useRouter();
-  const [equipmentId, setEquipmentId] = useState("");
+  const searchParams = useSearchParams();
+  const [equipmentId, setEquipmentId] = useState(initialEquipmentId);
   const [equipment, setEquipment] = useState<any>(null);
   const [equipmentLoading, setEquipmentLoading] = useState(true);
 
+  // 从 URL searchParams 读取月份（优先级高于 initialMonth）
   useEffect(() => {
-    params.then((p) => setEquipmentId(p.id));
-  }, [params]);
-
-  // 从 searchParams 读取月份
-  useEffect(() => {
-    searchParams.then((sp) => {
-      if (sp.month) {
-        setMonth(sp.month);
-      }
-    });
-  }, [searchParams]);
+    const monthParam = searchParams.get("month");
+    if (monthParam) {
+      setMonth(monthParam);
+    } else if (initialMonth) {
+      setMonth(initialMonth);
+    }
+  }, [searchParams, initialMonth]);
 
   useEffect(() => {
     if (!equipmentId) return;
