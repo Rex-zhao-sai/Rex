@@ -98,6 +98,10 @@ export function EquipmentDetailClient({
     photoPairsRef.current = photoPairs;
   }, [photoPairs]);
 
+  // 查询缓存：避免短时间内重复查询相同的数据
+  const queryCacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
+  const CACHE_TTL = 5 * 60 * 1000; // 5 分钟缓存
+
   useEffect(() => {
     if (!equipmentId) return;
     let cancelled = false;
@@ -134,6 +138,22 @@ export function EquipmentDetailClient({
             const loadPhotos = async () => {
               try {
                 console.log('[EquipmentDetail] 开始异步加载照片数据...', { equipmentId, currentMonth });
+                
+                // 检查缓存
+                const cacheKey = `${equipmentId}-${currentMonth}`;
+                const cached = queryCacheRef.current.get(cacheKey);
+                const now = Date.now();
+                
+                if (cached && (now - cached.timestamp) < CACHE_TTL && !force) {
+                  console.log('[EquipmentDetail] 使用缓存数据');
+                  const photoPairs = cached.data;
+                  if (Array.isArray(photoPairs) && photoPairs.length > 0) {
+                    setPhotoPairs(photoPairs);
+                    setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
+                  }
+                  return;
+                }
+                
                 const timeoutPromise = new Promise((_, reject) => 
                   setTimeout(() => reject(new Error("照片加载超时 (60 秒)")), 60000)
                 );
@@ -150,6 +170,9 @@ export function EquipmentDetailClient({
                   const photoPairs = fullData.photo_pairs;
                   
                   console.log('[EquipmentDetail] 照片组类型:', typeof photoPairs, '是否为数组:', Array.isArray(photoPairs), '长度:', Array.isArray(photoPairs) ? photoPairs.length : 'N/A');
+                  
+                  // 缓存数据
+                  queryCacheRef.current.set(cacheKey, { data: photoPairs, timestamp: now });
                   
                   if (Array.isArray(photoPairs) && photoPairs.length > 0) {
                     setPhotoPairs(photoPairs);
