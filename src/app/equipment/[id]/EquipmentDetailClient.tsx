@@ -320,7 +320,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                   sessionStorage.setItem("userRole", "operator");
                 } else {
                   const password = prompt("请输入管理端密码：");
-                  if (password === "admin123") {
+                  if (password === "Test12345678!@") {
                     setRole("admin");
                     sessionStorage.setItem("userRole", "admin");
                   } else if (password !== null) {
