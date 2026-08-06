@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId } from "@/lib/storage";
-import supabase from "@/lib/supabase-browser";
+import { uploadPhoto } from "@/lib/github-storage";
 import { Camera, X, Clock, Loader2 } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
 
@@ -30,34 +30,17 @@ export function PhotoUploader({
     async (type: "before" | "after", file: File) => {
       setProcessing(type);
       try {
-        // 压缩照片（可选，这里先保持原图）
-        // 生成唯一文件名
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${generateId()}.${fileExt}`;
-        const filePath = `${fileName}`;
-
-        // 上传到 Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from("maintenance-photos")
-          .upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        // 获取公开 URL
-        const { data: urlData } = supabase.storage
-          .from("maintenance-photos")
-          .getPublicUrl(filePath);
+        // 从 pair.id 提取 equipmentId（pair.id 格式：equipmentId-timestamp）
+        const equipmentId = pair.id.split("-")[0] || "unknown";
+        
+        // 上传到 GitHub Releases
+        const publicUrl = await uploadPhoto(equipmentId, file, type);
 
         const now = new Date();
         const photoRecord: PhotoRecord = {
           id: generateId(),
           type,
-          dataUrl: urlData.publicUrl, // 使用 Storage URL 而不是 base64
+          dataUrl: publicUrl, // 使用 GitHub Releases URL
           timestamp: now.toISOString(),
           fileName: file.name,
         };
