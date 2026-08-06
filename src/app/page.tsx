@@ -30,6 +30,11 @@ export default function Home() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
+  const [previousMonth] = useState(() => {
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [loading, setLoading] = useState(true);
   const [equipmentList, setEquipmentList] = useState(EQUIPMENT_LIST);
   const [connectionError, setConnectionError] = useState("");
@@ -129,19 +134,25 @@ export default function Home() {
       }
       
       try {
-        // 从 Turso 获取当前月份数据
-        const data = await getRecordsByMonth(currentMonth);
+        // 从 Turso 获取当前月份和上个月的数据
+        const [currentMonthData, previousMonthData] = await Promise.all([
+          getRecordsByMonth(currentMonth),
+          getRecordsByMonth(previousMonth)
+        ]);
 
-        if (isMounted && data && data.length > 0) {
+        // 合并两个月的数据
+        const allData = [...currentMonthData, ...previousMonthData];
+
+        if (isMounted && allData && allData.length > 0) {
           const recordsMap: Record<string, any> = {};
-          data.forEach((r) => {
+          allData.forEach((r) => {
             if (!recordsMap[r.equipment_id] || new Date(r.updated_at) > new Date(recordsMap[r.equipment_id].updated_at)) {
               recordsMap[r.equipment_id] = r;
             }
           });
           setRecords(recordsMap);
           // 写入 IndexedDB（缓存当前月份记录）
-          await setCachedRecords(data);
+          await setCachedRecords(currentMonthData);
           console.log('[Page] Updated from Turso');
           isInitialFetchDone = true;
         } else if (isMounted && !cachedRecords) {
@@ -170,7 +181,7 @@ export default function Home() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [currentMonth]);
+  }, [currentMonth, previousMonth]);
 
   // Fetch equipment list from Turso with IndexedDB caching
   useEffect(() => {
