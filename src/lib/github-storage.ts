@@ -121,3 +121,44 @@ export async function deletePhoto(fileName: string): Promise<void> {
     });
   }
 }
+
+// 存储使用情况
+export interface StorageUsage {
+  totalSize: number;        // 总大小（字节）
+  totalSizeMB: string;      // 总大小（MB，格式化）
+  fileCount: number;        // 文件数量
+  limitGB: number;          // 限制（GB）
+  limitMB: number;          // 限制（MB）
+  usagePercent: string;     // 使用百分比
+  repoName: string;         // 仓库名称
+}
+
+// 获取存储使用情况
+export async function getStorageUsage(): Promise<StorageUsage> {
+  if (!GITHUB_TOKEN) {
+    throw new Error("GitHub Token 未配置");
+  }
+
+  const release = await getOrCreateRelease();
+  
+  // 计算总大小
+  const totalSize = release.assets.reduce((sum, asset) => sum + asset.size, 0);
+  const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+  const fileCount = release.assets.length;
+  
+  // GitHub Releases 限制：单个 Release 2GB
+  const limitGB = 2;
+  const limitMB = limitGB * 1024;
+  const usageMB = totalSize / 1024 / 1024;
+  const usagePercent = ((usageMB / limitMB) * 100).toFixed(2);
+
+  return {
+    totalSize,
+    totalSizeMB,
+    fileCount,
+    limitGB,
+    limitMB,
+    usagePercent,
+    repoName: `${OWNER}/${REPO}`,
+  };
+}
