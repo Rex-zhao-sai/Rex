@@ -230,19 +230,36 @@ export async function getRecordByEquipmentAndMonth(
 // 根据设备 ID 获取最新记录（任何月份）
 export async function getLatestRecordByEquipment(equipmentId: string): Promise<MaintenanceRecord | null> {
   if (!isTursoAvailable()) return null;
-  const result = await turso!.execute({
-    sql: `SELECT * FROM maintenance_records
-          WHERE equipment_id = ?
-          ORDER BY updated_at DESC
-          LIMIT 1`,
-    args: [equipmentId],
-  });
-  if (result.rows.length === 0) return null;
-  const row = result.rows[0];
-  return {
-    ...row,
-    photo_pairs: typeof row.photo_pairs === 'string' ? JSON.parse(row.photo_pairs) : row.photo_pairs,
-  } as unknown as MaintenanceRecord;
+  try {
+    const result = await turso!.execute({
+      sql: `SELECT * FROM maintenance_records
+            WHERE equipment_id = ?
+            ORDER BY updated_at DESC
+            LIMIT 1`,
+      args: [equipmentId],
+    });
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    
+    // 解析 photo_pairs（如果是字符串）
+    let parsedPhotoPairs: any = row.photo_pairs;
+    if (typeof row.photo_pairs === 'string') {
+      try {
+        parsedPhotoPairs = JSON.parse(row.photo_pairs);
+      } catch (parseErr) {
+        console.error('[Turso] getLatestRecord photo_pairs JSON 解析失败:', parseErr);
+        parsedPhotoPairs = [];
+      }
+    }
+    
+    return {
+      ...row,
+      photo_pairs: parsedPhotoPairs,
+    } as unknown as MaintenanceRecord;
+  } catch (err) {
+    console.error('[Turso] getLatestRecord 查询失败:', err);
+    throw err;
+  }
 }
 
 // 保存保养记录（插入或更新）
