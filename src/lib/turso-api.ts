@@ -108,7 +108,7 @@ export async function getAllRecords(): Promise<MaintenanceRecord[]> {
 export async function getRecordsByMonth(month: string): Promise<MaintenanceRecord[]> {
   if (!isTursoAvailable()) return [];
   const result = await turso!.execute({
-    sql: `SELECT id, equipment_id, month, technician_name, notes, photo_count, created_at, updated_at
+    sql: `SELECT id, equipment_id, month, technician, notes, photo_count, created_at, updated_at
           FROM maintenance_records
           WHERE month = ?
           ORDER BY updated_at DESC`,
