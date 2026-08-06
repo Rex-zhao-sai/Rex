@@ -134,19 +134,13 @@ export default function Home() {
       }
       
       try {
-        // 从 Turso 获取当前月份和上个月的数据
-        const [currentMonthData, previousMonthData] = await Promise.all([
-          getRecordsByMonth(currentMonth),
-          getRecordsByMonth(previousMonth)
-        ]);
+        // 只查询当前月份数据（减少查询时间）
+        const currentMonthData = await getRecordsByMonth(currentMonth);
 
-        // 合并两个月的数据
-        const allData = [...currentMonthData, ...previousMonthData];
-
-        if (isMounted && allData && allData.length > 0) {
+        if (isMounted && currentMonthData && currentMonthData.length > 0) {
           const recordsMap: Record<string, any> = {};
-          allData.forEach((r) => {
-            if (!recordsMap[r.equipment_id] || new Date(r.updated_at) > new Date(recordsMap[r.equipment_id].updated_at)) {
+          currentMonthData.forEach((r) => {
+            if (!recordsMap[r.equipment_id] || new Date(r.created_at) > new Date(recordsMap[r.equipment_id].created_at)) {
               recordsMap[r.equipment_id] = r;
             }
           });
@@ -268,8 +262,9 @@ export default function Home() {
       let days = 61; // 默认值
       let isCurrentMonth = false;
       
-      if (record && record.updated_at) {
-        const lastDate = new Date(record.updated_at);
+      if (record && record.created_at) {
+        // 使用 created_at（实际保养日期）而不是 updated_at（最后更新时间）
+        const lastDate = new Date(record.created_at);
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - lastDate.getTime());
         days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
