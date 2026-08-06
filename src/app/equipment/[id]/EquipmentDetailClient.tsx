@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId, getCurrentMonth } from "@/lib/storage";
-import { getRecordByEquipmentAndMonth, saveRecord, getEquipmentById } from "@/lib/turso-api";
+import { getRecordWithoutPhotos, getRecordByEquipmentAndMonth, saveRecord, getEquipmentById } from "@/lib/turso-api";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import {
   ArrowLeft,
@@ -118,19 +118,35 @@ export function EquipmentDetailClient({
       setLoading(true);
       setConnectionError("");
       try {
-        const data = await getRecordByEquipmentAndMonth(equipmentId, currentMonth);
+        // 先加载不含照片的记录（快速）
+        const data = await getRecordWithoutPhotos(equipmentId, currentMonth);
 
         if (data) {
-          // 解析 photo_pairs（JSON 字符串）
-          const photoPairs = data.photo_pairs ? (typeof data.photo_pairs === 'string' ? JSON.parse(data.photo_pairs) : data.photo_pairs) : [];
-          setPhotoPairs(photoPairs);
-          // 记录已有照片组的 ID，操作端不能修改这些照片组
-          setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
           setTechnician(data.technician || "");
           setNotes(data.notes || "");
           setDuration(data.duration || 0);
           setExistingRecordId(data.id);
           setRecordRole((data.role as Role) || "operator");
+          
+          // 然后尝试加载照片（可能较慢）
+          try {
+            const fullData = await getRecordByEquipmentAndMonth(equipmentId, currentMonth);
+            if (fullData && fullData.photo_pairs) {
+              const photoPairs = typeof fullData.photo_pairs === 'string' ? JSON.parse(fullData.photo_pairs) : fullData.photo_pairs;
+              setPhotoPairs(photoPairs);
+              setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
+            } else {
+              const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
+              setPhotoPairs([newPair]);
+              setExistingPairIds(new Set());
+            }
+          } catch (photoErr) {
+            console.warn("加载照片失败，显示基本信息:", photoErr);
+            // 照片加载失败，显示空照片组
+            const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
+            setPhotoPairs([newPair]);
+            setExistingPairIds(new Set());
+          }
         } else {
           const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
           setPhotoPairs([newPair]);

@@ -149,6 +149,25 @@ export async function getAvailableMonths(): Promise<string[]> {
 }
 
 // 根据设备 ID 和月份获取记录
+// 获取记录（不含 photo_pairs，快速查询）
+export async function getRecordWithoutPhotos(
+  equipmentId: string,
+  month: string
+): Promise<MaintenanceRecord | null> {
+  if (!isTursoAvailable()) return null;
+  const result = await turso!.execute({
+    sql: `SELECT id, equipment_id, month, technician, notes, photo_count, created_at, updated_at, role, duration
+          FROM maintenance_records
+          WHERE equipment_id = ? AND month = ?
+          ORDER BY updated_at DESC
+          LIMIT 1`,
+    args: [equipmentId, month],
+  });
+  if (result.rows.length === 0) return null;
+  return result.rows[0] as unknown as MaintenanceRecord;
+}
+
+// 获取完整记录（含 photo_pairs，可能较慢）
 export async function getRecordByEquipmentAndMonth(
   equipmentId: string,
   month: string
