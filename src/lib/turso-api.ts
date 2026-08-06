@@ -192,34 +192,64 @@ export async function getRecordByEquipmentAndMonth(
     if (basicResult.rows.length === 0) return null;
     
     const basicRow = basicResult.rows[0];
+    const recordId = basicRow.id;
     
-    // 单独查询 photo_pairs（可能很大）
-    console.log('[Turso] 开始查询 photo_pairs...');
-    const photoResult = await turso!.execute({
-      sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
-      args: [basicRow.id],
-    });
+    // 尝试从 IndexedDB 缓存获取照片
+    let photoPairs: any = null;
+    let fromCache = false;
     
-    console.log('[Turso] photo_pairs 查询完成');
-    const photoPairs = photoResult.rows[0]?.photo_pairs;
-    console.log('[Turso] photo_pairs 类型:', typeof photoPairs, '长度:', typeof photoPairs === 'string' ? photoPairs.length : 'N/A');
-    
-    // 解析 photo_pairs（如果是字符串）
-    let parsedPhotoPairs = photoPairs;
-    if (typeof photoPairs === 'string') {
-      console.log('[Turso] 开始解析 photo_pairs JSON...');
+    if (typeof window !== 'undefined') {
       try {
-        parsedPhotoPairs = JSON.parse(photoPairs);
-        console.log('[Turso] photo_pairs 解析成功，类型:', typeof parsedPhotoPairs, '是否为数组:', Array.isArray(parsedPhotoPairs));
-      } catch (parseErr) {
-        console.error('[Turso] photo_pairs JSON 解析失败:', parseErr);
-        throw new Error('照片数据解析失败');
+        const { getCachedPhotoPairs } = await import('./indexeddb');
+        const cached = await getCachedPhotoPairs(recordId as string, 60); // 60 分钟缓存
+        if (cached) {
+          photoPairs = cached;
+          fromCache = true;
+          console.log('[Turso] 从 IndexedDB 缓存获取照片:', recordId);
+        }
+      } catch (e) {
+        console.warn('[Turso] 读取照片缓存失败:', e);
+      }
+    }
+    
+    // 如果缓存未命中，从 Turso 查询
+    if (!fromCache) {
+      console.log('[Turso] 开始查询 photo_pairs...');
+      const photoResult = await turso!.execute({
+        sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
+        args: [recordId],
+      });
+      
+      console.log('[Turso] photo_pairs 查询完成');
+      photoPairs = photoResult.rows[0]?.photo_pairs;
+      console.log('[Turso] photo_pairs 类型:', typeof photoPairs, '长度:', typeof photoPairs === 'string' ? photoPairs.length : 'N/A');
+      
+      // 解析 photo_pairs（如果是字符串）
+      if (typeof photoPairs === 'string') {
+        console.log('[Turso] 开始解析 photo_pairs JSON...');
+        try {
+          photoPairs = JSON.parse(photoPairs);
+          console.log('[Turso] photo_pairs 解析成功，类型:', typeof photoPairs, '是否为数组:', Array.isArray(photoPairs));
+        } catch (parseErr) {
+          console.error('[Turso] photo_pairs JSON 解析失败:', parseErr);
+          throw new Error('照片数据解析失败');
+        }
+      }
+      
+      // 缓存到 IndexedDB
+      if (typeof window !== 'undefined' && photoPairs) {
+        try {
+          const { cachePhotoPairs } = await import('./indexeddb');
+          await cachePhotoPairs(recordId as string, photoPairs);
+        } catch (e) {
+          console.warn('[Turso] 缓存照片失败:', e);
+        }
       }
     }
     
     return {
       ...basicRow,
-      photo_pairs: parsedPhotoPairs,
+      photo_pairs: photoPairs,
     } as unknown as MaintenanceRecord;
   } catch (err) {
     console.error('[Turso] 查询失败:', err);

@@ -188,6 +188,71 @@ export async function getIncrementalRecords(month: string, since: string): Promi
   return all.filter(r => r.updated_at > since);
 }
 
+// ============ 照片缓存 ============
+
+export interface PhotoCache {
+  record_id: string;
+  photo_pairs: any[];
+  cached_at: string;
+  size: number;
+}
+
+export async function cachePhotoPairs(recordId: string, photoPairs: any[]): Promise<void> {
+  const db = await getDB();
+  const size = JSON.stringify(photoPairs).length;
+  await db.put('metadata', {
+    key: `photo_cache_${recordId}`,
+    value: JSON.stringify({
+      record_id: recordId,
+      photo_pairs: photoPairs,
+      cached_at: new Date().toISOString(),
+      size,
+    }),
+    updated_at: new Date().toISOString(),
+  });
+  console.log(`[IndexedDB] Cached photo_pairs for ${recordId}: ${(size / 1024).toFixed(0)}KB`);
+}
+
+export async function getCachedPhotoPairs(recordId: string, maxAgeMinutes: number = 60): Promise<any[] | null> {
+  const db = await getDB();
+  const result = await db.get('metadata', `photo_cache_${recordId}`);
+  if (!result) return null;
+
+  try {
+    const cache: PhotoCache = JSON.parse(result.value);
+    const age = Date.now() - new Date(cache.cached_at).getTime();
+    const maxAge = maxAgeMinutes * 60 * 1000;
+
+    if (age > maxAge) {
+      console.log(`[IndexedDB] Photo cache expired for ${recordId}: ${Math.round(age / 60000)}min > ${maxAgeMinutes}min`);
+      return null;
+    }
+
+    console.log(`[IndexedDB] Photo cache hit for ${recordId}: ${(cache.size / 1024).toFixed(0)}KB, age: ${Math.round(age / 1000)}s`);
+    return cache.photo_pairs;
+  } catch (e) {
+    console.error('[IndexedDB] Failed to parse photo cache:', e);
+    return null;
+  }
+}
+
+export async function clearPhotoCache(recordId?: string): Promise<void> {
+  const db = await getDB();
+  if (recordId) {
+    await db.delete('metadata', `photo_cache_${recordId}`);
+    console.log(`[IndexedDB] Cleared photo cache for ${recordId}`);
+  } else {
+    // 清除所有照片缓存
+    const allMetadata = await db.getAll('metadata');
+    for (const item of allMetadata) {
+      if (item.key.startsWith('photo_cache_')) {
+        await db.delete('metadata', item.key);
+      }
+    }
+    console.log('[IndexedDB] Cleared all photo cache');
+  }
+}
+
 // ============ 缓存清理 ============
 
 export async function clearAllCache(): Promise<void> {

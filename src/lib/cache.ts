@@ -14,6 +14,9 @@ import {
   setMetadata,
   getMetadata,
   clearAllCache,
+  cachePhotoPairs,
+  getCachedPhotoPairs,
+  clearPhotoCache,
   type CachedEquipment,
   type CachedRecord,
 } from './indexeddb';
@@ -156,6 +159,43 @@ export async function clearAll(): Promise<void> {
     console.log('[Cache] All cache cleared');
   } catch (e) {
     console.error('[Cache] Failed to clear cache:', e);
+  }
+}
+
+/**
+ * 缓存照片数据
+ */
+export async function setCachedPhotoPairs(recordId: string, photoPairs: any[]): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await cachePhotoPairs(recordId, photoPairs);
+  } catch (e) {
+    console.error('[Cache] Failed to cache photo pairs:', e);
+  }
+}
+
+/**
+ * 获取缓存的照片数据
+ */
+export async function getCachedPhotoPairsFromCache(recordId: string, maxAgeMinutes: number = 60): Promise<any[] | null> {
+  if (typeof window === 'undefined') return null;
+  try {
+    return await getCachedPhotoPairs(recordId, maxAgeMinutes);
+  } catch (e) {
+    console.error('[Cache] Failed to get cached photo pairs:', e);
+    return null;
+  }
+}
+
+/**
+ * 清除照片缓存
+ */
+export async function clearPhotoCacheFor(recordId?: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    await clearPhotoCache(recordId);
+  } catch (e) {
+    console.error('[Cache] Failed to clear photo cache:', e);
   }
 }
 

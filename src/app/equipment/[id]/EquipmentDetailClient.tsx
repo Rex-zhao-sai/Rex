@@ -334,6 +334,16 @@ export function EquipmentDetailClient({
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2000);
       
+      // 清除照片缓存（数据已更新）
+      if (existingRecordId) {
+        try {
+          const { clearPhotoCache } = await import('../../../lib/indexeddb');
+          await clearPhotoCache(existingRecordId);
+        } catch (e) {
+          console.warn('[EquipmentDetail] 清除照片缓存失败:', e);
+        }
+      }
+      
       // 保存成功后重新加载数据，确保页面显示最新状态
       const data = await getRecordByEquipmentAndMonth(equipmentId, currentMonth);
       if (data) {

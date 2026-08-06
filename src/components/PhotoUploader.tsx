@@ -29,14 +29,14 @@ export function PhotoUploader({
     async (type: "before" | "after", file: File) => {
       setProcessing(type);
       try {
-        // 将照片转换为 base64 存储到 Turso
-        const dataUrl = await fileToBase64(file);
+        // 压缩照片后转换为 base64
+        const dataUrl = await compressAndConvertToBase64(file);
 
         const now = new Date();
         const photoRecord: PhotoRecord = {
           id: generateId(),
           type,
-          dataUrl: dataUrl, // 使用 base64 格式存储到 Turso
+          dataUrl: dataUrl,
           timestamp: now.toISOString(),
           fileName: file.name,
         };
@@ -51,12 +51,49 @@ export function PhotoUploader({
     [pair.id, onUpload]
   );
 
-  // File 转 base64
-  const fileToBase64 = (file: File): Promise<string> => {
+  // 压缩照片并转换为 base64（最大 800px，质量 0.7）
+  const compressAndConvertToBase64 = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {
+      const img = new Image();
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
+
+      reader.onload = (e) => {
+        img.onload = () => {
+          // 计算压缩后的尺寸
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+
+          // 创建 canvas 并绘制压缩后的图片
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('无法创建 canvas 上下文'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 转换为 base64（JPEG 格式，指定质量）
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+          console.log(`[PhotoCompress] ${file.name}: ${img.width}x${img.height} -> ${width}x${height}, 原始 ${(file.size / 1024).toFixed(0)}KB -> 压缩后 ${(compressedDataUrl.length * 0.75 / 1024).toFixed(0)}KB`);
+
+          resolve(compressedDataUrl);
+        };
+
+        img.onerror = () => reject(new Error('图片加载失败'));
+        img.src = e.target?.result as string;
+      };
+
+      reader.onerror = () => reject(new Error('文件读取失败'));
       reader.readAsDataURL(file);
     });
   };
