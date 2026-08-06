@@ -178,20 +178,35 @@ export async function getRecordByEquipmentAndMonth(
   }
   console.log('[Turso] 查询记录:', { equipmentId, month });
   try {
-    const result = await turso!.execute({
-      sql: `SELECT * FROM maintenance_records
+    // 先查询基本信息（不含 photo_pairs）
+    const basicResult = await turso!.execute({
+      sql: `SELECT id, equipment_id, month, technician, notes, photo_count, created_at, updated_at, role, duration
+            FROM maintenance_records
             WHERE equipment_id = ? AND month = ?
             ORDER BY updated_at DESC
             LIMIT 1`,
       args: [equipmentId, month],
     });
-    console.log('[Turso] 查询结果:', result.rows.length, '条记录');
-    if (result.rows.length === 0) return null;
-    const row = result.rows[0];
-    console.log('[Turso] photo_pairs 类型:', typeof row.photo_pairs, '长度:', typeof row.photo_pairs === 'string' ? row.photo_pairs.length : 'N/A');
+    
+    console.log('[Turso] 基本信息查询结果:', basicResult.rows.length, '条记录');
+    if (basicResult.rows.length === 0) return null;
+    
+    const basicRow = basicResult.rows[0];
+    
+    // 单独查询 photo_pairs（可能很大）
+    console.log('[Turso] 开始查询 photo_pairs...');
+    const photoResult = await turso!.execute({
+      sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
+      args: [basicRow.id],
+    });
+    
+    console.log('[Turso] photo_pairs 查询完成');
+    const photoPairs = photoResult.rows[0]?.photo_pairs;
+    console.log('[Turso] photo_pairs 类型:', typeof photoPairs, '长度:', typeof photoPairs === 'string' ? photoPairs.length : 'N/A');
+    
     return {
-      ...row,
-      photo_pairs: typeof row.photo_pairs === 'string' ? JSON.parse(row.photo_pairs) : row.photo_pairs,
+      ...basicRow,
+      photo_pairs: typeof photoPairs === 'string' ? JSON.parse(photoPairs) : photoPairs,
     } as unknown as MaintenanceRecord;
   } catch (err) {
     console.error('[Turso] 查询失败:', err);
