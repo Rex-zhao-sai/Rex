@@ -116,7 +116,7 @@ export function EquipmentDetailClient({
       setLoading(true);
       setConnectionError("");
       try {
-        // 只加载不含照片的记录（快速）
+        // 先加载不含照片的记录（快速）
         const data = await getRecordWithoutPhotos(equipmentId, currentMonth);
 
         if (data) {
@@ -126,10 +126,41 @@ export function EquipmentDetailClient({
           setExistingRecordId(data.id);
           setRecordRole((data.role as Role) || "operator");
           
-          // 不自动加载照片，显示空照片组
-          const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
-          setPhotoPairs([newPair]);
-          setExistingPairIds(new Set());
+          // 自动加载照片（带超时处理）
+          try {
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error("照片加载超时")), 15000)
+            );
+            
+            const fullData = await Promise.race([
+              getRecordByEquipmentAndMonth(equipmentId, currentMonth),
+              timeoutPromise
+            ]) as any;
+            
+            if (fullData && fullData.photo_pairs) {
+              const photoPairs = typeof fullData.photo_pairs === 'string' 
+                ? JSON.parse(fullData.photo_pairs) 
+                : fullData.photo_pairs;
+              
+              if (Array.isArray(photoPairs) && photoPairs.length > 0) {
+                setPhotoPairs(photoPairs);
+                setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
+              } else {
+                const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
+                setPhotoPairs([newPair]);
+                setExistingPairIds(new Set());
+              }
+            } else {
+              const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
+              setPhotoPairs([newPair]);
+              setExistingPairIds(new Set());
+            }
+          } catch (photoErr) {
+            console.warn("加载照片失败，显示空照片组:", photoErr);
+            const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
+            setPhotoPairs([newPair]);
+            setExistingPairIds(new Set());
+          }
         } else {
           const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
           setPhotoPairs([newPair]);
@@ -155,46 +186,6 @@ export function EquipmentDetailClient({
       clearInterval(interval);
     };
   }, [equipmentId, currentMonth]);
-
-  // 手动加载照片
-  const [loadingPhotos, setLoadingPhotos] = useState(false);
-  const [loadPhotosError, setLoadPhotosError] = useState("");
-  const handleLoadPhotos = async () => {
-    if (!equipmentId || !existingRecordId) return;
-    setLoadingPhotos(true);
-    setLoadPhotosError("");
-    try {
-      // 添加超时处理（10 秒）
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("加载超时")), 10000)
-      );
-      
-      const fullData = await Promise.race([
-        getRecordByEquipmentAndMonth(equipmentId, currentMonth),
-        timeoutPromise
-      ]) as any;
-      
-      if (fullData && fullData.photo_pairs) {
-        const photoPairs = typeof fullData.photo_pairs === 'string' 
-          ? JSON.parse(fullData.photo_pairs) 
-          : fullData.photo_pairs;
-        
-        if (Array.isArray(photoPairs) && photoPairs.length > 0) {
-          setPhotoPairs(photoPairs);
-          setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
-        } else {
-          setLoadPhotosError("该记录没有照片");
-        }
-      } else {
-        setLoadPhotosError("该记录没有照片");
-      }
-    } catch (err: any) {
-      console.error("加载照片失败:", err);
-      setLoadPhotosError(err.message || "加载照片失败，请重试");
-    } finally {
-      setLoadingPhotos(false);
-    }
-  };
 
   // 判断照片组是否可以被当前角色编辑
   // 操作端只能编辑新增的照片组（不在 existingPairIds 中）
@@ -465,29 +456,6 @@ export function EquipmentDetailClient({
                 />
               </div>
             </div>
-
-            {/* Load photos button - only show when record exists and photos not loaded */}
-            {existingRecordId && photoPairs.length === 1 && !photoPairs[0].before && !photoPairs[0].after && (
-              <button
-                onClick={handleLoadPhotos}
-                disabled={loadingPhotos}
-                className="w-full mb-2 py-2.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl text-[#6B7280] text-sm font-medium hover:bg-[#F3F4F6] transition-colors flex items-center justify-center gap-2"
-              >
-                {loadingPhotos ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <FileText size={16} />
-                )}
-                {loadingPhotos ? "加载照片中..." : "加载已有照片"}
-              </button>
-            )}
-            
-            {loadPhotosError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
-                <AlertCircle size={16} />
-                <span>{loadPhotosError}</span>
-              </div>
-            )}
 
             {/* Photo pairs */}
             <div className="space-y-4">
