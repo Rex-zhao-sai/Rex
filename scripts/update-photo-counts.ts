@@ -44,8 +44,8 @@ async function updatePhotoCounts() {
 
           const photoCount = photoPairs.filter(
             (pair: any) =>
-              (pair.before && pair.before.trim() !== '') ||
-              (pair.after && pair.after.trim() !== '')
+              pair.before !== null ||
+              pair.after !== null
           ).length;
 
           await turso.execute({
