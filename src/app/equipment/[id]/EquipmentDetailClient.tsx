@@ -71,6 +71,8 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
   const [recordRole, setRecordRole] = useState<Role>("operator");
   const [connectionError, setConnectionError] = useState("");
   const [saving, setSaving] = useState(false);
+  // 记录已有照片组的 ID（从数据库加载的），操作端只能对新增的照片组操作
+  const [existingPairIds, setExistingPairIds] = useState<Set<string>>(new Set());
   
   // 使用 ref 跟踪 saved 状态，避免轮询闭包问题
   const savedRef = useRef(saved);
@@ -96,18 +98,24 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
           // 解析 photo_pairs（JSON 字符串）
           const photoPairs = data.photo_pairs ? (typeof data.photo_pairs === 'string' ? JSON.parse(data.photo_pairs) : data.photo_pairs) : [];
           setPhotoPairs(photoPairs);
+          // 记录已有照片组的 ID，操作端不能修改这些照片组
+          setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
           setTechnician(data.technician || "");
           setNotes(data.notes || "");
           setDuration(data.duration || 0);
           setExistingRecordId(data.id);
           setRecordRole((data.role as Role) || "operator");
         } else {
-          setPhotoPairs([{ id: generateId(), before: null, after: null, note: "", duration: 0 }]);
+          const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
+          setPhotoPairs([newPair]);
+          setExistingPairIds(new Set()); // 新建记录，没有已有照片组
         }
       } catch (e: any) {
         console.error("获取记录失败:", e);
         setConnectionError("连接失败，请检查网络后刷新页面");
-        setPhotoPairs([{ id: generateId(), before: null, after: null, note: "", duration: 0 }]);
+        const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
+        setPhotoPairs([newPair]);
+        setExistingPairIds(new Set()); // 加载失败，视为新建
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -123,8 +131,18 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     };
   }, [equipmentId, currentMonth]);
 
+  // 判断照片组是否可以被当前角色编辑
+  // 操作端只能编辑新增的照片组（不在 existingPairIds 中）
+  // 管理端可以编辑所有照片组
+  const canEditPair = useCallback((pairId: string) => {
+    if (role === "admin") return true;
+    if (!existingRecordId) return true; // 新建记录，所有照片组都可编辑
+    return !existingPairIds.has(pairId); // 操作端只能编辑新增的照片组
+  }, [role, existingRecordId, existingPairIds]);
+
   const handlePhotoUpload = useCallback(
     (pairId: string, type: "before" | "after", photo: PhotoRecord) => {
+      if (!canEditPair(pairId)) return; // 操作端不能修改已有照片组
       setPhotoPairs((prev) =>
         prev.map((pair) =>
           pair.id === pairId ? { ...pair, [type]: photo } : pair
@@ -132,11 +150,12 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
       );
       setSaved(false);
     },
-    []
+    [canEditPair]
   );
 
   const handlePhotoRemove = useCallback(
     (pairId: string, type: "before" | "after") => {
+      if (!canEditPair(pairId)) return; // 操作端不能修改已有照片组
       setPhotoPairs((prev) =>
         prev.map((pair) =>
           pair.id === pairId ? { ...pair, [type]: null } : pair
@@ -366,16 +385,17 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                       type="text"
                       value={pair.note || ""}
                       onChange={(e) => {
+                        if (!canEditPair(pair.id)) return; // 操作端不能修改已有照片组
                         const newPairs = [...photoPairs];
                         newPairs[index] = { ...newPairs[index], note: e.target.value };
                         setPhotoPairs(newPairs);
                         setSaved(false);
                       }}
-                      disabled={!canEditFields}
+                      disabled={!canEditPair(pair.id)}
                       placeholder="请输入备注（必填）"
                       className="flex-1 px-3 py-1.5 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                     />
-                    {photoPairs.length > 1 && canEditFields && (
+                    {photoPairs.length > 1 && canEditPair(pair.id) && (
                       <button onClick={() => removePhotoPair(pair.id)} className="p-1 rounded-full hover:bg-red-50 text-red-500 flex-shrink-0">
                         <Trash2 size={16} />
                       </button>
@@ -391,7 +411,7 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
                       newPairs[index] = updatedPair;
                       setPhotoPairs(newPairs);
                     }}
-                    readOnly={false}
+                    readOnly={!canEditPair(pair.id)}
                   />
                 </div>
               ))}
