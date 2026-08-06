@@ -196,9 +196,9 @@ export function EquipmentDetailClient({ params }: { params: Promise<{ id: string
     setSaving(true);
     
     // 照片已经在上传时存储到 Turso，直接保存记录
-    // 计算有照片的组数（before 或 after 不为空的组）
+    // 计算有照片的组数（before 或 after 不为 null 的组）
     const photoCount = photoPairs.filter(
-      (p) => (p.before && p.before !== "") || (p.after && p.after !== "")
+      (p) => p.before !== null || p.after !== null
     ).length;
 
     const recordData: any = {
