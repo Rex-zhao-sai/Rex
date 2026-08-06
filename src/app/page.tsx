@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
-import { getAllEquipment, getAllRecords, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
+import { getAllEquipment, getRecordsByMonth, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
 import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown, Pencil, Trash2 } from "lucide-react";
@@ -77,78 +77,110 @@ export default function Home() {
 
   // Fetch records for current month with IndexedDB caching
   useEffect(() => {
-    const loadRecords = async () => {
-      // 先从 IndexedDB 加载缓存（获取所有月份的记录）
-      const cachedRecords = await getCachedRecords("all");
+    let isMounted = true;
+    let hasLoaded = false; // 防止重复加载
+    let isInitialFetchDone = false; // 防止重复初始化
+    
+    const loadRecords = async (isPolling = false) => {
+      // 防止重复加载
+      if (!isPolling && hasLoaded) return;
+      if (!isPolling) hasLoaded = true;
+      
+      // 轮询时如果已经有数据，只更新不重新加载缓存
+      if (isPolling && records && Object.keys(records).length > 0) {
+        try {
+          const data = await getRecordsByMonth(currentMonth);
+          if (isMounted && data && data.length > 0) {
+            const recordsMap: Record<string, any> = {};
+            data.forEach((r) => {
+              if (!recordsMap[r.equipment_id] || new Date(r.updated_at) > new Date(recordsMap[r.equipment_id].updated_at)) {
+                recordsMap[r.equipment_id] = r;
+              }
+            });
+            setRecords(recordsMap);
+            console.log('[Page] Polling update from Turso');
+          }
+        } catch (e) {
+          console.error("轮询更新失败:", e);
+        }
+        return;
+      }
+      
+      // 首次加载：先从 IndexedDB 加载缓存
+      const cachedRecords = await getCachedRecords(currentMonth);
       
       // 如果有缓存，立即显示（离线优先）
       if (cachedRecords && cachedRecords.length > 0) {
         const recordsMap: Record<string, any> = {};
         cachedRecords.forEach(r => {
-          // 只保留每个设备最新的记录
           if (!recordsMap[r.equipment_id] || new Date(r.updated_at || '') > new Date(recordsMap[r.equipment_id].updated_at || '')) {
             recordsMap[r.equipment_id] = r;
           }
         });
-        setRecords(recordsMap);
-        setLoading(false);
-        console.log('[Page] Loaded from IndexedDB cache');
+        if (isMounted) {
+          setRecords(recordsMap);
+          setLoading(false);
+          console.log('[Page] Loaded from IndexedDB cache');
+        }
       }
       
-      setConnectionError("");
+      if (isMounted) {
+        setConnectionError("");
+      }
+      
       try {
-        // 从 Turso 获取最新数据
-        const data = await getAllRecords();
+        // 从 Turso 获取当前月份数据
+        const data = await getRecordsByMonth(currentMonth);
 
-        if (data && data.length > 0) {
+        if (isMounted && data && data.length > 0) {
           const recordsMap: Record<string, any> = {};
           data.forEach((r) => {
-            // 只保留每个设备最新的记录
             if (!recordsMap[r.equipment_id] || new Date(r.updated_at) > new Date(recordsMap[r.equipment_id].updated_at)) {
               recordsMap[r.equipment_id] = r;
             }
           });
           setRecords(recordsMap);
-          // 写入 IndexedDB（缓存所有月份的记录）
+          // 写入 IndexedDB（缓存当前月份记录）
           await setCachedRecords(data);
           console.log('[Page] Updated from Turso');
-        } else if (!cachedRecords) {
+          isInitialFetchDone = true;
+        } else if (isMounted && !cachedRecords) {
           setRecords({});
         }
       } catch (e: any) {
         console.error("获取记录失败:", e);
-        console.error("错误详情:", JSON.stringify(e, null, 2));
-        console.error("错误消息:", e?.message);
-        console.error("错误代码:", e?.code);
-        console.error("错误细节:", e?.details);
-        console.error("错误提示:", e?.hint);
         // 如果有缓存，不显示错误（离线可用）
-        if (!cachedRecords) {
+        if (isMounted && !cachedRecords) {
           const errorMsg = e?.message || e?.code || JSON.stringify(e) || "未知错误";
-          // 检查是否是 Egress 流量超限错误
-          if (errorMsg.includes("egress") || errorMsg.includes("bandwidth") || errorMsg.includes("quota")) {
-            setConnectionError("Supabase 服务暂时不可用（流量超限），请等待 8 月 16 日重置后刷新页面");
-          } else {
-            setConnectionError(`连接失败：${errorMsg}。请检查网络后刷新页面`);
-          }
+          setConnectionError(`连接失败：${errorMsg}。请检查网络后刷新页面`);
         }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
-    loadRecords();
+    
+    loadRecords(false);
 
-    // 每 30 秒自动刷新
-    const interval = setInterval(loadRecords, 30000);
+    // 每 60 秒自动刷新（降低频率）
+    const interval = setInterval(() => loadRecords(true), 60000);
 
     return () => {
+      isMounted = false;
       clearInterval(interval);
     };
   }, [currentMonth]);
 
   // Fetch equipment list from Turso with IndexedDB caching
   useEffect(() => {
+    let hasLoaded = false; // 防止重复加载
+    
     const loadEquipment = async () => {
+      // 防止重复加载
+      if (hasLoaded) return;
+      hasLoaded = true;
+      
       // 先从 IndexedDB 加载缓存
       const cachedEquipment = await getCachedEquipment();
       

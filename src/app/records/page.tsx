@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { formatMonth } from "@/lib/storage";
 import { exportRecordsToZip } from "@/lib/export-records";
-import { getCachedRecords, setCachedRecords, shouldSync } from "@/lib/cache";
+import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords, shouldSync } from "@/lib/cache";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -84,7 +84,13 @@ export default function RecordsPage() {
 
   // Fetch records with IndexedDB cache
   useEffect(() => {
+    let hasLoaded = false; // 防止重复加载
+    
     const fetchRecords = async () => {
+      // 防止重复加载
+      if (hasLoaded) return;
+      hasLoaded = true;
+      
       setLoading(true);
       
       // 1. 先从 IndexedDB 加载缓存（立即显示）
@@ -118,14 +124,29 @@ export default function RecordsPage() {
     fetchRecords();
   }, [selectedMonth, currentMonth]);
 
-  // Fetch all equipment from Turso for name lookup
+  // Fetch all equipment from Turso for name lookup (with cache)
   useEffect(() => {
+    let hasLoaded = false; // 防止重复加载
+    
     const fetchEquipment = async () => {
+      // 防止重复加载
+      if (hasLoaded) return;
+      hasLoaded = true;
+      
+      // 1. 先从缓存加载
+      const cached = await getCachedEquipment();
+      if (cached) {
+        console.log("[Page] Loaded equipment from IndexedDB cache");
+        setAllEquipment(cached);
+      }
+
+      // 2. 后台从 Turso 获取最新数据
       try {
         const data = await tursoApi.getAllEquipment();
         if (data) {
           setAllEquipment(data);
-          console.log("[Page] Loaded equipment list from Turso:", data.length);
+          await setCachedEquipment(data);
+          console.log("[Page] Updated equipment from Turso:", data.length);
         }
       } catch (e) {
         console.error("Failed to fetch equipment list:", e);
