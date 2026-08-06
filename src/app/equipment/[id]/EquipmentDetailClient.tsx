@@ -146,11 +146,10 @@ export function EquipmentDetailClient({
                 console.log('[EquipmentDetail] 照片数据加载完成:', fullData ? '有数据' : '无数据');
                 
                 if (fullData && fullData.photo_pairs) {
-                  const photoPairs = typeof fullData.photo_pairs === 'string' 
-                    ? JSON.parse(fullData.photo_pairs) 
-                    : fullData.photo_pairs;
+                  // API 层已经解析过 JSON，这里直接使用
+                  const photoPairs = fullData.photo_pairs;
                   
-                  console.log('[EquipmentDetail] 解析后的照片组数量:', Array.isArray(photoPairs) ? photoPairs.length : '不是数组');
+                  console.log('[EquipmentDetail] 照片组类型:', typeof photoPairs, '是否为数组:', Array.isArray(photoPairs), '长度:', Array.isArray(photoPairs) ? photoPairs.length : 'N/A');
                   
                   if (Array.isArray(photoPairs) && photoPairs.length > 0) {
                     setPhotoPairs(photoPairs);

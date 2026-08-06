@@ -204,9 +204,22 @@ export async function getRecordByEquipmentAndMonth(
     const photoPairs = photoResult.rows[0]?.photo_pairs;
     console.log('[Turso] photo_pairs 类型:', typeof photoPairs, '长度:', typeof photoPairs === 'string' ? photoPairs.length : 'N/A');
     
+    // 解析 photo_pairs（如果是字符串）
+    let parsedPhotoPairs = photoPairs;
+    if (typeof photoPairs === 'string') {
+      console.log('[Turso] 开始解析 photo_pairs JSON...');
+      try {
+        parsedPhotoPairs = JSON.parse(photoPairs);
+        console.log('[Turso] photo_pairs 解析成功，类型:', typeof parsedPhotoPairs, '是否为数组:', Array.isArray(parsedPhotoPairs));
+      } catch (parseErr) {
+        console.error('[Turso] photo_pairs JSON 解析失败:', parseErr);
+        throw new Error('照片数据解析失败');
+      }
+    }
+    
     return {
       ...basicRow,
-      photo_pairs: typeof photoPairs === 'string' ? JSON.parse(photoPairs) : photoPairs,
+      photo_pairs: parsedPhotoPairs,
     } as unknown as MaintenanceRecord;
   } catch (err) {
     console.error('[Turso] 查询失败:', err);
