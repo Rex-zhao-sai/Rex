@@ -126,48 +126,45 @@ export function EquipmentDetailClient({
           setExistingRecordId(data.id);
           setRecordRole((data.role as Role) || "operator");
           
-          // 自动加载照片（带超时处理）
-          try {
-            console.log('[EquipmentDetail] 开始加载照片数据...', { equipmentId, currentMonth });
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error("照片加载超时 (30 秒)")), 30000)
-            );
+          // 自动加载照片（异步加载，不阻塞页面）
+          // 由于 7 月记录照片数据很大（~20MB），需要异步加载
+          setTimeout(() => {
+            if (cancelled) return;
             
-            const fullData = await Promise.race([
-              getRecordByEquipmentAndMonth(equipmentId, currentMonth),
-              timeoutPromise
-            ]) as any;
-            
-            console.log('[EquipmentDetail] 照片数据加载完成:', fullData ? '有数据' : '无数据', 
-              fullData?.photo_pairs ? `photo_pairs 类型：${typeof fullData.photo_pairs}` : 'photo_pairs 为空');
-            
-            if (fullData && fullData.photo_pairs) {
-              const photoPairs = typeof fullData.photo_pairs === 'string' 
-                ? JSON.parse(fullData.photo_pairs) 
-                : fullData.photo_pairs;
-              
-              console.log('[EquipmentDetail] 解析后的照片组数量:', Array.isArray(photoPairs) ? photoPairs.length : '不是数组');
-              
-              if (Array.isArray(photoPairs) && photoPairs.length > 0) {
-                setPhotoPairs(photoPairs);
-                setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
-              } else {
-                const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
-                setPhotoPairs([newPair]);
-                setExistingPairIds(new Set());
+            const loadPhotos = async () => {
+              try {
+                console.log('[EquipmentDetail] 开始异步加载照片数据...', { equipmentId, currentMonth });
+                const timeoutPromise = new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error("照片加载超时 (60 秒)")), 60000)
+                );
+                
+                const fullData = await Promise.race([
+                  getRecordByEquipmentAndMonth(equipmentId, currentMonth),
+                  timeoutPromise
+                ]) as any;
+                
+                console.log('[EquipmentDetail] 照片数据加载完成:', fullData ? '有数据' : '无数据');
+                
+                if (fullData && fullData.photo_pairs) {
+                  const photoPairs = typeof fullData.photo_pairs === 'string' 
+                    ? JSON.parse(fullData.photo_pairs) 
+                    : fullData.photo_pairs;
+                  
+                  console.log('[EquipmentDetail] 解析后的照片组数量:', Array.isArray(photoPairs) ? photoPairs.length : '不是数组');
+                  
+                  if (Array.isArray(photoPairs) && photoPairs.length > 0) {
+                    setPhotoPairs(photoPairs);
+                    setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
+                  }
+                }
+              } catch (photoErr) {
+                console.error("[EquipmentDetail] 加载照片失败:", photoErr);
+                // 照片加载失败，保持空照片组
               }
-            } else {
-              console.log('[EquipmentDetail] 记录没有照片数据');
-              const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
-              setPhotoPairs([newPair]);
-              setExistingPairIds(new Set());
-            }
-          } catch (photoErr) {
-            console.error("[EquipmentDetail] 加载照片失败:", photoErr);
-            const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
-            setPhotoPairs([newPair]);
-            setExistingPairIds(new Set());
-          }
+            };
+            
+            loadPhotos();
+          }, 100); // 延迟 100ms，让基本信息先渲染
         } else {
           const newPair = { id: generateId(), before: null, after: null, note: "", duration: 0 };
           setPhotoPairs([newPair]);
