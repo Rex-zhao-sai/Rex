@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from "react";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId } from "@/lib/storage";
-import { uploadPhoto } from "@/lib/github-storage";
 import { Camera, X, Clock, Loader2 } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
 
@@ -30,30 +29,37 @@ export function PhotoUploader({
     async (type: "before" | "after", file: File) => {
       setProcessing(type);
       try {
-        // 从 pair.id 提取 equipmentId（pair.id 格式：equipmentId-timestamp）
-        const equipmentId = pair.id.split("-")[0] || "unknown";
-        
-        // 上传到 GitHub Releases
-        const publicUrl = await uploadPhoto(equipmentId, file, type);
+        // 将照片转换为 base64 存储到 Turso
+        const dataUrl = await fileToBase64(file);
 
         const now = new Date();
         const photoRecord: PhotoRecord = {
           id: generateId(),
           type,
-          dataUrl: publicUrl, // 使用 GitHub Releases URL
+          dataUrl: dataUrl, // 使用 base64 格式存储到 Turso
           timestamp: now.toISOString(),
           fileName: file.name,
         };
         onUpload(pair.id, type, photoRecord);
       } catch (error: any) {
         console.error("Photo upload error:", error);
-        alert(`照片上传失败：${error.message}`);
+        alert(`照片处理失败：${error.message}`);
       } finally {
         setProcessing(null);
       }
     },
     [pair.id, onUpload]
   );
+
+  // File 转 base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleChange = useCallback(
     (type: "before" | "after") => (e: React.ChangeEvent<HTMLInputElement>) => {
