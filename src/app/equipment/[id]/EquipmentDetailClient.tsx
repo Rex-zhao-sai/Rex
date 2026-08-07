@@ -220,16 +220,23 @@ export function EquipmentDetailClient({
 
   // 判断照片组是否可以被当前角色编辑
   // 操作端只能编辑新增的照片组（不在 existingPairIds 中）
+  // 操作端可以补充上传只有 before 没有 after 的照片组的 after 图片
   // 管理端可以编辑所有照片组
   const canEditPair = useCallback((pairId: string) => {
     if (role === "admin") return true;
     if (!existingRecordId) return true; // 新建记录，所有照片组都可编辑
-    return !existingPairIds.has(pairId); // 操作端只能编辑新增的照片组
-  }, [role, existingRecordId, existingPairIds]);
+    if (!existingPairIds.has(pairId)) return true; // 新增的照片组可编辑
+    
+    // 操作端：检查是否只有 before 没有 after，允许补充上传 after
+    const pair = photoPairs.find(p => p.id === pairId);
+    if (pair && pair.before && !pair.after) return true;
+    
+    return false;
+  }, [role, existingRecordId, existingPairIds, photoPairs]);
 
   const handlePhotoUpload = useCallback(
     (pairId: string, type: "before" | "after", photo: PhotoRecord) => {
-      if (!canEditPair(pairId)) return; // 操作端不能修改已有照片组
+      if (!canEditPair(pairId)) return; // 操作端不能修改已有照片组（但可以补充 after）
       setPhotoPairs((prev) =>
         prev.map((pair) =>
           pair.id === pairId ? { ...pair, [type]: photo } : pair
@@ -574,6 +581,7 @@ export function EquipmentDetailClient({
                       setPhotoPairs(newPairs);
                     }}
                     readOnly={!canEditPair(pair.id)}
+                    canUploadAfter={role === "operator" && !pair.after?.dataUrl && !pair.after?.s3Url && !pair.after?.s3Key}
                   />
                 </div>
               ))}

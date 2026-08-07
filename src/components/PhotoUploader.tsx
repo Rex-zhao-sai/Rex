@@ -14,6 +14,7 @@ interface PhotoUploaderProps {
   onRemove: (pairId: string, type: "before" | "after") => void;
   onChange?: (pair: PhotoPair) => void;
   readOnly?: boolean;
+  canUploadAfter?: boolean; // 操作端可以补充上传 after
 }
 
 export function PhotoUploader({
@@ -22,6 +23,7 @@ export function PhotoUploader({
   onRemove,
   onChange,
   readOnly = false,
+  canUploadAfter = false,
 }: PhotoUploaderProps) {
   const beforeRef = useRef<HTMLInputElement>(null);
   const afterRef = useRef<HTMLInputElement>(null);
@@ -207,6 +209,10 @@ export function PhotoUploader({
     const labelColor = type === "before" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700";
     const photoSrc = photoUrls[type];
 
+    // 操作端可以补充上传 after（即使 readOnly=true）
+    const canUpload = type === "after" && canUploadAfter && !photo;
+    const isReadOnly = readOnly && !canUpload;
+
     return (
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-2">
@@ -222,7 +228,7 @@ export function PhotoUploader({
               alt={`${label} photo`}
               className="w-full aspect-square object-cover rounded-lg border border-gray-200 cursor-pointer"
             />
-            {!readOnly && (
+            {!isReadOnly && (
               <button
                 onClick={() => onRemove(pair.id, type)}
                 className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
@@ -239,7 +245,7 @@ export function PhotoUploader({
         ) : (
           <button
             onClick={() => ref.current?.click()}
-            disabled={readOnly || isProcessing}
+            disabled={isReadOnly || isProcessing}
             className="w-full aspect-square border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-transparent"
             type="button"
           >
