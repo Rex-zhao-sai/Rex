@@ -46,23 +46,28 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/s3/presigned-url - 获取预签名 URL
+ * GET /api/s3?action=presigned-url&key=xxx - 获取预签名 URL
  */
 export async function GET(request: NextRequest) {
   try {
+    const action = request.nextUrl.searchParams.get("action");
     const key = request.nextUrl.searchParams.get("key");
     
-    if (!key) {
-      return NextResponse.json({ error: "Missing key parameter" }, { status: 400 });
+    if (action === "presigned-url") {
+      if (!key) {
+        return NextResponse.json({ error: "Missing key parameter" }, { status: 400 });
+      }
+
+      // 生成预签名 URL（24 小时有效期）
+      const url = await s3Storage.generatePresignedUrl({
+        key,
+        expireTime: 86400,
+      });
+
+      return NextResponse.json({ url });
     }
-
-    // 生成预签名 URL（24 小时有效期）
-    const url = await s3Storage.generatePresignedUrl({
-      key,
-      expireTime: 86400,
-    });
-
-    return NextResponse.json({ url });
+    
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error: any) {
     console.error("S3 presigned URL error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

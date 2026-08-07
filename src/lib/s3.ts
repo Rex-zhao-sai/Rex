@@ -41,7 +41,7 @@ export async function uploadToS3(
  */
 export async function getS3PhotoUrl(s3Key: string): Promise<string> {
   // 调用 API 路由获取预签名 URL
-  const response = await fetch(`/api/s3/presigned-url?key=${encodeURIComponent(s3Key)}`);
+  const response = await fetch(`/api/s3?action=presigned-url&key=${encodeURIComponent(s3Key)}`);
 
   if (!response.ok) {
     const error = await response.json();
