@@ -20,7 +20,7 @@ export async function uploadToS3(
   formData.append("type", type);
 
   // 调用 API 路由上传
-  const response = await fetch("/api/s3/upload", {
+  const response = await fetch("/api/s3?action=upload", {
     method: "POST",
     body: formData,
   });
