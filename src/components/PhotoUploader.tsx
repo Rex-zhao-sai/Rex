@@ -5,7 +5,7 @@ import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId } from "@/lib/storage";
 import { Camera, X, Clock, Loader2 } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
-import { uploadToS3 } from "@/lib/s3";
+import { uploadToS3, getS3PhotoUrl } from "@/lib/s3";
 
 interface PhotoUploaderProps {
   pair: PhotoPair;
@@ -147,7 +147,9 @@ export function PhotoUploader({
     const labelColor = type === "before" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700";
 
     // 优先使用 dataUrl（本地预览），否则使用 s3Url（从 S3 加载）
-    const photoSrc = photo?.dataUrl || photo?.s3Url || null;
+    // 也支持 pair 级别的 beforeKey/afterKey（迁移脚本使用的格式）
+    const pairKey = type === "before" ? pair.beforeKey : pair.afterKey;
+    const photoSrc = photo?.dataUrl || photo?.s3Url || (pairKey ? getS3PhotoUrl(pairKey) : null) || null;
 
     return (
       <div className="flex-1 min-w-0">

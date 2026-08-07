@@ -9,6 +9,7 @@
 
 import { S3Storage } from "coze-coding-dev-sdk";
 import { createClient } from "@libsql/client";
+import { getS3PhotoUrl } from "../src/lib/s3";
 
 // 初始化 S3 存储
 const storage = new S3Storage({
@@ -124,10 +125,11 @@ async function main() {
           const key = await uploadBase64ToS3(pair.before.dataUrl, fileName);
           
           if (key) {
-            pair.beforeKey = key;
+            const s3Url = await getS3PhotoUrl(key);
+            pair.before.s3Url = s3Url;
             pair.before.dataUrl = ""; // 清空 base64 数据
             hasChanges = true;
-            console.log(`    ✓ before 已上传：${key}`);
+            console.log(`    ✓ before 已上传：${s3Url}`);
           }
         }
         
@@ -137,10 +139,11 @@ async function main() {
           const key = await uploadBase64ToS3(pair.after.dataUrl, fileName);
           
           if (key) {
-            pair.afterKey = key;
+            const s3Url = await getS3PhotoUrl(key);
+            pair.after.s3Url = s3Url;
             pair.after.dataUrl = ""; // 清空 base64 数据
             hasChanges = true;
-            console.log(`    ✓ after 已上传：${key}`);
+            console.log(`    ✓ after 已上传：${s3Url}`);
           }
         }
       }

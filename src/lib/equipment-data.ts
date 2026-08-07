@@ -13,6 +13,8 @@ export interface PhotoPair {
   after: PhotoRecord | null;
   note: string; // 每组照片的备注
   duration: number; // 保养时长（分钟）
+  beforeKey?: string; // S3 存储键（迁移脚本使用）
+  afterKey?: string;  // S3 存储键（迁移脚本使用）
 }
 
 export interface MaintenanceRecord {
