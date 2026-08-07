@@ -8,20 +8,6 @@ const nextConfig = {
   images: {
     unoptimized: isGitHubPages,
   },
-  // 静态导出时排除 API 路由
-  exportPathMap: async function (defaultPathMap) {
-    if (isGitHubPages) {
-      const filtered = {};
-      for (const [key, value] of Object.entries(defaultPathMap)) {
-        // 排除所有 /api/ 路由
-        if (!key.startsWith('/api/')) {
-          filtered[key] = value;
-        }
-      }
-      return filtered;
-    }
-    return defaultPathMap;
-  },
 };
 
 module.exports = nextConfig;

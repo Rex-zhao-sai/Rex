@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "build:github": "GITHUB_PAGES=1 next build",
+    "build:github": "mv src/app/api src/app/api.bak 2>/dev/null; GITHUB_PAGES=1 next build; mv src/app/api.bak src/app/api 2>/dev/null",
     "dev": "bash ./scripts/dev.sh",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
