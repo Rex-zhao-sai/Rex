@@ -81,13 +81,22 @@ export async function updateEquipment(id: string, name: string, category: string
   return true;
 }
 
-// 删除设备
+// 删除设备（先删除关联的保养记录）
 export async function deleteEquipment(id: string): Promise<boolean> {
   if (!isTursoAvailable()) return false;
+  
+  // 先删除该设备的所有保养记录
+  await turso!.execute({
+    sql: `DELETE FROM maintenance_records WHERE equipment_id = ?`,
+    args: [id],
+  });
+  
+  // 再删除设备
   await turso!.execute({
     sql: `DELETE FROM equipment_list WHERE id = ?`,
     args: [id],
   });
+  
   return true;
 }
 
