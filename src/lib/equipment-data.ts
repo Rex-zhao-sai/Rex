@@ -3,6 +3,7 @@ export interface PhotoRecord {
   type: "before" | "after";
   dataUrl: string; // 用于本地预览（base64）
   s3Key?: string;  // S3 存储键（用于持久化）
+  s3Url?: string;  // S3 预签名 URL（构建时生成）
   timestamp: string; // ISO string
   fileName: string;
 }

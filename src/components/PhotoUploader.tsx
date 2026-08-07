@@ -39,6 +39,9 @@ export function PhotoUploader({
       // 优先使用 dataUrl（本地预览）
       if (pair.before?.dataUrl) {
         beforeUrl = pair.before.dataUrl;
+      } else if (pair.before?.s3Url) {
+        // 使用预签名 URL（构建时生成）
+        beforeUrl = pair.before.s3Url;
       } else if (beforeKey) {
         try {
           beforeUrl = await getS3PhotoUrl(beforeKey);
@@ -49,6 +52,9 @@ export function PhotoUploader({
       
       if (pair.after?.dataUrl) {
         afterUrl = pair.after.dataUrl;
+      } else if (pair.after?.s3Url) {
+        // 使用预签名 URL（构建时生成）
+        afterUrl = pair.after.s3Url;
       } else if (afterKey) {
         try {
           afterUrl = await getS3PhotoUrl(afterKey);
