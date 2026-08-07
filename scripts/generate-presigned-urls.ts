@@ -29,7 +29,7 @@ async function generatePresignedUrls() {
     let changed = false;
 
     for (const pair of pairs) {
-      if (pair.beforeKey && !pair.before?.s3Url) {
+      if (pair.beforeKey) {
         try {
           const url = await s3Storage.generatePresignedUrl({
             key: pair.beforeKey,
@@ -43,7 +43,7 @@ async function generatePresignedUrls() {
         }
       }
 
-      if (pair.afterKey && !pair.after?.s3Url) {
+      if (pair.afterKey) {
         try {
           const url = await s3Storage.generatePresignedUrl({
             key: pair.afterKey,

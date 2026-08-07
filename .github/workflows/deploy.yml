@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '0 0 */7 * *'  # 每 7 天运行一次（重新生成预签名 URL）
   workflow_dispatch:
 
 permissions:
