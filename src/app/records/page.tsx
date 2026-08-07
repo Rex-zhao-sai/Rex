@@ -367,7 +367,7 @@ export default function RecordsPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">设备总数</p>
-            <p className="text-2xl font-bold text-gray-900">{EQUIPMENT_LIST.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{allEquipment.length}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">已完成</p>
@@ -375,12 +375,12 @@ export default function RecordsPage() {
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">待保养</p>
-            <p className="text-2xl font-bold text-orange-500">{EQUIPMENT_LIST.length - completedCount}</p>
+            <p className="text-2xl font-bold text-orange-500">{allEquipment.length - completedCount}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-500 mb-1">完成率</p>
             <p className="text-2xl font-bold text-blue-600">
-              {Math.round((completedCount / EQUIPMENT_LIST.length) * 100)}%
+              {allEquipment.length > 0 ? Math.round((completedCount / allEquipment.length) * 100) : 0}%
             </p>
           </div>
         </div>
