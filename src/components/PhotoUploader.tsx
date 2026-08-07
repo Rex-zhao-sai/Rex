@@ -6,6 +6,7 @@ import { generateId } from "@/lib/storage";
 import { Camera, X, Clock, Loader2 } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
 import { uploadToS3, getS3PhotoUrl } from "@/lib/s3";
+import { uploadToS3Direct } from "@/lib/s3-direct-upload";
 
 interface PhotoUploaderProps {
   pair: PhotoPair;
@@ -76,8 +77,21 @@ export function PhotoUploader({
         // 压缩照片
         const compressedBlob = await compressImage(file);
         
-        // 上传到 S3，返回实际的 key
-        const s3Key = await uploadToS3(compressedBlob, file.name, pair.id, type);
+        let s3Key: string | null = null;
+        
+        // 尝试客户端直传 S3
+        try {
+          s3Key = await uploadToS3Direct(compressedBlob, file.name, pair.id, type);
+          console.log("[PhotoUpload] Direct upload success:", s3Key);
+        } catch (directError) {
+          console.warn("[PhotoUpload] Direct upload failed, trying API route:", directError);
+          // 回退到 API 路由上传
+          s3Key = await uploadToS3(compressedBlob, file.name, pair.id, type);
+        }
+        
+        if (!s3Key) {
+          throw new Error("上传失败：无法获取 S3 key");
+        }
         
         // 同时保留 base64 用于本地预览（小图）
         const dataUrl = await blobToBase64(compressedBlob);

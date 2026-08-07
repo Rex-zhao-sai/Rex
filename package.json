@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "build:github": "mv src/app/api src/app/_api_disabled 2>/dev/null; GITHUB_PAGES=1 next build; mv src/app/_api_disabled src/app/api 2>/dev/null",
+    "build:github": "mv src/app/api src/app/_api_disabled 2>/dev/null; GITHUB_PAGES=1 next build; mv src/app/_api_disabled src/app/api 2>/dev/null; npx tsx scripts/generate-upload-urls.ts",
     "dev": "bash ./scripts/dev.sh",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
