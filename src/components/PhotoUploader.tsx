@@ -78,6 +78,7 @@ export function PhotoUploader({
         const compressedBlob = await compressImage(file);
         
         let s3Key: string | null = null;
+        let useBase64Fallback = false;
         
         // 尝试客户端直传 S3
         try {
@@ -86,11 +87,13 @@ export function PhotoUploader({
         } catch (directError) {
           console.warn("[PhotoUpload] Direct upload failed, trying API route:", directError);
           // 回退到 API 路由上传
-          s3Key = await uploadToS3(compressedBlob, file.name, pair.id, type);
-        }
-        
-        if (!s3Key) {
-          throw new Error("上传失败：无法获取 S3 key");
+          try {
+            s3Key = await uploadToS3(compressedBlob, file.name, pair.id, type);
+            console.log("[PhotoUpload] API route upload success:", s3Key);
+          } catch (apiError) {
+            console.warn("[PhotoUpload] API route also failed, using base64 fallback:", apiError);
+            useBase64Fallback = true;
+          }
         }
         
         // 同时保留 base64 用于本地预览（小图）
@@ -100,8 +103,8 @@ export function PhotoUploader({
         const photoRecord: PhotoRecord = {
           id: generateId(),
           type,
-          dataUrl: dataUrl, // 用于本地预览
-          s3Key: s3Key,     // 用于持久化存储（S3 key）
+          dataUrl: dataUrl, // 用于本地预览和 base64 回退
+          s3Key: s3Key || undefined, // 用于持久化存储（S3 key），base64 回退时为 undefined
           timestamp: now.toISOString(),
           fileName: file.name,
         };
