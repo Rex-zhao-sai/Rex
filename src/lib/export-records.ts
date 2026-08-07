@@ -1,10 +1,14 @@
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { getRecordByEquipmentAndMonth } from "@/lib/turso-api";
+import type { MaintenanceRecord as TursoMaintenanceRecord } from "@/lib/turso-api";
 
 interface PhotoRecord {
   id: string;
   type: "before" | "after";
   dataUrl: string;
+  s3Key?: string;
+  s3Url?: string;
   timestamp: string;
   fileName: string;
 }
@@ -13,18 +17,8 @@ interface PhotoPair {
   id: string;
   before: PhotoRecord | null;
   after: PhotoRecord | null;
-}
-
-interface MaintenanceRecord {
-  id: string;
-  equipment_id: string;
-  equipment?: { name: string };
-  month: string;
-  technician: string;
-  notes: string;
-  photo_pairs: PhotoPair[];
-  created_at: string;
-  updated_at: string;
+  beforeKey?: string;
+  afterKey?: string;
 }
 
 interface ExportProgress {
@@ -39,7 +33,7 @@ type ProgressCallback = (progress: ExportProgress) => void;
  * 导出保养记录为 ZIP 文件（包含 CSV 和图片）
  */
 export async function exportRecordsToZip(
-  records: MaintenanceRecord[],
+  records: TursoMaintenanceRecord[],
   month: string,
   getEquipmentName: (id: string) => string,
   onProgress?: ProgressCallback
@@ -79,18 +73,43 @@ export async function exportRecordsToZip(
     processedCount++;
     const equipmentName = getEquipmentName(record.equipment_id);
     const safeName = equipmentName.replace(/[/\\?%*:|"<>]/g, "-"); // 清理文件名
-    const completedPairs = record.photo_pairs?.filter(
-      (p) => p.before && p.after
-    );
 
     // 更新进度
     if (onProgress) {
       onProgress({
         current: processedCount,
         total: totalRecords,
-        message: `正在处理：${equipmentName}`,
+        message: `正在获取完整记录：${equipmentName}`,
       });
     }
+
+    // 获取完整记录（包含 photo_pairs）
+    let fullRecord: TursoMaintenanceRecord | null = null;
+    try {
+      fullRecord = await getRecordByEquipmentAndMonth(record.equipment_id, month);
+    } catch (e) {
+      console.error(`Failed to fetch full record for ${equipmentName}:`, e);
+    }
+
+    if (!fullRecord || !fullRecord.photo_pairs || fullRecord.photo_pairs.length === 0) {
+      // 没有照片记录，跳过图片导出
+      csvRows.push([
+        record.equipment_id,
+        equipmentName,
+        record.month,
+        record.technician || "",
+        "0",
+        record.notes || "",
+        new Date(record.created_at).toLocaleString("zh-CN"),
+        new Date(record.updated_at).toLocaleString("zh-CN"),
+        "",
+      ]);
+      continue;
+    }
+
+    const completedPairs = (fullRecord.photo_pairs as PhotoPair[]).filter(
+      (p) => p.before && p.after
+    );
 
     // 为每个设备创建子文件夹
     const deviceFolder = imagesFolder.folder(safeName);
@@ -110,7 +129,7 @@ export async function exportRecordsToZip(
         imagePaths.push(beforePath);
 
         try {
-          const beforeBlob = await dataUrlToBlob(pair.before.dataUrl);
+          const beforeBlob = await getPhotoBlob(pair.before);
           deviceFolder.file(beforeFileName, beforeBlob);
         } catch (e) {
           console.error(`Failed to process before image for ${equipmentName}:`, e);
@@ -124,7 +143,7 @@ export async function exportRecordsToZip(
         imagePaths.push(afterPath);
 
         try {
-          const afterBlob = await dataUrlToBlob(pair.after.dataUrl);
+          const afterBlob = await getPhotoBlob(pair.after);
           deviceFolder.file(afterFileName, afterBlob);
         } catch (e) {
           console.error(`Failed to process after image for ${equipmentName}:`, e);
@@ -222,4 +241,45 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
     console.error("Failed to fetch image:", dataUrl);
     throw e;
   }
+}
+
+/**
+ * 从 PhotoRecord 获取图片 Blob（支持 dataUrl、s3Url、s3Key）
+ */
+async function getPhotoBlob(photo: PhotoRecord): Promise<Blob> {
+  // 优先使用 dataUrl（base64）
+  if (photo.dataUrl && photo.dataUrl.startsWith("data:")) {
+    return await dataUrlToBlob(photo.dataUrl);
+  }
+
+  // 使用 s3Url（预签名 URL）
+  if (photo.s3Url) {
+    try {
+      const response = await fetch(photo.s3Url);
+      return await response.blob();
+    } catch (e) {
+      console.error("Failed to fetch from s3Url:", photo.s3Url);
+      throw e;
+    }
+  }
+
+  // 使用 s3Key（需要动态获取预签名 URL）
+  if (photo.s3Key) {
+    try {
+      const { getS3PhotoUrl } = await import("@/lib/s3");
+      const signedUrl = await getS3PhotoUrl(photo.s3Key);
+      const response = await fetch(signedUrl);
+      return await response.blob();
+    } catch (e) {
+      console.error("Failed to fetch from s3Key:", photo.s3Key);
+      throw e;
+    }
+  }
+
+  // 最后尝试 dataUrl（可能是普通 URL）
+  if (photo.dataUrl) {
+    return await dataUrlToBlob(photo.dataUrl);
+  }
+
+  throw new Error("No photo source available");
 }
