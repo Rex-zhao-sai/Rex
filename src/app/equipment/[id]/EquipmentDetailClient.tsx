@@ -285,6 +285,12 @@ export function EquipmentDetailClient({
         return;
       }
 
+      // 验证：时长必填
+      if (!duration || duration <= 0) {
+        alert("时长为必填项，请输入正整数（分钟）");
+        return;
+      }
+
       // 验证：备注必填
       if (!notes || notes.trim() === "") {
         alert("备注为必填项");
@@ -322,11 +328,8 @@ export function EquipmentDetailClient({
       photo_pairs: photoPairs,
       photo_count: photoCount,
       role,
+      duration,
     };
-    // 只有当 duration 有值时才包含（避免 schema cache 问题）
-    if (duration > 0) {
-      recordData.duration = duration;
-    }
 
     try {
       const result = await saveRecord(recordData);
@@ -498,6 +501,28 @@ export function EquipmentDetailClient({
                   placeholder="输入技术员姓名"
                   className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
                 />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-medium text-[#6B7280] w-20 flex-shrink-0">时长</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  required
+                  value={duration || ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // 只允许正整数输入
+                    if (val === "" || /^\d+$/.test(val)) {
+                      setDuration(val === "" ? 0 : parseInt(val, 10));
+                      setSaved(false);
+                    }
+                  }}
+                  disabled={!canEditFields}
+                  placeholder="输入保养时长（分钟）"
+                  className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] disabled:bg-[#F9FAFB] disabled:text-[#6B7280]"
+                />
+                <span className="text-xs text-[#6B7280] whitespace-nowrap">分钟</span>
               </div>
               <div className="flex items-center gap-3">
                 <label className="text-xs font-medium text-[#6B7280] w-20 flex-shrink-0">备注</label>
