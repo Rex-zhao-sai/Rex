@@ -90,42 +90,50 @@ async function main() {
     const tursoUrl = process.env.NEXT_PUBLIC_TURSO_URL;
     const tursoAuthToken = process.env.NEXT_PUBLIC_TURSO_AUTH_TOKEN;
 
-    if (tursoUrl && tursoAuthToken) {
+    if (tursoUrl && tursoAuthToken && urls.length > 0) {
       console.log("📊 Inserting URLs into database...");
-
-      // 清理过期的 URL
-      await fetch(`${tursoUrl}/v2/query`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${tursoAuthToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          statements: ["DELETE FROM s3_upload_urls WHERE expires_at < datetime('now')"],
-        }),
-      });
-
-      // 批量插入（每次 50 条）
-      for (let i = 0; i < urls.length; i += 50) {
-        const batch = urls.slice(i, i + 50);
-        const statements = batch.map(
-          (u) =>
-            `INSERT OR IGNORE INTO s3_upload_urls (s3_key, presigned_url, expires_at) VALUES ('${u.key}', '${u.url.replace(/'/g, "''")}', '${u.expiresAt}')`
-        );
-
+      try {
+        // 清理过期的 URL
         await fetch(`${tursoUrl}/v2/query`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${tursoAuthToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ statements }),
+          body: JSON.stringify({
+            statements: ["DELETE FROM s3_upload_urls WHERE expires_at < datetime('now')"],
+          }),
         });
 
-        console.log(`  Inserted ${Math.min(i + 50, urls.length)}/${urls.length} URLs...`);
-      }
+        // 批量插入（每次 50 条）
+        for (let i = 0; i < urls.length; i += 50) {
+          const batch = urls.slice(i, i + 50);
+          const statements = batch.map(
+            (u) =>
+              `INSERT OR IGNORE INTO s3_upload_urls (s3_key, presigned_url, expires_at) VALUES ('${u.key}', '${u.url.replace(/'/g, "''")}', '${u.expiresAt}')`
+          );
 
-      console.log("✅ All URLs inserted into database");
+          await fetch(`${tursoUrl}/v2/query`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${tursoAuthToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ statements }),
+          });
+
+          console.log(`  Inserted ${Math.min(i + 50, urls.length)}/${urls.length} URLs...`);
+        }
+
+        console.log("✅ All URLs inserted into database");
+      } catch (error) {
+        console.warn("️  Failed to save URLs to database:", error);
+        console.warn("   Upload URLs will only be available from public/upload-urls.json");
+      }
+    } else if (urls.length === 0) {
+      console.log("📊 Skipping database insertion (no URLs generated)");
+    } else {
+      console.warn("⚠️  Skipping database insertion (missing Turso credentials)");
     }
 
     console.log("🎉 Done!");
