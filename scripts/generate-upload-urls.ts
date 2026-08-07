@@ -22,6 +22,13 @@ interface UploadUrl {
 }
 
 async function generateUploadUrls(): Promise<UploadUrl[]> {
+  // 检查必要的环境变量
+  if (!process.env.COZE_WORKLOAD_IDENTITY_API_KEY) {
+    console.log("⚠️  COZE_WORKLOAD_IDENTITY_API_KEY not set, skipping upload URL generation");
+    console.log("   Photo upload will use base64 fallback on GitHub Pages");
+    return [];
+  }
+
   console.log("🔄 Generating S3 presigned upload URLs...");
   console.log(`   Endpoint: ${endpointUrl}`);
   console.log(`   Bucket: ${bucketName}`);
