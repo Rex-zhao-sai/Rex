@@ -412,7 +412,16 @@ export function EquipmentDetailClient({
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white border-b border-[#E5E7EB]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => router.push("/")} className="p-1 rounded-full hover:bg-[#F3F4F6]">
+          <button
+            onClick={() => {
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/");
+              }
+            }}
+            className="p-1 rounded-full hover:bg-[#F3F4F6]"
+          >
             <ArrowLeft size={22} className="text-[#111827]" />
           </button>
           <h1 className="text-base font-bold text-[#111827] truncate">{equipment.name}</h1>
