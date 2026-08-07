@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { PhotoPair, PhotoRecord } from "@/lib/equipment-data";
 import { generateId } from "@/lib/storage";
 import { Camera, X, Clock, Loader2 } from "lucide-react";
@@ -25,6 +25,43 @@ export function PhotoUploader({
   const beforeRef = useRef<HTMLInputElement>(null);
   const afterRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState<"before" | "after" | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<{ before: string | null; after: string | null }>({ before: null, after: null });
+
+  // 加载照片 URL（异步获取预签名 URL）
+  useEffect(() => {
+    const loadPhotoUrls = async () => {
+      const beforeKey = pair.beforeKey || pair.before?.s3Key;
+      const afterKey = pair.afterKey || pair.after?.s3Key;
+      
+      let beforeUrl: string | null = null;
+      let afterUrl: string | null = null;
+      
+      // 优先使用 dataUrl（本地预览）
+      if (pair.before?.dataUrl) {
+        beforeUrl = pair.before.dataUrl;
+      } else if (beforeKey) {
+        try {
+          beforeUrl = await getS3PhotoUrl(beforeKey);
+        } catch (err) {
+          console.error('Failed to load before photo URL:', err);
+        }
+      }
+      
+      if (pair.after?.dataUrl) {
+        afterUrl = pair.after.dataUrl;
+      } else if (afterKey) {
+        try {
+          afterUrl = await getS3PhotoUrl(afterKey);
+        } catch (err) {
+          console.error('Failed to load after photo URL:', err);
+        }
+      }
+      
+      setPhotoUrls({ before: beforeUrl, after: afterUrl });
+    };
+    
+    loadPhotoUrls();
+  }, [pair.beforeKey, pair.afterKey, pair.before?.s3Key, pair.after?.s3Key, pair.before?.dataUrl, pair.after?.dataUrl]);
 
   const handleFile = useCallback(
     async (type: "before" | "after", file: File) => {
@@ -33,8 +70,8 @@ export function PhotoUploader({
         // 压缩照片
         const compressedBlob = await compressImage(file);
         
-        // 上传到 S3
-        const s3Url = await uploadToS3(compressedBlob, file.name, pair.id, type);
+        // 上传到 S3，返回实际的 key
+        const s3Key = await uploadToS3(compressedBlob, file.name, pair.id, type);
         
         // 同时保留 base64 用于本地预览（小图）
         const dataUrl = await blobToBase64(compressedBlob);
@@ -44,7 +81,7 @@ export function PhotoUploader({
           id: generateId(),
           type,
           dataUrl: dataUrl, // 用于本地预览
-          s3Url: s3Url,     // 用于持久化存储
+          s3Key: s3Key,     // 用于持久化存储（S3 key）
           timestamp: now.toISOString(),
           fileName: file.name,
         };
@@ -145,11 +182,7 @@ export function PhotoUploader({
     const ref = type === "before" ? beforeRef : afterRef;
     const label = type === "before" ? "Before" : "After";
     const labelColor = type === "before" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700";
-
-    // 优先使用 dataUrl（本地预览），否则使用 s3Url（从 S3 加载）
-    // 也支持 pair 级别的 beforeKey/afterKey（迁移脚本使用的格式）
-    const pairKey = type === "before" ? pair.beforeKey : pair.afterKey;
-    const photoSrc = photo?.dataUrl || photo?.s3Url || (pairKey ? getS3PhotoUrl(pairKey) : null) || null;
+    const photoSrc = photoUrls[type];
 
     return (
       <div className="flex-1 min-w-0">

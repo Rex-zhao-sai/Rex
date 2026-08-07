@@ -4,7 +4,7 @@ const STORAGE_KEY = "maintenance_records";
 
 // S3 配置
 const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || "maintenance-photos";
-const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION || "us-east-1";
+const S3_REGION = process.env.NEXT_PUBLIC_S3_REGION || "us-west-2";
 const S3_ACCESS_KEY = process.env.NEXT_PUBLIC_S3_ACCESS_KEY || "";
 const S3_SECRET_KEY = process.env.NEXT_PUBLIC_S3_SECRET_KEY || "";
 
@@ -48,6 +48,64 @@ export class S3Storage {
    */
   getPublicUrl(key: string): string {
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
+  }
+
+  /**
+   * 获取预签名 URL
+   */
+  async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+    // 使用 AWS Signature Version 4 生成预签名 URL
+    const endpoint = `https://${this.bucketName}.s3.${this.region}.amazonaws.com`;
+    const service = 's3';
+    const date = new Date();
+    const dateStamp = date.toISOString().replace(/[:\-]|\.\d{3}/g, '').slice(0, 8);
+    const amzDate = date.toISOString().replace(/[:\-]|\.\d{3}/g, '').slice(0, 15);
+    const expires = expiresIn.toString();
+    
+    // 构建规范请求
+    const canonicalUri = `/${key}`;
+    const canonicalQuerystring = `X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=${encodeURIComponent(`${this.accessKey}/${dateStamp}/${this.region}/${service}/aws4_request`)}&X-Amz-Date=${amzDate}&X-Amz-Expires=${expires}&X-Amz-SignedHeaders=host`;
+    const canonicalHeaders = `host:${this.bucketName}.s3.${this.region}.amazonaws.com\n`;
+    const signedHeaders = 'host';
+    const payloadHash = 'UNSIGNED-PAYLOAD';
+    const canonicalRequest = `GET\n${canonicalUri}\n${canonicalQuerystring}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+    
+    // 构建签名字符串
+    const credentialScope = `${dateStamp}/${this.region}/${service}/aws4_request`;
+    const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${credentialScope}\n${await this.sha256(canonicalRequest)}`;
+    
+    // 计算签名
+    const signingKey = await this.getSignatureKey(dateStamp);
+    const signature = await this.hmac(signingKey, new TextEncoder().encode(stringToSign));
+    
+    // 构建最终 URL
+    return `${endpoint}${canonicalUri}?${canonicalQuerystring}&X-Amz-Signature=${signature}`;
+  }
+
+  private async sha256(message: string): Promise<string> {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  private async hmac(key: Uint8Array, message: Uint8Array): Promise<string> {
+    const cryptoKey = await crypto.subtle.importKey('raw', key as BufferSource, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, message as BufferSource);
+    return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  private async getSignatureKey(dateStamp: string): Promise<Uint8Array> {
+    const kDate = await this.hmacRaw(new TextEncoder().encode(`AWS4${this.secretKey}`), dateStamp);
+    const kRegion = await this.hmacRaw(kDate, this.region);
+    const kService = await this.hmacRaw(kRegion, 's3');
+    return this.hmacRaw(kService, 'aws4_request');
+  }
+
+  private async hmacRaw(key: Uint8Array | string, message: string): Promise<Uint8Array> {
+    const keyData = typeof key === 'string' ? new TextEncoder().encode(key) : key;
+    const cryptoKey = await crypto.subtle.importKey('raw', keyData as BufferSource, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(message));
+    return new Uint8Array(signature);
   }
 }
 

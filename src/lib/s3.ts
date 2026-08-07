@@ -1,20 +1,10 @@
-import { S3Storage } from "./storage";
-
-// 初始化 S3 客户端（使用空密钥，依赖 coze-coding-dev-sdk 的自动配置）
-const s3Storage = new S3Storage({
-  bucketName: process.env.NEXT_PUBLIC_S3_BUCKET || "maintenance-photos",
-  region: process.env.NEXT_PUBLIC_S3_REGION || "us-east-1",
-  accessKey: process.env.NEXT_PUBLIC_S3_ACCESS_KEY || "",
-  secretKey: process.env.NEXT_PUBLIC_S3_SECRET_KEY || "",
-});
-
 /**
  * 上传照片到 S3
  * @param blob - 照片 Blob
  * @param fileName - 原始文件名
  * @param pairId - 照片组 ID
  * @param type - before 或 after
- * @returns S3 URL
+ * @returns S3 key（用于持久化存储）
  */
 export async function uploadToS3(
   blob: Blob,
@@ -22,32 +12,42 @@ export async function uploadToS3(
   pairId: string,
   type: "before" | "after"
 ): Promise<string> {
-  // 生成唯一的文件键
-  const timestamp = Date.now();
-  const ext = fileName.split('.').pop() || 'jpg';
-  const fileKey = `photos/${pairId}/${type}-${timestamp}.${ext}`;
+  // 创建 FormData
+  const formData = new FormData();
+  formData.append("file", blob);
+  formData.append("fileName", fileName);
+  formData.append("pairId", pairId);
+  formData.append("type", type);
 
-  // 上传到 S3
-  const result = await s3Storage.uploadFile({
-    file: blob,
-    key: fileKey,
-    contentType: 'image/jpeg',
+  // 调用 API 路由上传
+  const response = await fetch("/api/s3/upload", {
+    method: "POST",
+    body: formData,
   });
 
-  // 返回公共 URL
-  return s3Storage.getPublicUrl(fileKey);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Upload failed");
+  }
+
+  const result = await response.json();
+  return result.key;
 }
 
 /**
- * 从 S3 获取照片 URL
- * @param s3Url - S3 URL 或 key
- * @returns 公共 URL
+ * 从 S3 获取照片 URL（预签名）
+ * @param s3Key - S3 key
+ * @returns 预签名 URL
  */
-export function getS3PhotoUrl(s3Url: string): string {
-  // 如果已经是完整 URL，直接返回
-  if (s3Url.startsWith('http://') || s3Url.startsWith('https://')) {
-    return s3Url;
+export async function getS3PhotoUrl(s3Key: string): Promise<string> {
+  // 调用 API 路由获取预签名 URL
+  const response = await fetch(`/api/s3/presigned-url?key=${encodeURIComponent(s3Key)}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get presigned URL");
   }
-  // 否则作为 key 处理
-  return s3Storage.getPublicUrl(s3Url);
+
+  const result = await response.json();
+  return result.url;
 }
