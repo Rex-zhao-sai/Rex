@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4连板连接头临时固定模块 - 设计方案v2</title>
+    <title>4连板连接头固定模块 - 安装位置方案</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -23,16 +23,15 @@
         }
         .header h1 { font-size: 22px; font-weight: 700; color: #f8fafc; }
         .header .badge {
-            background: #22c55e;
+            background: #f97316;
             color: white;
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
         }
-        .header .badge.v2 { background: #f97316; }
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 30px;
             display: grid;
@@ -47,46 +46,45 @@
         }
         .panel.full { grid-column: 1 / -1; }
         .panel-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #f8fafc;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 16px; font-weight: 700; color: #f8fafc;
+            margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
         }
         .panel-title .icon {
-            width: 28px; height: 28px;
-            background: #3b82f6;
-            border-radius: 6px;
-            display: flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; background: #3b82f6;
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
             font-size: 14px;
         }
         canvas {
-            width: 100%;
-            height: 460px;
-            border-radius: 8px;
-            background: #0f172a;
+            width: 100%; border-radius: 8px; background: #0f172a;
         }
+        .pcb-canvas { height: 420px; }
+        .module-canvas { height: 420px; }
+        .combo-canvas { height: 500px; }
+        .tabs {
+            display: flex; gap: 4px; margin-bottom: 20px;
+            background: #0f172a; border-radius: 8px; padding: 4px;
+        }
+        .tab {
+            padding: 8px 16px; border-radius: 6px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            color: #94a3b8; border: none; background: transparent;
+            transition: all 0.2s;
+        }
+        .tab.active { background: #3b82f6; color: white; }
+        .tab:hover:not(.active) { color: #e2e8f0; }
         .spec-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
         }
         .spec-item {
-            background: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 14px;
+            background: #0f172a; border: 1px solid #334155;
+            border-radius: 8px; padding: 14px;
         }
         .spec-item .label {
             font-size: 11px; color: #94a3b8;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
         }
         .spec-item .value { font-size: 18px; font-weight: 700; color: #f8fafc; }
         .spec-item .unit { font-size: 12px; color: #64748b; margin-left: 2px; }
-
         .desc-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
         .desc-list li {
             display: flex; gap: 12px; align-items: flex-start;
@@ -101,29 +99,6 @@
         }
         .desc-list .text { font-size: 14px; line-height: 1.6; color: #cbd5e1; }
         .desc-list .text strong { color: #f8fafc; }
-
-        .tabs {
-            display: flex; gap: 4px; margin-bottom: 20px;
-            background: #0f172a; border-radius: 8px; padding: 4px;
-        }
-        .tab {
-            padding: 8px 16px; border-radius: 6px;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-            color: #94a3b8; border: none; background: transparent;
-            transition: all 0.2s;
-        }
-        .tab.active { background: #3b82f6; color: white; }
-        .tab:hover:not(.active) { color: #e2e8f0; }
-
-        .dimension-row {
-            display: flex; align-items: center; gap: 10px;
-            padding: 8px 0; border-bottom: 1px solid #1e293b;
-        }
-        .dimension-row:last-child { border-bottom: none; }
-        .dim-label { font-size: 13px; color: #94a3b8; min-width: 110px; }
-        .dim-value { font-size: 14px; font-weight: 600; color: #3b82f6; }
-        .dim-note { font-size: 12px; color: #64748b; margin-left: auto; }
-
         .info-box {
             border-radius: 8px; padding: 14px;
             margin-top: 16px; display: flex; gap: 10px; align-items: flex-start;
@@ -140,41 +115,18 @@
         .info-box .text { font-size: 13px; line-height: 1.5; }
         .info-box.warn .text { color: #fbbf24; }
         .info-box.tip .text { color: #4ade80; }
-
-        .material-table {
-            width: 100%; border-collapse: collapse; font-size: 13px;
+        .legend {
+            display: flex; flex-wrap: wrap; gap: 16px;
+            margin-top: 12px; padding: 12px;
+            background: #0f172a; border-radius: 8px;
         }
-        .material-table th {
-            text-align: left; padding: 10px 12px;
-            background: #0f172a; color: #94a3b8;
-            font-weight: 600; font-size: 11px;
-            text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .material-table td {
-            padding: 10px 12px; border-bottom: 1px solid #334155; color: #cbd5e1;
-        }
-        .material-table tr:last-child td { border-bottom: none; }
-
-        .change-log {
-            background: rgba(249, 115, 22, 0.08);
-            border: 1px solid rgba(249, 115, 22, 0.25);
-            border-radius: 8px; padding: 16px; margin-bottom: 20px;
-        }
-        .change-log h3 {
-            font-size: 14px; color: #f97316; margin-bottom: 10px;
+        .legend-item {
             display: flex; align-items: center; gap: 6px;
+            font-size: 12px; color: #94a3b8;
         }
-        .change-log ul {
-            list-style: none; display: flex; flex-direction: column; gap: 6px;
+        .legend-dot {
+            width: 12px; height: 12px; border-radius: 3px;
         }
-        .change-log li {
-            font-size: 13px; color: #fdba74; padding-left: 16px;
-            position: relative; line-height: 1.5;
-        }
-        .change-log li::before {
-            content: '→'; position: absolute; left: 0; color: #f97316;
-        }
-
         @media (max-width: 900px) {
             .container { grid-template-columns: 1fr; }
             .panel.full { grid-column: 1; }
@@ -183,1102 +135,655 @@
 </head>
 <body>
     <div class="header">
-        <h1>4连板连接头临时固定模块</h1>
-        <span class="badge v2">设计方案 v2.0 - 快装可拆</span>
+        <h1>4连板连接头固定模块 - 安装位置方案</h1>
+        <span class="badge">v2.0 快装可拆</span>
     </div>
 
     <div class="container">
-        <!-- Change Log -->
-        <div class="panel full">
-            <div class="change-log">
-                <h3>🔄 v1→v2 设计变更</h3>
-                <ul>
-                    <li><strong>固定方式：</strong>焊接固定 → 弹簧夹持/旋钮夹紧（无需焊接，人工组装）</li>
-                    <li><strong>使用场景：</strong>永久固定 → 临时固定，用完即拆</li>
-                    <li><strong>底座结构：</strong>圆形焊接底座 → 矩形夹持底座，带可调夹臂</li>
-                    <li><strong>快拆设计：</strong>新增拇指旋钮，无需工具即可拆装</li>
-                    <li><strong>绕圈方案：</strong>保持中心柱螺旋绕圈，优化导槽为开放式便于放入/取出</li>
-                </ul>
+        <!-- PCB Layout View -->
+        <div class="panel">
+            <div class="panel-title">
+                <span class="icon" style="background:#22c55e">PCB</span>
+                4连板布局图（标注安装位置）
+            </div>
+            <canvas id="pcbCanvas" class="pcb-canvas"></canvas>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>模块安装位置（红框区域）</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>连接器/插座</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div>走线</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>模块安装点</div>
             </div>
         </div>
 
-        <!-- 3D Visualization -->
-        <div class="panel full">
+        <!-- Module 3D View -->
+        <div class="panel">
             <div class="panel-title">
                 <span class="icon">3D</span>
-                模块三维视图
+                固定模块三维视图
             </div>
             <div class="tabs">
-                <button class="tab active" data-view="perspective">透视视图</button>
-                <button class="tab" data-view="top">俯视图</button>
-                <button class="tab" data-view="side">侧视图</button>
+                <button class="tab active" data-view="perspective">透视</button>
+                <button class="tab" data-view="top">俯视</button>
+                <button class="tab" data-view="side">侧视</button>
                 <button class="tab" data-view="clamp">夹持细节</button>
             </div>
-            <canvas id="moduleCanvas"></canvas>
+            <canvas id="moduleCanvas" class="module-canvas"></canvas>
         </div>
 
-        <!-- Design Parameters -->
-        <div class="panel">
+        <!-- Combined View -->
+        <div class="panel full">
             <div class="panel-title">
-                <span class="icon"></span>
-                设计参数
+                <span class="icon" style="background:#a855f7">组合</span>
+                模块安装到4连板效果示意
             </div>
-            <div class="spec-grid">
-                <div class="spec-item">
-                    <div class="label">底座尺寸</div>
-                    <div class="value">50×40<span class="unit">mm</span></div>
-                </div>
-                <div class="spec-item">
-                    <div class="label">中心柱直径</div>
-                    <div class="value">12<span class="unit">mm</span></div>
-                </div>
-                <div class="spec-item">
-                    <div class="label">中心柱高度</div>
-                    <div class="value">35<span class="unit">mm</span></div>
-                </div>
-                <div class="spec-item">
-                    <div class="label">绕圈后总高度</div>
-                    <div class="value">≤45<span class="unit">mm</span></div>
-                </div>
-                <div class="spec-item">
-                    <div class="label">连接头直径</div>
-                    <div class="value">10<span class="unit">mm</span></div>
-                </div>
-                <div class="spec-item">
-                    <div class="label">连接头长度</div>
-                    <div class="value">150<span class="unit">mm</span></div>
-                </div>
-                <div class="spec-item">
-                    <div class="label">绕圈半径</div>
-                    <div class="value">16<span class="unit">mm</span></div>
-                </div>
-                <div class="spec-item">
-                    <div class="label">每根绕圈数</div>
-                    <div class="value">~1.5<span class="unit">圈</span></div>
-                </div>
+            <canvas id="comboCanvas" class="combo-canvas"></canvas>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:rgba(34,197,94,0.3)"></div>4连板PCB</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>固定模块</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>连接头（绕圈）</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>软管（顶部出线）</div>
             </div>
+        </div>
 
+        <!-- Specs -->
+        <div class="panel">
+            <div class="panel-title"><span class="icon"></span>设计参数</div>
+            <div class="spec-grid">
+                <div class="spec-item"><div class="label">底座尺寸</div><div class="value">50×40<span class="unit">mm</span></div></div>
+                <div class="spec-item"><div class="label">中心柱直径</div><div class="value">12<span class="unit">mm</span></div></div>
+                <div class="spec-item"><div class="label">中心柱高度</div><div class="value">35<span class="unit">mm</span></div></div>
+                <div class="spec-item"><div class="label">绕圈后总高度</div><div class="value">≤45<span class="unit">mm</span></div></div>
+                <div class="spec-item"><div class="label">连接头直径</div><div class="value">10<span class="unit">mm</span></div></div>
+                <div class="spec-item"><div class="label">连接头长度</div><div class="value">150<span class="unit">mm</span></div></div>
+                <div class="spec-item"><div class="label">绕圈半径</div><div class="value">16<span class="unit">mm</span></div></div>
+                <div class="spec-item"><div class="label">每根绕圈数</div><div class="value">~1.5<span class="unit">圈</span></div></div>
+            </div>
             <div class="info-box warn">
                 <span class="icon">⚠️</span>
-                <span class="text">绕圈半径16mm = 中心柱半径6mm + 连接头半径5mm + 弯曲余量5mm。确保软管弯曲半径不小于最小允许值。</span>
+                <span class="text">绕圈半径16mm = 中心柱半径6mm + 连接头半径5mm + 弯曲余量5mm。</span>
             </div>
         </div>
 
-        <!-- Design Description -->
+        <!-- Description -->
         <div class="panel">
-            <div class="panel-title">
-                <span class="icon"></span>
-                设计方案说明
-            </div>
+            <div class="panel-title"><span class="icon"></span>安装说明</div>
             <ul class="desc-list">
-                <li>
-                    <span class="num">1</span>
-                    <span class="text"><strong>夹持底座：</strong>矩形底座50×40mm，两侧各一个弹簧夹臂（或拇指旋钮夹），夹持4连板边缘，夹持范围0.5~3mm板厚。无需焊接，手动夹紧即可固定。</span>
-                </li>
-                <li>
-                    <span class="num">2</span>
-                    <span class="text"><strong>中心柱：</strong>直径12mm圆柱，高度35mm，表面设4条<strong>开放式螺旋导槽</strong>（间距90°，槽口朝外），方便连接头直接卡入/取出，无需从端部穿入。</span>
-                </li>
-                <li>
-                    <span class="num">3</span>
-                    <span class="text"><strong>绕圈方式：</strong>4根连接头从底部进入开放式导槽，绕中心柱1.5圈，从顶部穿出。每根连接头占据独立螺旋层，互不干涉。开放式导槽支持中途放入和取出。</span>
-                </li>
-                <li>
-                    <span class="num">4</span>
-                    <span class="text"><strong>高度控制：</strong>连接头直径10mm，每圈高度增量10mm。1.5圈高度约15mm + 底座8mm + 顶部余量7mm = 总高≤45mm，满足≤50mm要求。</span>
-                </li>
-                <li>
-                    <span class="num">5</span>
-                    <span class="text"><strong>顶部出线：</strong>中心柱顶部设4个开放式出线口（直径12mm），带可翻折弹性压片，固定软管位置同时允许弯曲形变。压片可翻开便于快速取出连接头。</span>
-                </li>
-                <li>
-                    <span class="num">6</span>
-                    <span class="text"><strong>快拆操作：</strong>松开拇指旋钮→夹臂张开→取下模块。全程无需工具，3秒内完成拆装。</span>
-                </li>
+                <li><span class="num">1</span><span class="text"><strong>安装位置：</strong>模块夹持在4连板边缘空白区域（图中标注红框处），避开连接器和走线。</span></li>
+                <li><span class="num">2</span><span class="text"><strong>夹持固定：</strong>将模块底座夹臂张开，卡入PCB边缘，拧紧拇指旋钮即可固定。无需焊接。</span></li>
+                <li><span class="num">3</span><span class="text"><strong>连接头绕圈：</strong>4根连接头从底部卡入开放式导槽，绕中心柱1.5圈，从顶部穿出。</span></li>
+                <li><span class="num">4</span><span class="text"><strong>快拆操作：</strong>松开旋钮→取下模块→翻开压片取出连接头。全程无需工具，约3秒。</span></li>
             </ul>
-        </div>
-
-        <!-- Dimensions Detail -->
-        <div class="panel">
-            <div class="panel-title">
-                <span class="icon"></span>
-                详细尺寸
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">底座外形</span>
-                <span class="dim-value">50×40 mm</span>
-                <span class="dim-note">矩形，厚度8mm</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">夹臂行程</span>
-                <span class="dim-value">0.5~3 mm</span>
-                <span class="dim-note">适配常见PCB板厚</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">中心柱外径</span>
-                <span class="dim-value">Ø12 mm</span>
-                <span class="dim-note">圆柱形，高35mm</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">螺旋导槽</span>
-                <span class="dim-value">宽12mm 深3mm</span>
-                <span class="dim-note">4条开放式，间距90°</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">导槽开口</span>
-                <span class="dim-value">宽5mm</span>
-                <span class="dim-note">侧向开口，便于卡入</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">绕圈中心半径</span>
-                <span class="dim-value">R16 mm</span>
-                <span class="dim-note">柱半径6+线半径5+余量5</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">单圈周长</span>
-                <span class="dim-value">≈100.5 mm</span>
-                <span class="dim-note">2π×16mm</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">1.5圈长度</span>
-                <span class="dim-value">≈150.8 mm</span>
-                <span class="dim-note">匹配150mm连接头</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">绕圈高度</span>
-                <span class="dim-value">15 mm</span>
-                <span class="dim-note">1.5圈×10mm/圈</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">顶部出线口</span>
-                <span class="dim-value">Ø12 mm × 4</span>
-                <span class="dim-note">带可翻折弹性压片</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">总高度</span>
-                <span class="dim-value">≤45 mm</span>
-                <span class="dim-note">底座8+柱35+余量2</span>
-            </div>
-            <div class="dimension-row">
-                <span class="dim-label">拇指旋钮</span>
-                <span class="dim-value">M4 螺纹</span>
-                <span class="dim-note">手拧，无需工具</span>
-            </div>
-        </div>
-
-        <!-- Material & Process -->
-        <div class="panel">
-            <div class="panel-title">
-                <span class="icon"></span>
-                材料与工艺
-            </div>
-            <table class="material-table">
-                <thead>
-                    <tr>
-                        <th>部件</th>
-                        <th>材料</th>
-                        <th>工艺</th>
-                        <th>备注</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>底座主体</td>
-                        <td>尼龙 PA66</td>
-                        <td>注塑成型</td>
-                        <td>绝缘、轻便、耐磨</td>
-                    </tr>
-                    <tr>
-                        <td>夹臂</td>
-                        <td>弹簧钢 + 尼龙包胶</td>
-                        <td>冲压+注塑</td>
-                        <td>包胶防止划伤PCB</td>
-                    </tr>
-                    <tr>
-                        <td>中心柱</td>
-                        <td>铝合金 6061</td>
-                        <td>CNC车削</td>
-                        <td>表面阳极氧化，导槽光滑</td>
-                    </tr>
-                    <tr>
-                        <td>螺旋导槽</td>
-                        <td>—</td>
-                        <td>CNC铣削</td>
-                        <td>开放式槽口，Ra≤1.6μm</td>
-                    </tr>
-                    <tr>
-                        <td>拇指旋钮</td>
-                        <td>尼龙 + 不锈钢螺杆</td>
-                        <td>注塑+车削</td>
-                        <td>M4螺纹，手拧夹紧</td>
-                    </tr>
-                    <tr>
-                        <td>弹性压片</td>
-                        <td>硅胶</td>
-                        <td>注塑成型</td>
-                        <td>可翻折，弹性固定软管</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="info-box tip" style="margin-top: 16px;">
-                <span class="icon">🔧</span>
-                <span class="text"><strong>装配步骤：</strong>1) 将模块底座夹持到4连板边缘，拧紧拇指旋钮固定 → 2) 将连接头底部从导槽开口卡入 → 3) 沿螺旋导槽绕中心柱1.5圈 → 4) 顶部软管穿过出线口，压下弹性压片固定。<br><strong>拆卸步骤：</strong>1) 翻开弹性压片，取出软管 → 2) 从导槽开口取出连接头 → 3) 松开拇指旋钮，取下模块。</span>
+            <div class="info-box tip">
+                <span class="icon">💡</span>
+                <span class="text">4连板尺寸366×237mm，模块底座仅50×40mm，可灵活选择安装位置。建议安装在板边空白处，远离高频信号走线。</span>
             </div>
         </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('moduleCanvas');
-        const ctx = canvas.getContext('2d');
-        let currentView = 'perspective';
-        let rotation = 0;
+    // ========== PCB Canvas ==========
+    const pcbCanvas = document.getElementById('pcbCanvas');
+    const pcbCtx = pcbCanvas.getContext('2d');
 
-        function resizeCanvas() {
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = rect.width - 48;
-            canvas.height = 460;
+    function drawPCB() {
+        const w = pcbCanvas.width = pcbCanvas.parentElement.clientWidth - 48;
+        const h = pcbCanvas.height = 420;
+        pcbCtx.clearRect(0, 0, w, h);
+
+        const pcbW = w * 0.85, pcbH = h * 0.75;
+        const ox = (w - pcbW) / 2, oy = (h - pcbH) / 2 + 10;
+
+        // PCB board
+        pcbCtx.fillStyle = '#1a3a2a';
+        pcbCtx.strokeStyle = '#22c55e';
+        pcbCtx.lineWidth = 2;
+        pcbCtx.beginPath();
+        pcbCtx.roundRect(ox, oy, pcbW, pcbH, 8);
+        pcbCtx.fill();
+        pcbCtx.stroke();
+
+        // Dimension labels
+        pcbCtx.fillStyle = '#22c55e';
+        pcbCtx.font = 'bold 12px sans-serif';
+        pcbCtx.textAlign = 'center';
+        pcbCtx.fillText('366.00 +0.1/-0.2 mm', ox + pcbW/2, oy - 10);
+        pcbCtx.save();
+        pcbCtx.translate(ox - 15, oy + pcbH/2);
+        pcbCtx.rotate(-Math.PI/2);
+        pcbCtx.fillText('237.00 +0.1/-0.2 mm', 0, 0);
+        pcbCtx.restore();
+
+        // Grid dots (via holes)
+        pcbCtx.fillStyle = 'rgba(148, 163, 184, 0.3)';
+        for (let gx = ox + 30; gx < ox + pcbW - 20; gx += 25) {
+            for (let gy = oy + 30; gy < oy + pcbH - 20; gy += 25) {
+                pcbCtx.beginPath();
+                pcbCtx.arc(gx, gy, 2, 0, Math.PI * 2);
+                pcbCtx.fill();
+            }
         }
 
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                currentView = this.dataset.view;
-                rotation = 0;
-                draw();
-            });
+        // Connectors (4 groups of 3)
+        const connectorGroups = [
+            { x: ox + pcbW * 0.15, y: oy + pcbH * 0.15 },
+            { x: ox + pcbW * 0.45, y: oy + pcbH * 0.12 },
+            { x: ox + pcbW * 0.75, y: oy + pcbH * 0.15 },
+            { x: ox + pcbW * 0.15, y: oy + pcbH * 0.82 },
+            { x: ox + pcbW * 0.45, y: oy + pcbH * 0.85 },
+            { x: ox + pcbW * 0.75, y: oy + pcbH * 0.82 },
+        ];
+        connectorGroups.forEach(g => {
+            for (let i = 0; i < 3; i++) {
+                pcbCtx.fillStyle = '#3b82f6';
+                pcbCtx.fillRect(g.x + i * 18 - 10, g.y - 8, 14, 16);
+                pcbCtx.strokeStyle = '#60a5fa';
+                pcbCtx.lineWidth = 1;
+                pcbCtx.strokeRect(g.x + i * 18 - 10, g.y - 8, 14, 16);
+                // Pins
+                for (let p = 0; p < 4; p++) {
+                    pcbCtx.fillStyle = '#93c5fd';
+                    pcbCtx.fillRect(g.x + i * 18 - 7 + p * 3, g.y - 5, 2, 4);
+                }
+            }
         });
 
-        function drawGrid(w, h) {
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 0.5;
-            for (let i = 0; i < w; i += 30) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+        // Traces (yellow lines)
+        pcbCtx.strokeStyle = '#eab308';
+        pcbCtx.lineWidth = 1.5;
+        pcbCtx.globalAlpha = 0.6;
+        const traces = [
+            [[ox+60, oy+50], [ox+200, oy+80], [ox+350, oy+60]],
+            [[ox+80, oy+180], [ox+250, oy+150], [ox+400, oy+170]],
+            [[ox+100, oy+300], [ox+280, oy+280], [ox+420, oy+310]],
+            [[ox+60, oy+50], [ox+100, oy+180], [ox+100, oy+300]],
+            [[ox+200, oy+80], [ox+250, oy+150], [ox+280, oy+280]],
+            [[ox+350, oy+60], [ox+400, oy+170], [ox+420, oy+310]],
+        ];
+        traces.forEach(trace => {
+            pcbCtx.beginPath();
+            pcbCtx.moveTo(trace[0][0], trace[0][1]);
+            for (let i = 1; i < trace.length; i++) {
+                pcbCtx.lineTo(trace[i][0], trace[i][1]);
             }
-            for (let i = 0; i < h; i += 30) {
-                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+            pcbCtx.stroke();
+        });
+        pcbCtx.globalAlpha = 1;
+
+        // Module installation positions (red boxes - matching user's image)
+        const installPositions = [
+            { x: ox + pcbW * 0.12, y: oy + pcbH * 0.42, w: 50, h: 35, label: '位置1' },
+            { x: ox + pcbW * 0.32, y: oy + pcbH * 0.35, w: 55, h: 38, label: '位置2' },
+            { x: ox + pcbW * 0.48, y: oy + pcbH * 0.42, w: 50, h: 35, label: '位置3' },
+            { x: ox + pcbW * 0.68, y: oy + pcbH * 0.38, w: 52, h: 36, label: '位置4' },
+        ];
+        installPositions.forEach((pos, idx) => {
+            pcbCtx.strokeStyle = '#ef4444';
+            pcbCtx.lineWidth = 3;
+            pcbCtx.setLineDash([6, 3]);
+            pcbCtx.beginPath();
+            pcbCtx.roundRect(pos.x, pos.y, pos.w, pos.h, 4);
+            pcbCtx.stroke();
+            pcbCtx.setLineDash([]);
+
+            // Module icon inside
+            pcbCtx.fillStyle = 'rgba(249, 115, 22, 0.3)';
+            pcbCtx.fillRect(pos.x + 5, pos.y + 5, pos.w - 10, pos.h - 10);
+            pcbCtx.strokeStyle = '#f97316';
+            pcbCtx.lineWidth = 1.5;
+            pcbCtx.strokeRect(pos.x + 5, pos.y + 5, pos.w - 10, pos.h - 10);
+
+            // Label
+            pcbCtx.fillStyle = '#ef4444';
+            pcbCtx.font = 'bold 10px sans-serif';
+            pcbCtx.textAlign = 'center';
+            pcbCtx.fillText(pos.label, pos.x + pos.w/2, pos.y - 6);
+
+            // Small module representation
+            pcbCtx.fillStyle = '#f97316';
+            pcbCtx.beginPath();
+            pcbCtx.arc(pos.x + pos.w/2, pos.y + pos.h/2, 6, 0, Math.PI * 2);
+            pcbCtx.fill();
+        });
+
+        // Title
+        pcbCtx.fillStyle = '#94a3b8';
+        pcbCtx.font = '12px sans-serif';
+        pcbCtx.textAlign = 'center';
+        pcbCtx.fillText('4连板 PCB 布局图 — 红框为模块建议安装位置', ox + pcbW/2, oy + pcbH + 25);
+    }
+
+    // ========== Module Canvas ==========
+    const moduleCanvas = document.getElementById('moduleCanvas');
+    const mCtx = moduleCanvas.getContext('2d');
+    let currentView = 'perspective';
+    let rotation = 0;
+
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentView = this.dataset.view;
+            rotation = 0;
+            drawModule();
+        });
+    });
+
+    function drawModule() {
+        const w = moduleCanvas.width = moduleCanvas.parentElement.clientWidth - 48;
+        const h = moduleCanvas.height = 420;
+        mCtx.clearRect(0, 0, w, h);
+
+        if (currentView === 'perspective') drawModulePerspective(w, h);
+        else if (currentView === 'top') drawModuleTop(w, h);
+        else if (currentView === 'side') drawModuleSide(w, h);
+        else if (currentView === 'clamp') drawModuleClamp(w, h);
+    }
+
+    function drawModulePerspective(w, h) {
+        const cx = w/2, cy = h/2 + 30;
+        const baseW = 80, baseD = 64, baseH = 14;
+        const postR = 16, postH = 110;
+        const coilR = 24;
+
+        // Base
+        mCtx.save(); mCtx.translate(cx, cy + 25);
+        mCtx.beginPath(); mCtx.ellipse(0, 0, baseW/2, baseD/2*0.4, 0, 0, Math.PI*2);
+        mCtx.fillStyle = '#475569'; mCtx.fill();
+        mCtx.strokeStyle = '#64748b'; mCtx.lineWidth = 2; mCtx.stroke();
+        mCtx.beginPath(); mCtx.ellipse(0, -baseH, baseW/2, baseD/2*0.4, 0, 0, Math.PI*2);
+        mCtx.fillStyle = '#64748b'; mCtx.fill();
+        mCtx.strokeStyle = '#94a3b8'; mCtx.lineWidth = 1.5; mCtx.stroke();
+        mCtx.beginPath();
+        mCtx.moveTo(-baseW/2,0); mCtx.lineTo(-baseW/2,-baseH);
+        mCtx.ellipse(0,-baseH,baseW/2,baseD/2*0.4,0,Math.PI,0,true);
+        mCtx.lineTo(baseW/2,0); mCtx.ellipse(0,0,baseW/2,baseD/2*0.4,0,0,Math.PI,true);
+        mCtx.fillStyle = '#334155'; mCtx.fill();
+        mCtx.restore();
+
+        // Clamp arms
+        [-1,1].forEach(side => {
+            const clampX = cx + side * (baseW/2 + 10);
+            mCtx.fillStyle = '#f97316';
+            mCtx.beginPath(); mCtx.roundRect(clampX-7, cy+25-baseH-18, 14, 24, 3); mCtx.fill();
+            mCtx.beginPath(); mCtx.arc(clampX, cy+25-baseH-26, 8, 0, Math.PI*2);
+            const kg = mCtx.createRadialGradient(clampX-1,cy+25-baseH-28,0,clampX,cy+25-baseH-26,8);
+            kg.addColorStop(0,'#60a5fa'); kg.addColorStop(1,'#2563eb');
+            mCtx.fillStyle = kg; mCtx.fill();
+            mCtx.strokeStyle = '#1d4ed8'; mCtx.lineWidth = 1; mCtx.stroke();
+        });
+
+        // Post
+        mCtx.save(); mCtx.translate(cx, cy + 25);
+        const pT = -baseH-postH, pB = -baseH;
+        mCtx.beginPath(); mCtx.moveTo(-postR,pB); mCtx.lineTo(-postR,pT);
+        mCtx.lineTo(postR,pT); mCtx.lineTo(postR,pB);
+        const pg = mCtx.createLinearGradient(-postR,0,postR,0);
+        pg.addColorStop(0,'#64748b'); pg.addColorStop(0.3,'#94a3b8');
+        pg.addColorStop(0.7,'#94a3b8'); pg.addColorStop(1,'#475569');
+        mCtx.fillStyle = pg; mCtx.fill();
+        mCtx.beginPath(); mCtx.ellipse(0,pT,postR,postR*0.4,0,0,Math.PI*2);
+        mCtx.fillStyle = '#cbd5e1'; mCtx.fill();
+        mCtx.strokeStyle = '#e2e8f0'; mCtx.lineWidth = 1.5; mCtx.stroke();
+
+        // Grooves
+        for (let i=0;i<4;i++) {
+            const a = i*Math.PI/2+rotation;
+            mCtx.beginPath();
+            const sx = Math.cos(a)*postR*0.8;
+            mCtx.moveTo(sx, pB);
+            for (let t=0;t<=1;t+=0.05) {
+                const y = pB+(pT-pB)*t;
+                const ga = a+t*Math.PI*3;
+                mCtx.lineTo(Math.cos(ga)*postR*0.85, y);
+            }
+            mCtx.strokeStyle = 'rgba(59,130,246,0.5)'; mCtx.lineWidth = 3; mCtx.stroke();
+        }
+        mCtx.restore();
+
+        // Coils
+        const colors = ['#3b82f6','#22c55e','#f97316','#a855f7'];
+        const names = ['A','B','C','D'];
+        for (let c=0;c<4;c++) {
+            const ba = c*Math.PI/2+rotation;
+            const lh = c*10;
+            mCtx.save(); mCtx.translate(cx, cy+25);
+            mCtx.beginPath();
+            const csY = -baseH-lh;
+            for (let i=0;i<=50;i++) {
+                const t=i/50, a=ba+t*Math.PI*3;
+                const r=coilR+Math.sin(t*Math.PI)*3;
+                const x=Math.cos(a)*r, y=csY-t*12;
+                if(i===0) mCtx.moveTo(x,y*0.4); else mCtx.lineTo(x,y*0.4);
+            }
+            mCtx.strokeStyle=colors[c]; mCtx.lineWidth=4;
+            mCtx.lineCap='round'; mCtx.globalAlpha=0.8; mCtx.stroke(); mCtx.globalAlpha=1;
+
+            const ea=ba+Math.PI*3, ex=Math.cos(ea)*coilR, ey=(csY-12)*0.4;
+            mCtx.beginPath(); mCtx.moveTo(ex,ey);
+            mCtx.quadraticCurveTo(ex+12,ey-25,ex+8,ey-45);
+            mCtx.strokeStyle=colors[c]; mCtx.lineWidth=3; mCtx.globalAlpha=0.5; mCtx.stroke(); mCtx.globalAlpha=1;
+
+            mCtx.fillStyle=colors[c]; mCtx.font='bold 11px sans-serif'; mCtx.textAlign='center';
+            mCtx.fillText(names[c], Math.cos(ba)*(coilR+18), (csY-6)*0.4);
+            mCtx.restore();
+        }
+
+        mCtx.fillStyle='#94a3b8'; mCtx.font='12px sans-serif'; mCtx.textAlign='center';
+        mCtx.fillText('透视视图 - 夹持式快装模块', cx, h-10);
+    }
+
+    function drawModuleTop(w, h) {
+        const cx=w/2, cy=h/2;
+        const baseW=90, baseD=72, postR=22, coilR=34;
+
+        mCtx.beginPath(); mCtx.roundRect(cx-baseW/2,cy-baseD/2,baseW,baseD,6);
+        const bg=mCtx.createLinearGradient(cx-baseW/2,cy,cx+baseW/2,cy);
+        bg.addColorStop(0,'#475569'); bg.addColorStop(0.5,'#64748b'); bg.addColorStop(1,'#475569');
+        mCtx.fillStyle=bg; mCtx.fill();
+        mCtx.strokeStyle='#94a3b8'; mCtx.lineWidth=2; mCtx.stroke();
+
+        mCtx.beginPath(); mCtx.arc(cx,cy,postR,0,Math.PI*2);
+        const pg=mCtx.createRadialGradient(cx,cy,0,cx,cy,postR);
+        pg.addColorStop(0,'#94a3b8'); pg.addColorStop(1,'#64748b');
+        mCtx.fillStyle=pg; mCtx.fill(); mCtx.strokeStyle='#cbd5e1'; mCtx.lineWidth=1.5; mCtx.stroke();
+
+        for (let i=0;i<4;i++) {
+            const a=i*Math.PI/2+rotation;
+            mCtx.beginPath();
+            mCtx.moveTo(cx+Math.cos(a)*postR*0.3,cy+Math.sin(a)*postR*0.3);
+            mCtx.lineTo(cx+Math.cos(a)*postR*0.95,cy+Math.sin(a)*postR*0.95);
+            mCtx.strokeStyle='rgba(59,130,246,0.5)'; mCtx.lineWidth=4; mCtx.stroke();
+        }
+
+        [-1,1].forEach(side => {
+            const clampX=cx+side*(baseW/2+12);
+            mCtx.fillStyle='#f97316';
+            mCtx.beginPath(); mCtx.roundRect(clampX-9,cy-10,18,20,4); mCtx.fill();
+            mCtx.beginPath(); mCtx.arc(clampX,cy-16,7,0,Math.PI*2);
+            const kg=mCtx.createRadialGradient(clampX-1,cy-17,0,clampX,cy-16,7);
+            kg.addColorStop(0,'#60a5fa'); kg.addColorStop(1,'#2563eb');
+            mCtx.fillStyle=kg; mCtx.fill();
+        });
+
+        const colors=['#3b82f6','#22c55e','#f97316','#a855f7'];
+        const names=['A','B','C','D'];
+        for (let c=0;c<4;c++) {
+            const ba=c*Math.PI/2+rotation;
+            mCtx.beginPath();
+            for (let i=0;i<=60;i++) {
+                const t=i/60, a=ba+t*Math.PI*3;
+                const r=coilR+Math.sin(t*Math.PI)*5;
+                const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r;
+                if(i===0) mCtx.moveTo(x,y); else mCtx.lineTo(x,y);
+            }
+            mCtx.strokeStyle=colors[c]; mCtx.lineWidth=5; mCtx.lineCap='round';
+            mCtx.globalAlpha=0.7; mCtx.stroke(); mCtx.globalAlpha=1;
+            const la=ba+Math.PI*1.5;
+            mCtx.fillStyle=colors[c]; mCtx.font='bold 13px sans-serif';
+            mCtx.textAlign='center'; mCtx.textBaseline='middle';
+            mCtx.fillText(names[c], cx+Math.cos(la)*(coilR+18), cy+Math.sin(la)*(coilR+18));
+        }
+
+        mCtx.fillStyle='#94a3b8'; mCtx.font='12px sans-serif'; mCtx.textAlign='center';
+        mCtx.fillText('俯视图 - 矩形底座 + 开放式螺旋导槽', cx, h-10);
+    }
+
+    function drawModuleSide(w, h) {
+        const cx=w/2, cy=h/2+35;
+        const baseW=110, baseH=14, postW=32, postH=110;
+
+        mCtx.fillStyle='#475569'; mCtx.fillRect(cx-baseW/2,cy-baseH/2,baseW,baseH);
+        mCtx.strokeStyle='#64748b'; mCtx.lineWidth=2; mCtx.strokeRect(cx-baseW/2,cy-baseH/2,baseW,baseH);
+
+        [-1,1].forEach(side => {
+            const clampX=cx+side*(baseW/2+8);
+            mCtx.fillStyle='#f97316'; mCtx.fillRect(clampX-7,cy-baseH/2-20,14,26);
+            mCtx.fillStyle='#374151'; mCtx.fillRect(clampX-5,cy+baseH/2-2,10,6);
+            mCtx.beginPath(); mCtx.arc(clampX,cy-baseH/2-28,8,0,Math.PI*2);
+            const kg=mCtx.createRadialGradient(clampX-1,cy-baseH/2-30,0,clampX,cy-baseH/2-28,8);
+            kg.addColorStop(0,'#60a5fa'); kg.addColorStop(1,'#2563eb');
+            mCtx.fillStyle=kg; mCtx.fill();
+        });
+
+        const pg=mCtx.createLinearGradient(cx-postW/2,0,cx+postW/2,0);
+        pg.addColorStop(0,'#64748b'); pg.addColorStop(0.3,'#94a3b8');
+        pg.addColorStop(0.7,'#94a3b8'); pg.addColorStop(1,'#475569');
+        mCtx.fillStyle=pg; mCtx.fillRect(cx-postW/2,cy-baseH/2-postH,postW,postH);
+        mCtx.strokeStyle='#94a3b8'; mCtx.lineWidth=1.5;
+        mCtx.strokeRect(cx-postW/2,cy-baseH/2-postH,postW,postH);
+
+        const colors=['#3b82f6','#22c55e','#f97316','#a855f7'];
+        const names=['A','B','C','D'];
+        for (let c=0;c<4;c++) {
+            const ly=cy-baseH/2-8-c*10, cw=50;
+            mCtx.beginPath();
+            for (let i=0;i<=40;i++) {
+                const t=i/40, x=cx-cw/2+t*cw, y=ly+Math.sin(t*Math.PI*3)*7;
+                if(i===0) mCtx.moveTo(x,y); else mCtx.lineTo(x,y);
+            }
+            mCtx.strokeStyle=colors[c]; mCtx.lineWidth=4; mCtx.lineCap='round';
+            mCtx.globalAlpha=0.8; mCtx.stroke(); mCtx.globalAlpha=1;
+            mCtx.fillStyle=colors[c]; mCtx.font='bold 11px sans-serif';
+            mCtx.textAlign='right'; mCtx.fillText(names[c], cx-cw/2-8, ly+4);
+        }
+
+        mCtx.fillStyle='#94a3b8'; mCtx.font='12px sans-serif'; mCtx.textAlign='center';
+        mCtx.fillText('侧视图 - 夹臂固定 + 分层绕圈', cx, h-10);
+    }
+
+    function drawModuleClamp(w, h) {
+        const cx=w/2, cy=h/2;
+        mCtx.clearRect(0,0,w,h);
+
+        const scale=2.5;
+        mCtx.save(); mCtx.translate(cx,cy); mCtx.scale(scale,scale);
+
+        mCtx.fillStyle='rgba(34,197,94,0.15)'; mCtx.fillRect(-40,-3,80,6);
+        mCtx.strokeStyle='rgba(34,197,94,0.5)'; mCtx.lineWidth=0.5;
+        mCtx.strokeRect(-40,-3,80,6);
+        mCtx.fillStyle='rgba(34,197,94,0.6)'; mCtx.font='3px sans-serif';
+        mCtx.textAlign='center'; mCtx.fillText('PCB (1.6mm)', 0, 14);
+
+        mCtx.fillStyle='#f97316'; mCtx.beginPath(); mCtx.roundRect(-8,-22,16,16,2); mCtx.fill();
+        mCtx.fillStyle='#374151'; mCtx.fillRect(-6,-8,12,3);
+        mCtx.fillStyle='#f97316'; mCtx.beginPath(); mCtx.roundRect(-8,6,16,16,2); mCtx.fill();
+        mCtx.fillStyle='#374151'; mCtx.fillRect(-6,5,12,3);
+
+        mCtx.beginPath(); mCtx.arc(0,-28,6,0,Math.PI*2);
+        const kg=mCtx.createRadialGradient(-1,-29,0,0,-28,6);
+        kg.addColorStop(0,'#60a5fa'); kg.addColorStop(1,'#2563eb');
+        mCtx.fillStyle=kg; mCtx.fill();
+        mCtx.beginPath(); mCtx.moveTo(0,-22); mCtx.lineTo(0,22);
+        mCtx.strokeStyle='#94a3b8'; mCtx.lineWidth=1.5; mCtx.stroke();
+
+        mCtx.restore();
+
+        mCtx.fillStyle='#f97316'; mCtx.font='bold 14px sans-serif'; mCtx.textAlign='center';
+        mCtx.fillText('夹持机构细节', cx, 30);
+        mCtx.fillStyle='#94a3b8'; mCtx.font='12px sans-serif';
+        ['拇指旋钮(M4) — 手拧夹紧/松开','弹簧钢夹臂+尼龙包胶 — 不伤PCB',
+         '夹持范围0.5~3mm — 适配常见板厚','橡胶垫面 — 防滑'].forEach((t,i) => {
+            mCtx.fillText(t, cx, 58+i*20);
+        });
+        mCtx.fillStyle='#22c55e'; mCtx.font='bold 13px sans-serif';
+        mCtx.fillText('快拆: 松旋钮→取模块→翻压片→取线 (~3秒)', cx, h-15);
+    }
+
+    // ========== Combo Canvas ==========
+    const comboCanvas = document.getElementById('comboCanvas');
+    const cCtx = comboCanvas.getContext('2d');
+    let comboRotation = 0;
+
+    function drawCombo() {
+        const w = comboCanvas.width = comboCanvas.parentElement.clientWidth - 48;
+        const h = comboCanvas.height = 500;
+        cCtx.clearRect(0, 0, w, h);
+
+        const pcbW = w * 0.7, pcbH = h * 0.55;
+        const ox = (w - pcbW) / 2, oy = 30;
+
+        // PCB
+        cCtx.fillStyle = '#1a3a2a';
+        cCtx.strokeStyle = '#22c55e';
+        cCtx.lineWidth = 2;
+        cCtx.beginPath(); cCtx.roundRect(ox, oy, pcbW, pcbH, 8);
+        cCtx.fill(); cCtx.stroke();
+
+        // PCB label
+        cCtx.fillStyle = '#22c55e';
+        cCtx.font = 'bold 13px sans-serif';
+        cCtx.textAlign = 'center';
+        cCtx.fillText('4连板 PCB (366×237mm)', ox + pcbW/2, oy - 10);
+
+        // Grid
+        cCtx.fillStyle = 'rgba(148,163,184,0.2)';
+        for (let gx = ox+25; gx < ox+pcbW-15; gx += 22) {
+            for (let gy = oy+25; gy < oy+pcbH-15; gy += 22) {
+                cCtx.beginPath(); cCtx.arc(gx, gy, 1.5, 0, Math.PI*2); cCtx.fill();
             }
         }
 
-        function drawPerspective() {
-            const w = canvas.width, h = canvas.height;
-            const cx = w / 2, cy = h / 2 + 40;
-            ctx.clearRect(0, 0, w, h);
-            drawGrid(w, h);
-
-            const baseW = 90, baseD = 70, baseH = 16;
-            const postR = 18, postH = 120;
-            const coilR = 28;
-
-            // PCB board (reference)
-            ctx.save();
-            ctx.translate(cx, cy + 50);
-            ctx.beginPath();
-            ctx.ellipse(0, 15, 160, 30, 0, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.08)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(34, 197, 94, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([6, 4]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.5)';
-            ctx.font = '11px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('4连板 PCB（参考）', 0, 55);
-            ctx.restore();
-
-            // Base plate
-            ctx.save();
-            ctx.translate(cx, cy + 30);
-
-            // Base shadow
-            ctx.beginPath();
-            ctx.ellipse(0, 12, baseW/2 + 5, baseD/2 * 0.4 + 3, 0, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fill();
-
-            // Base bottom
-            ctx.beginPath();
-            ctx.ellipse(0, 0, baseW/2, baseD/2 * 0.4, 0, 0, Math.PI * 2);
-            const baseGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, baseW/2);
-            baseGrad.addColorStop(0, '#475569');
-            baseGrad.addColorStop(1, '#334155');
-            ctx.fillStyle = baseGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#64748b';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Base top
-            ctx.beginPath();
-            ctx.ellipse(0, -baseH, baseW/2, baseD/2 * 0.4, 0, 0, Math.PI * 2);
-            const baseTopGrad = ctx.createRadialGradient(0, -baseH, 0, 0, -baseH, baseW/2);
-            baseTopGrad.addColorStop(0, '#64748b');
-            baseTopGrad.addColorStop(1, '#475569');
-            ctx.fillStyle = baseTopGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#94a3b8';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-
-            // Base side
-            ctx.beginPath();
-            ctx.moveTo(-baseW/2, 0);
-            ctx.lineTo(-baseW/2, -baseH);
-            ctx.ellipse(0, -baseH, baseW/2, baseD/2 * 0.4, 0, Math.PI, 0, true);
-            ctx.lineTo(baseW/2, 0);
-            ctx.ellipse(0, 0, baseW/2, baseD/2 * 0.4, 0, 0, Math.PI, true);
-            ctx.fillStyle = '#334155';
-            ctx.fill();
-
-            // Clamp arms (left and right)
-            const clampColors = ['#f97316', '#f97316'];
-            [-1, 1].forEach((side, idx) => {
-                const clampX = side * (baseW/2 + 12);
-                // Clamp arm body
-                ctx.beginPath();
-                ctx.roundRect(clampX - 8, -baseH - 20, 16, 28, 3);
-                ctx.fillStyle = '#f97316';
-                ctx.fill();
-                ctx.strokeStyle = '#ea580c';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-
-                // Rubber pad
-                ctx.beginPath();
-                ctx.roundRect(clampX - 6, -baseH - 16, 12, 8, 2);
-                ctx.fillStyle = '#374151';
-                ctx.fill();
-
-                // Thumb knob
-                ctx.beginPath();
-                ctx.arc(clampX, -baseH - 28, 10, 0, Math.PI * 2);
-                const knobGrad = ctx.createRadialGradient(clampX - 2, -baseH - 30, 0, clampX, -baseH - 28, 10);
-                knobGrad.addColorStop(0, '#60a5fa');
-                knobGrad.addColorStop(1, '#2563eb');
-                ctx.fillStyle = knobGrad;
-                ctx.fill();
-                ctx.strokeStyle = '#1d4ed8';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-
-                // Knob grip lines
-                for (let i = 0; i < 4; i++) {
-                    const a = (i * Math.PI / 2) + rotation * 2;
-                    ctx.beginPath();
-                    ctx.moveTo(clampX + Math.cos(a) * 4, -baseH - 28 + Math.sin(a) * 4);
-                    ctx.lineTo(clampX + Math.cos(a) * 8, -baseH - 28 + Math.sin(a) * 8);
-                    ctx.strokeStyle = '#93c5fd';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                }
-
-                // Label
-                ctx.fillStyle = '#f97316';
-                ctx.font = 'bold 10px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('夹臂', clampX, -baseH + 5);
-            });
-
-            ctx.restore();
-
-            // Center post
-            ctx.save();
-            ctx.translate(cx, cy + 30);
-
-            const postTop = -baseH - postH;
-            const postBot = -baseH;
-
-            // Post body
-            ctx.beginPath();
-            ctx.moveTo(-postR, postBot);
-            ctx.lineTo(-postR, postTop);
-            ctx.lineTo(postR, postTop);
-            ctx.lineTo(postR, postBot);
-            const postGrad = ctx.createLinearGradient(-postR, 0, postR, 0);
-            postGrad.addColorStop(0, '#64748b');
-            postGrad.addColorStop(0.3, '#94a3b8');
-            postGrad.addColorStop(0.7, '#94a3b8');
-            postGrad.addColorStop(1, '#475569');
-            ctx.fillStyle = postGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#94a3b8';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            // Post top
-            ctx.beginPath();
-            ctx.ellipse(0, postTop, postR, postR * 0.4, 0, 0, Math.PI * 2);
-            const postTopGrad = ctx.createRadialGradient(0, postTop, 0, 0, postTop, postR);
-            postTopGrad.addColorStop(0, '#cbd5e1');
-            postTopGrad.addColorStop(1, '#94a3b8');
-            ctx.fillStyle = postTopGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#cbd5e1';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-
-            // Open spiral guide grooves
-            for (let i = 0; i < 4; i++) {
-                const angle = (i * Math.PI / 2) + rotation;
-                ctx.beginPath();
-                const startX = Math.cos(angle) * postR * 0.8;
-                ctx.moveTo(startX, postBot);
-                for (let t = 0; t <= 1; t += 0.05) {
-                    const y = postBot + (postTop - postBot) * t;
-                    const a = angle + t * Math.PI * 3;
-                    const gx = Math.cos(a) * postR * 0.85;
-                    ctx.lineTo(gx, y);
-                }
-                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-
-                // Groove opening indicator
-                const openX = Math.cos(angle) * (postR + 4);
-                ctx.beginPath();
-                ctx.arc(openX, postBot + 10, 3, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(59, 130, 246, 0.7)';
-                ctx.fill();
+        // Connectors
+        const connGroups = [
+            {x:ox+pcbW*0.12,y:oy+pcbH*0.13},{x:ox+pcbW*0.42,y:oy+pcbH*0.10},
+            {x:ox+pcbW*0.72,y:oy+pcbH*0.13},{x:ox+pcbW*0.12,y:oy+pcbH*0.80},
+            {x:ox+pcbW*0.42,y:oy+pcbH*0.83},{x:ox+pcbW*0.72,y:oy+pcbH*0.80},
+        ];
+        connGroups.forEach(g => {
+            for (let i=0;i<3;i++) {
+                cCtx.fillStyle='#3b82f6'; cCtx.fillRect(g.x+i*16-8,g.y-7,12,14);
+                cCtx.strokeStyle='#60a5fa'; cCtx.lineWidth=0.8;
+                cCtx.strokeRect(g.x+i*16-8,g.y-7,12,14);
             }
+        });
 
-            // Exit holes with flip-up clips
-            for (let i = 0; i < 4; i++) {
-                const angle = (i * Math.PI / 2) + Math.PI / 4 + rotation;
-                const hx = Math.cos(angle) * postR * 0.5;
-                const hy = postTop;
+        // Traces
+        cCtx.strokeStyle='#eab308'; cCtx.lineWidth=1.2; cCtx.globalAlpha=0.5;
+        [[ox+50,oy+45],[ox+180,oy+70],[ox+320,oy+50]].forEach((p,i,arr) => {
+            if(i<arr.length-1){cCtx.beginPath();cCtx.moveTo(p[0],p[1]);cCtx.lineTo(arr[i+1][0],arr[i+1][1]);cCtx.stroke();}
+        });
+        cCtx.globalAlpha=1;
 
-                ctx.beginPath();
-                ctx.ellipse(hx, hy, 4, 2, 0, 0, Math.PI * 2);
-                ctx.fillStyle = '#1e293b';
-                ctx.fill();
-                ctx.strokeStyle = '#475569';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+        // Module installed at position 2 (center-top area)
+        const modX = ox + pcbW * 0.38;
+        const modY = oy + pcbH * 0.32;
+        const modScale = 1.8;
 
-                // Flip-up clip (small arc above hole)
-                ctx.beginPath();
-                ctx.arc(hx, hy - 3, 5, Math.PI, 0);
-                ctx.strokeStyle = '#22c55e';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
+        cCtx.save();
+        cCtx.translate(modX, modY);
+
+        // Module shadow on PCB
+        cCtx.beginPath();
+        cCtx.ellipse(0, 8, 30, 12, 0, 0, Math.PI*2);
+        cCtx.fillStyle = 'rgba(0,0,0,0.3)';
+        cCtx.fill();
+
+        // Module base
+        cCtx.beginPath();
+        cCtx.ellipse(0, 0, 28, 11, 0, 0, Math.PI*2);
+        const bGrad = cCtx.createRadialGradient(0,0,0,0,0,28);
+        bGrad.addColorStop(0,'#64748b'); bGrad.addColorStop(1,'#475569');
+        cCtx.fillStyle = bGrad; cCtx.fill();
+        cCtx.strokeStyle = '#94a3b8'; cCtx.lineWidth = 1.5; cCtx.stroke();
+
+        // Clamp arms
+        [-1,1].forEach(side => {
+            const cx2 = side * 32;
+            cCtx.fillStyle = '#f97316';
+            cCtx.beginPath(); cCtx.roundRect(cx2-6, -22, 12, 18, 2); cCtx.fill();
+            cCtx.beginPath(); cCtx.arc(cx2, -28, 6, 0, Math.PI*2);
+            const kg = cCtx.createRadialGradient(cx2-1,-29,0,cx2,-28,6);
+            kg.addColorStop(0,'#60a5fa'); kg.addColorStop(1,'#2563eb');
+            cCtx.fillStyle = kg; cCtx.fill();
+        });
+
+        // Center post
+        const postH2 = 80;
+        cCtx.fillStyle = '#94a3b8';
+        cCtx.fillRect(-10, -postH2-5, 20, postH2);
+        cCtx.strokeStyle = '#cbd5e1'; cCtx.lineWidth = 1;
+        cCtx.strokeRect(-10, -postH2-5, 20, postH2);
+
+        // Post top
+        cCtx.beginPath(); cCtx.ellipse(0, -postH2-5, 10, 4, 0, 0, Math.PI*2);
+        cCtx.fillStyle = '#cbd5e1'; cCtx.fill();
+
+        // Coiled connectors
+        const colors = ['#3b82f6','#22c55e','#f97316','#a855f7'];
+        for (let c=0;c<4;c++) {
+            const ba = c*Math.PI/2 + comboRotation;
+            const lh = c*8;
+            cCtx.beginPath();
+            const csY = -5-lh;
+            for (let i=0;i<=40;i++) {
+                const t=i/40, a=ba+t*Math.PI*3;
+                const r=18+Math.sin(t*Math.PI)*2;
+                const x=Math.cos(a)*r, y=csY-t*10;
+                if(i===0) cCtx.moveTo(x,y*0.35); else cCtx.lineTo(x,y*0.35);
             }
+            cCtx.strokeStyle=colors[c]; cCtx.lineWidth=3;
+            cCtx.lineCap='round'; cCtx.globalAlpha=0.8; cCtx.stroke(); cCtx.globalAlpha=1;
 
-            ctx.restore();
-
-            // Coiled connectors
-            const colors = ['#3b82f6', '#22c55e', '#f97316', '#a855f7'];
-            const names = ['连接头 A', '连接头 B', '连接头 C', '连接头 D'];
-
-            for (let c = 0; c < 4; c++) {
-                const baseAngle = (c * Math.PI / 2) + rotation;
-                const layerHeight = c * 12;
-
-                ctx.save();
-                ctx.translate(cx, cy + 30);
-
-                ctx.beginPath();
-                const coilStartY = -baseH - layerHeight;
-                const totalAngle = Math.PI * 3;
-                const steps = 60;
-
-                for (let i = 0; i <= steps; i++) {
-                    const t = i / steps;
-                    const angle = baseAngle + t * totalAngle;
-                    const r = coilR + Math.sin(t * Math.PI) * 3;
-                    const x = Math.cos(angle) * r;
-                    const y = coilStartY - t * 15;
-                    const py = y * 0.4;
-
-                    if (i === 0) ctx.moveTo(x, py);
-                    else ctx.lineTo(x, py);
-                }
-
-                ctx.strokeStyle = colors[c];
-                ctx.lineWidth = 4;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.globalAlpha = 0.8;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-
-                // Flexible hose at top
-                const endAngle = baseAngle + totalAngle;
-                const endX = Math.cos(endAngle) * coilR;
-                const endY = (coilStartY - 15) * 0.4;
-
-                ctx.beginPath();
-                ctx.moveTo(endX, endY);
-                ctx.quadraticCurveTo(endX + 15, endY - 30, endX + 10, endY - 50);
-                ctx.strokeStyle = colors[c];
-                ctx.lineWidth = 3;
-                ctx.globalAlpha = 0.5;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-
-                // Label
-                ctx.fillStyle = colors[c];
-                ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = 'center';
-                const labelX = Math.cos(baseAngle) * (coilR + 22);
-                const labelY = (coilStartY - 7) * 0.4;
-                ctx.fillText(names[c], labelX, labelY);
-
-                ctx.restore();
-            }
-
-            // Dimension annotations
-            ctx.strokeStyle = '#fbbf24';
-            ctx.fillStyle = '#fbbf24';
-            ctx.font = '11px sans-serif';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 4]);
-
-            const dimX = cx + baseW/2 + 35;
-            ctx.beginPath();
-            ctx.moveTo(dimX, cy + 30);
-            ctx.lineTo(dimX, cy + 30 - baseH - postH);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.fillText('≤45mm', dimX + 5, cy + 30 - postH/2 - baseH/2);
-
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath();
-            ctx.moveTo(cx - baseW/2, cy + 55);
-            ctx.lineTo(cx + baseW/2, cy + 55);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.textAlign = 'center';
-            ctx.fillText('50mm', cx, cy + 68);
-
-            // Clamp label
-            ctx.fillStyle = '#f97316';
-            ctx.font = 'bold 11px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('拇指旋钮（手拧快拆）', cx, cy + 82);
-
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '12px sans-serif';
-            ctx.fillText('透视视图 - 夹持式底座 + 中心柱螺旋绕圈', cx, h - 15);
+            // Hose
+            const ea=ba+Math.PI*3, ex=Math.cos(ea)*18, ey=(csY-10)*0.35;
+            cCtx.beginPath(); cCtx.moveTo(ex,ey);
+            cCtx.quadraticCurveTo(ex+10,ey-20,ex+6,ey-35);
+            cCtx.strokeStyle=colors[c]; cCtx.lineWidth=2; cCtx.globalAlpha=0.5; cCtx.stroke(); cCtx.globalAlpha=1;
         }
 
-        function drawTop() {
-            const w = canvas.width, h = canvas.height;
-            const cx = w / 2, cy = h / 2;
-            ctx.clearRect(0, 0, w, h);
-            drawGrid(w, h);
+        cCtx.restore();
 
-            const baseW = 100, baseD = 80;
-            const postR = 24;
-            const coilR = 38;
+        // Annotation arrow from module to label
+        cCtx.strokeStyle = '#f97316';
+        cCtx.fillStyle = '#f97316';
+        cCtx.font = 'bold 12px sans-serif';
+        cCtx.textAlign = 'left';
+        cCtx.setLineDash([4,3]);
+        cCtx.beginPath();
+        cCtx.moveTo(modX + 35, modY - 30);
+        cCtx.lineTo(modX + 80, modY - 50);
+        cCtx.stroke();
+        cCtx.setLineDash([]);
+        cCtx.fillText('固定模块', modX + 84, modY - 46);
+        cCtx.font = '11px sans-serif';
+        cCtx.fillStyle = '#fdba74';
+        cCtx.fillText('50×40mm 夹持底座', modX + 84, modY - 32);
+        cCtx.fillText('中心柱 Ø12×35mm', modX + 84, modY - 18);
 
-            // PCB reference
-            ctx.beginPath();
-            ctx.roundRect(cx - 140, cy - 60, 280, 120, 4);
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.06)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(34, 197, 94, 0.25)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([6, 4]);
-            ctx.stroke();
-            ctx.setLineDash([]);
+        // Dimension callouts
+        cCtx.strokeStyle = '#22c55e';
+        cCtx.fillStyle = '#22c55e';
+        cCtx.font = '11px sans-serif';
+        cCtx.textAlign = 'center';
+        cCtx.setLineDash([3,3]);
+        cCtx.beginPath();
+        cCtx.moveTo(modX, modY + 15);
+        cCtx.lineTo(modX, modY - postH2 - 10);
+        cCtx.stroke();
+        cCtx.setLineDash([]);
+        cCtx.fillText('≤45mm', modX + 30, modY - postH2/2);
 
-            // Base rectangle
-            ctx.beginPath();
-            ctx.roundRect(cx - baseW/2, cy - baseD/2, baseW, baseD, 6);
-            const baseGrad = ctx.createLinearGradient(cx - baseW/2, cy, cx + baseW/2, cy);
-            baseGrad.addColorStop(0, '#475569');
-            baseGrad.addColorStop(0.5, '#64748b');
-            baseGrad.addColorStop(1, '#475569');
-            ctx.fillStyle = baseGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#94a3b8';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+        // Bottom info
+        cCtx.fillStyle = '#94a3b8';
+        cCtx.font = '12px sans-serif';
+        cCtx.textAlign = 'center';
+        cCtx.fillText('组合视图 — 模块夹持安装到4连板边缘，连接头绕中心柱1.5圈后从顶部出线', w/2, h - 10);
+    }
 
-            // Center post
-            ctx.beginPath();
-            ctx.arc(cx, cy, postR, 0, Math.PI * 2);
-            const postGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, postR);
-            postGrad.addColorStop(0, '#94a3b8');
-            postGrad.addColorStop(1, '#64748b');
-            ctx.fillStyle = postGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#cbd5e1';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+    // ========== Animation ==========
+    function animate() {
+        rotation += 0.008;
+        comboRotation += 0.006;
+        drawModule();
+        drawCombo();
+        requestAnimationFrame(animate);
+    }
 
-            // Open spiral guide grooves
-            for (let i = 0; i < 4; i++) {
-                const angle = i * Math.PI / 2 + rotation;
-                ctx.beginPath();
-                ctx.moveTo(cx + Math.cos(angle) * postR * 0.3, cy + Math.sin(angle) * postR * 0.3);
-                ctx.lineTo(cx + Math.cos(angle) * postR * 0.95, cy + Math.sin(angle) * postR * 0.95);
-                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
-                ctx.lineWidth = 4;
-                ctx.stroke();
-
-                // Opening arrow
-                const openX = cx + Math.cos(angle) * (postR + 6);
-                const openY = cy + Math.sin(angle) * (postR + 6);
-                ctx.beginPath();
-                ctx.arc(openX, openY, 3, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(59, 130, 246, 0.7)';
-                ctx.fill();
-            }
-
-            // Exit holes with clips
-            for (let i = 0; i < 4; i++) {
-                const angle = i * Math.PI / 2 + Math.PI / 4 + rotation;
-                const hx = cx + Math.cos(angle) * postR * 0.5;
-                const hy = cy + Math.sin(angle) * postR * 0.5;
-                ctx.beginPath();
-                ctx.arc(hx, hy, 5, 0, Math.PI * 2);
-                ctx.fillStyle = '#1e293b';
-                ctx.fill();
-                ctx.strokeStyle = '#475569';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-
-                // Clip arc
-                ctx.beginPath();
-                ctx.arc(hx, hy - 2, 6, Math.PI * 1.2, Math.PI * 1.8);
-                ctx.strokeStyle = '#22c55e';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-            }
-
-            // Clamp arms
-            [-1, 1].forEach(side => {
-                const clampX = cx + side * (baseW/2 + 14);
-                ctx.beginPath();
-                ctx.roundRect(clampX - 10, cy - 12, 20, 24, 4);
-                ctx.fillStyle = '#f97316';
-                ctx.fill();
-                ctx.strokeStyle = '#ea580c';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-
-                // Thumb knob
-                ctx.beginPath();
-                ctx.arc(clampX, cy - 18, 8, 0, Math.PI * 2);
-                const knobGrad = ctx.createRadialGradient(clampX - 1, cy - 19, 0, clampX, cy - 18, 8);
-                knobGrad.addColorStop(0, '#60a5fa');
-                knobGrad.addColorStop(1, '#2563eb');
-                ctx.fillStyle = knobGrad;
-                ctx.fill();
-                ctx.strokeStyle = '#1d4ed8';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            });
-
-            // Coiled connectors
-            const colors = ['#3b82f6', '#22c55e', '#f97316', '#a855f7'];
-            const names = ['A', 'B', 'C', 'D'];
-
-            for (let c = 0; c < 4; c++) {
-                const baseAngle = c * Math.PI / 2 + rotation;
-                ctx.beginPath();
-                for (let i = 0; i <= 60; i++) {
-                    const t = i / 60;
-                    const angle = baseAngle + t * Math.PI * 3;
-                    const r = coilR + Math.sin(t * Math.PI) * 5;
-                    const x = cx + Math.cos(angle) * r;
-                    const y = cy + Math.sin(angle) * r;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.strokeStyle = colors[c];
-                ctx.lineWidth = 5;
-                ctx.lineCap = 'round';
-                ctx.globalAlpha = 0.7;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-
-                const labelAngle = baseAngle + Math.PI * 1.5;
-                const lx = cx + Math.cos(labelAngle) * (coilR + 20);
-                const ly = cy + Math.sin(labelAngle) * (coilR + 20);
-                ctx.fillStyle = colors[c];
-                ctx.font = 'bold 13px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(names[c], lx, ly);
-            }
-
-            // Dimensions
-            ctx.strokeStyle = '#fbbf24';
-            ctx.fillStyle = '#fbbf24';
-            ctx.font = '11px sans-serif';
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath();
-            ctx.moveTo(cx - baseW/2, cy + baseD/2 + 18);
-            ctx.lineTo(cx + baseW/2, cy + baseD/2 + 18);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.textAlign = 'center';
-            ctx.fillText('50mm', cx, cy + baseD/2 + 32);
-
-            ctx.setLineDash([4, 4]);
-            ctx.strokeStyle = '#94a3b8';
-            ctx.fillStyle = '#94a3b8';
-            ctx.beginPath();
-            ctx.moveTo(cx - postR, cy - postR - 14);
-            ctx.lineTo(cx + postR, cy - postR - 14);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.fillText('Ø12mm', cx, cy - postR - 22);
-
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '12px sans-serif';
-            ctx.fillText('俯视图 - 矩形夹持底座 + 开放式螺旋导槽', cx, h - 15);
-        }
-
-        function drawSide() {
-            const w = canvas.width, h = canvas.height;
-            const cx = w / 2, cy = h / 2 + 40;
-            ctx.clearRect(0, 0, w, h);
-            drawGrid(w, h);
-
-            const baseW = 120, baseH = 16;
-            const postW = 36, postH = 120;
-
-            // PCB reference
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.06)';
-            ctx.fillRect(cx - 160, cy + baseH/2, 320, 20);
-            ctx.strokeStyle = 'rgba(34, 197, 94, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([6, 4]);
-            ctx.strokeRect(cx - 160, cy + baseH/2, 320, 20);
-            ctx.setLineDash([]);
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.5)';
-            ctx.font = '11px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('4连板 PCB', cx, cy + baseH/2 + 35);
-
-            // Base
-            ctx.fillStyle = '#475569';
-            ctx.fillRect(cx - baseW/2, cy - baseH/2, baseW, baseH);
-            ctx.strokeStyle = '#64748b';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(cx - baseW/2, cy - baseH/2, baseW, baseH);
-
-            // Clamp arms
-            [-1, 1].forEach(side => {
-                const clampX = cx + side * (baseW/2 + 10);
-                // Arm body
-                ctx.fillStyle = '#f97316';
-                ctx.fillRect(clampX - 8, cy - baseH/2 - 24, 16, 30);
-                ctx.strokeStyle = '#ea580c';
-                ctx.lineWidth = 1.5;
-                ctx.strokeRect(clampX - 8, cy - baseH/2 - 24, 16, 30);
-
-                // Rubber pad (gripping PCB)
-                ctx.fillStyle = '#374151';
-                ctx.fillRect(clampX - 6, cy + baseH/2 - 2, 12, 8);
-
-                // Thumb knob
-                ctx.beginPath();
-                ctx.arc(clampX, cy - baseH/2 - 32, 10, 0, Math.PI * 2);
-                const knobGrad = ctx.createRadialGradient(clampX - 2, cy - baseH/2 - 34, 0, clampX, cy - baseH/2 - 32, 10);
-                knobGrad.addColorStop(0, '#60a5fa');
-                knobGrad.addColorStop(1, '#2563eb');
-                ctx.fillStyle = knobGrad;
-                ctx.fill();
-                ctx.strokeStyle = '#1d4ed8';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-
-                // Screw thread indicator
-                ctx.beginPath();
-                ctx.moveTo(clampX, cy - baseH/2 - 22);
-                ctx.lineTo(clampX, cy + baseH/2 + 6);
-                ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([3, 3]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            });
-
-            // Center post
-            const postGrad = ctx.createLinearGradient(cx - postW/2, 0, cx + postW/2, 0);
-            postGrad.addColorStop(0, '#64748b');
-            postGrad.addColorStop(0.3, '#94a3b8');
-            postGrad.addColorStop(0.7, '#94a3b8');
-            postGrad.addColorStop(1, '#475569');
-            ctx.fillStyle = postGrad;
-            ctx.fillRect(cx - postW/2, cy - baseH/2 - postH, postW, postH);
-            ctx.strokeStyle = '#94a3b8';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(cx - postW/2, cy - baseH/2 - postH, postW, postH);
-
-            // Post top cap
-            ctx.fillStyle = '#cbd5e1';
-            ctx.fillRect(cx - postW/2 - 4, cy - baseH/2 - postH - 6, postW + 8, 6);
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(cx - postW/2 - 4, cy - baseH/2 - postH - 6, postW + 8, 6);
-
-            // Open groove indicators on post side
-            for (let i = 0; i < 3; i++) {
-                const gy = cy - baseH/2 - 20 - i * 35;
-                ctx.beginPath();
-                ctx.moveTo(cx + postW/2, gy);
-                ctx.lineTo(cx + postW/2 + 6, gy);
-                ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-            }
-
-            // Coiled connectors side view
-            const colors = ['#3b82f6', '#22c55e', '#f97316', '#a855f7'];
-            const names = ['A', 'B', 'C', 'D'];
-
-            for (let c = 0; c < 4; c++) {
-                const layerY = cy - baseH/2 - 10 - c * 12;
-                const coilW = 55;
-
-                ctx.beginPath();
-                for (let i = 0; i <= 40; i++) {
-                    const t = i / 40;
-                    const x = cx - coilW/2 + t * coilW;
-                    const y = layerY + Math.sin(t * Math.PI * 3) * 8;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.strokeStyle = colors[c];
-                ctx.lineWidth = 4;
-                ctx.lineCap = 'round';
-                ctx.globalAlpha = 0.8;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-
-                ctx.fillStyle = colors[c];
-                ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = 'right';
-                ctx.fillText(names[c], cx - coilW/2 - 8, layerY + 4);
-
-                if (c === 0) {
-                    ctx.strokeStyle = '#fbbf24';
-                    ctx.fillStyle = '#fbbf24';
-                    ctx.font = '10px sans-serif';
-                    ctx.textAlign = 'left';
-                    ctx.setLineDash([3, 3]);
-                    ctx.beginPath();
-                    ctx.moveTo(cx + coilW/2 + 10, layerY + 8);
-                    ctx.lineTo(cx + coilW/2 + 10, layerY - 12);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    ctx.fillText('10mm', cx + coilW/2 + 14, layerY);
-                }
-            }
-
-            // Flexible hoses at top
-            for (let c = 0; c < 4; c++) {
-                const startX = cx + 15 + c * 6;
-                const startY = cy - baseH/2 - postH - 6;
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.quadraticCurveTo(startX + 20, startY - 30, startX + 15, startY - 60);
-                ctx.strokeStyle = colors[c];
-                ctx.lineWidth = 3;
-                ctx.globalAlpha = 0.5;
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-            }
-
-            // Dimensions
-            ctx.strokeStyle = '#22c55e';
-            ctx.fillStyle = '#22c55e';
-            ctx.font = '11px sans-serif';
-            ctx.setLineDash([4, 4]);
-            const dimX = cx + baseW/2 + 35;
-            ctx.beginPath();
-            ctx.moveTo(dimX, cy + baseH/2);
-            ctx.lineTo(dimX, cy - baseH/2 - postH - 6);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.textAlign = 'left';
-            ctx.fillText('≤45mm', dimX + 5, cy - postH/2 - baseH/2);
-
-            ctx.setLineDash([4, 4]);
-            ctx.strokeStyle = '#94a3b8';
-            ctx.fillStyle = '#94a3b8';
-            const dimX2 = cx - baseW/2 - 35;
-            ctx.beginPath();
-            ctx.moveTo(dimX2, cy - baseH/2);
-            ctx.lineTo(dimX2, cy - baseH/2 - postH);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.textAlign = 'right';
-            ctx.fillText('35mm', dimX2 - 5, cy - postH/2 - baseH/2);
-
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '12px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('侧视图 - 夹臂固定PCB + 连接头分层绕圈', cx, h - 15);
-        }
-
-        function drawClamp() {
-            const w = canvas.width, h = canvas.height;
-            const cx = w / 2, cy = h / 2;
-            ctx.clearRect(0, 0, w, h);
-            drawGrid(w, h);
-
-            // Zoomed in clamp detail
-            const scale = 2.5;
-
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.scale(scale, scale);
-
-            // PCB edge (cross section)
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
-            ctx.fillRect(-40, -3, 80, 6);
-            ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)';
-            ctx.lineWidth = 0.5;
-            ctx.strokeRect(-40, -3, 80, 6);
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.6)';
-            ctx.font = '3px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('PCB 边缘 (1.6mm)', 0, 14);
-
-            // Upper clamp arm
-            ctx.fillStyle = '#f97316';
-            ctx.beginPath();
-            ctx.roundRect(-8, -22, 16, 16, 2);
-            ctx.fill();
-            ctx.strokeStyle = '#ea580c';
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-
-            // Rubber pad upper
-            ctx.fillStyle = '#374151';
-            ctx.fillRect(-6, -8, 12, 3);
-
-            // Lower clamp arm
-            ctx.fillStyle = '#f97316';
-            ctx.beginPath();
-            ctx.roundRect(-8, 6, 16, 16, 2);
-            ctx.fill();
-            ctx.strokeStyle = '#ea580c';
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-
-            // Rubber pad lower
-            ctx.fillStyle = '#374151';
-            ctx.fillRect(-6, 5, 12, 3);
-
-            // Thumb knob (screw)
-            ctx.beginPath();
-            ctx.arc(0, -28, 6, 0, Math.PI * 2);
-            const knobGrad = ctx.createRadialGradient(-1, -29, 0, 0, -28, 6);
-            knobGrad.addColorStop(0, '#60a5fa');
-            knobGrad.addColorStop(1, '#2563eb');
-            ctx.fillStyle = knobGrad;
-            ctx.fill();
-            ctx.strokeStyle = '#1d4ed8';
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-
-            // Screw thread
-            ctx.beginPath();
-            ctx.moveTo(0, -22);
-            ctx.lineTo(0, 22);
-            ctx.strokeStyle = '#94a3b8';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-
-            // Thread lines
-            for (let i = 0; i < 6; i++) {
-                const ty = -18 + i * 7;
-                ctx.beginPath();
-                ctx.moveTo(-3, ty);
-                ctx.lineTo(3, ty + 2);
-                ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
-                ctx.lineWidth = 0.5;
-                ctx.stroke();
-            }
-
-            // Force arrows
-            ctx.strokeStyle = '#fbbf24';
-            ctx.fillStyle = '#fbbf24';
-            ctx.font = '3px sans-serif';
-            ctx.lineWidth = 0.5;
-
-            // Upper force
-            ctx.beginPath();
-            ctx.moveTo(15, -14);
-            ctx.lineTo(10, -10);
-            ctx.moveTo(15, -14);
-            ctx.lineTo(10, -18);
-            ctx.stroke();
-            ctx.fillText('夹紧力', 20, -13);
-
-            // Lower force
-            ctx.beginPath();
-            ctx.moveTo(15, 14);
-            ctx.lineTo(10, 10);
-            ctx.moveTo(15, 14);
-            ctx.lineTo(10, 18);
-            ctx.stroke();
-            ctx.fillText('夹紧力', 20, 15);
-
-            ctx.restore();
-
-            // Annotation text
-            ctx.fillStyle = '#f97316';
-            ctx.font = 'bold 14px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('夹持机构细节', cx, 30);
-
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '12px sans-serif';
-            const details = [
-                '拇指旋钮 (M4螺纹) — 手拧即可夹紧/松开',
-                '弹簧钢夹臂 + 尼龙包胶 — 不划伤PCB表面',
-                '夹持范围: 0.5~3mm — 适配常见PCB板厚',
-                '橡胶垫面 — 增加摩擦力，防止滑动',
-            ];
-            details.forEach((text, i) => {
-                ctx.fillText(text, cx, 60 + i * 22);
-            });
-
-            // Disassembly steps
-            ctx.fillStyle = '#22c55e';
-            ctx.font = 'bold 13px sans-serif';
-            ctx.fillText('快拆步骤', cx, h - 80);
-            ctx.fillStyle = '#cbd5e1';
-            ctx.font = '12px sans-serif';
-            const steps = [
-                '1. 逆时针旋转拇指旋钮 → 夹臂松开',
-                '2. 从PCB边缘取下模块',
-                '3. 翻开顶部弹性压片 → 取出连接头',
-                '全程无需工具，约3秒完成',
-            ];
-            steps.forEach((text, i) => {
-                ctx.fillText(text, cx, h - 60 + i * 20);
-            });
-        }
-
-        function draw() {
-            resizeCanvas();
-            if (currentView === 'perspective') drawPerspective();
-            else if (currentView === 'top') drawTop();
-            else if (currentView === 'side') drawSide();
-            else if (currentView === 'clamp') drawClamp();
-        }
-
-        function animate() {
-            rotation += 0.005;
-            draw();
-            requestAnimationFrame(animate);
-        }
-
-        window.addEventListener('resize', draw);
-        draw();
-        animate();
+    window.addEventListener('resize', () => { drawPCB(); drawModule(); drawCombo(); });
+    drawPCB();
+    drawModule();
+    drawCombo();
+    animate();
     </script>
 </body>
 </html>
