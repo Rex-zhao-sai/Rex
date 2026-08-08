@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4连板垂直连接头固定模块 - 设计方案</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 1px solid #334155;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+        .header .badge {
+            background: #3b82f6;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-title .icon {
+            width: 28px;
+            height: 28px;
+            background: #3b82f6;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* 3D View */
+        .view-3d {
+            grid-column: 1 / -1;
+            min-height: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+        .view-3d canvas {
+            width: 100%;
+            height: 460px;
+            border-radius: 8px;
+            background: #0f172a;
+        }
+
+        /* Specs */
+        .spec-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .spec-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .spec-item .label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .spec-item .value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+        .spec-item .unit {
+            font-size: 12px;
+            color: #64748b;
+            margin-left: 2px;
+        }
+
+        /* Design Description */
+        .desc-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .desc-list li {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            padding: 12px;
+            background: #0f172a;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        .desc-list .num {
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+        }
+        .desc-list .text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+        .desc-list .text strong {
+            color: #f8fafc;
+        }
+
+        /* Top View SVG */
+        .top-view-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 4px;
+        }
+        .tab {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #94a3b8;
+            border: none;
+            background: transparent;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .tab:hover:not(.active) {
+            color: #e2e8f0;
+        }
+
+        /* Dimension annotations */
+        .dimension-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #1e293b;
+        }
+        .dimension-row:last-child { border-bottom: none; }
+        .dim-label {
+            font-size: 13px;
+            color: #94a3b8;
+            min-width: 100px;
+        }
+        .dim-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #3b82f6;
+        }
+        .dim-note {
+            font-size: 12px;
+            color: #64748b;
+            margin-left: auto;
+        }
+
+        /* Warning */
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 14px;
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .warning-box .icon { font-size: 18px; }
+        .warning-box .text {
+            font-size: 13px;
+            color: #fbbf24;
+            line-height: 1.5;
+        }
+
+        /* Material table */
+        .material-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .material-table th {
+            text-align: left;
+            padding: 10px 12px;
+            background: #0f172a;
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .material-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #334155;
+            color: #cbd5e1;
+        }
+        .material-table tr:last-child td { border-bottom: none; }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .view-3d { grid-column: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>4连板垂直连接头固定模块</h1>
+        <span class="badge">设计方案 v1.0</span>
+    </div>
+
+    <div class="container">
+        <!-- 3D Visualization -->
+        <div class="panel view-3d">
+            <div class="panel-title">
+                <span class="icon">3D</span>
+                模块三维视图
+            </div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchView('perspective')">透视视图</button>
+                <button class="tab" onclick="switchView('top')">俯视图</button>
+                <button class="tab" onclick="switchView('side')">侧视图</button>
+            </div>
+            <canvas id="moduleCanvas"></canvas>
+        </div>
+
+        <!-- Design Parameters -->
+        <div class="panel">
+            <div class="panel-title">
+                <span class="icon"></span>
+                设计参数
+            </div>
+            <div class="spec-grid">
+                <div class="spec-item">
+                    <div class="label">模块底座直径</div>
+                    <div class="value">40<span class="unit">mm</span></div>
+                </div>
+                <div class="spec-item">
+                    <div class="label">中心柱直径</div>
+                    <div class="value">12<span class="unit">mm</span></div>
+                </div>
+                <div class="spec-item">
+                    <div class="label">中心柱高度</div>
+                    <div class="value">35<span class="unit">mm</span></div>
+                </div>
+                <div class="spec-item">
+                    <div class="label">绕圈后总高度</div>
+                    <div class="value">≤45<span class="unit">mm</span></div>
+                </div>
+                <div class="spec-item">
+                    <div class="label">连接头直径</div>
+                    <div class="value">10<span class="unit">mm</span></div>
+                </div>
+                <div class="spec-item">
+                    <div class="label">连接头长度</div>
+                    <div class="value">150<span class="unit">mm</span></div>
+                </div>
+                <div class="spec-item">
+                    <div class="label">绕圈半径</div>
+                    <div class="value">16<span class="unit">mm</span></div>
+                </div>
+                <div class="spec-item">
+                    <div class="label">每根绕圈数</div>
+                    <div class="value">~1.5<span class="unit">圈</span></div>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <span class="icon">⚠️</span>
+                <span class="text">绕圈半径16mm = 中心柱半径6mm + 连接头半径5mm + 弯曲余量5mm。确保软管弯曲半径不小于最小允许值。</span>
+            </div>
+        </div>
+
+        <!-- Design Description -->
+        <div class="panel">
+            <div class="panel-title">
+                <span class="icon">📋</span>
+                设计方案说明
+            </div>
+            <ul class="desc-list">
+                <li>
+                    <span class="num">1</span>
+                    <span class="text"><strong>底座设计：</strong>圆形底座直径40mm，厚度3mm，底部设4个焊接焊盘（间距20mm×20mm方阵），直接焊接到4连板指定位置。</span>
+                </li>
+                <li>
+                    <span class="num">2</span>
+                    <span class="text"><strong>中心柱：</strong>直径12mm圆柱，高度35mm，表面设4条螺旋导槽（间距90°），引导连接头绕圈走向。</span>
+                </li>
+                <li>
+                    <span class="num">3</span>
+                    <span class="text"><strong>绕圈方式：</strong>4根连接头从底座底部进入，沿螺旋导槽绕中心柱1.5圈，从顶部穿出。每根连接头占据独立螺旋层，互不干涉。</span>
+                </li>
+                <li>
+                    <span class="num">4</span>
+                    <span class="text"><strong>高度控制：</strong>连接头直径10mm，每圈高度增量10mm。1.5圈高度约15mm + 底座3mm + 顶部余量7mm = 总高≤45mm，满足≤50mm要求。</span>
+                </li>
+                <li>
+                    <span class="num">5</span>
+                    <span class="text"><strong>顶部固定：</strong>中心柱顶部设4个出线孔（直径12mm），带弹性卡扣，固定软管位置同时允许弯曲形变。</span>
+                </li>
+                <li>
+                    <span class="num">6</span>
+                    <span class="text"><strong>材料建议：</strong>底座和中心柱采用FR-4玻纤板或铝合金CNC加工，导槽表面做光滑处理减少摩擦。</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Dimensions Detail -->
+        <div class="panel">
+            <div class="panel-title">
+                <span class="icon"></span>
+                详细尺寸
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">底座外径</span>
+                <span class="dim-value">Ø40 mm</span>
+                <span class="dim-note">圆形，厚度3mm</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">焊接焊盘</span>
+                <span class="dim-value">20×20 mm</span>
+                <span class="dim-note">4点方阵，间距20mm</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">中心柱外径</span>
+                <span class="dim-value">Ø12 mm</span>
+                <span class="dim-note">圆柱形，高35mm</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">螺旋导槽</span>
+                <span class="dim-value">宽12mm 深3mm</span>
+                <span class="dim-note">4条，间距90°</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">绕圈中心半径</span>
+                <span class="dim-value">R16 mm</span>
+                <span class="dim-note">柱半径6+线半径5+余量5</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">单圈周长</span>
+                <span class="dim-value">≈100.5 mm</span>
+                <span class="dim-note">2π×16mm</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">1.5圈长度</span>
+                <span class="dim-value">≈150.8 mm</span>
+                <span class="dim-note">匹配150mm连接头</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">绕圈高度</span>
+                <span class="dim-value">15 mm</span>
+                <span class="dim-note">1.5圈×10mm/圈</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">顶部出线孔</span>
+                <span class="dim-value">Ø12 mm × 4</span>
+                <span class="dim-note">带弹性卡扣</span>
+            </div>
+            <div class="dimension-row">
+                <span class="dim-label">总高度</span>
+                <span class="dim-value">≤45 mm</span>
+                <span class="dim-note">底座3+柱35+余量7</span>
+            </div>
+        </div>
+
+        <!-- Material & Process -->
+        <div class="panel">
+            <div class="panel-title">
+                <span class="icon">🔧</span>
+                材料与工艺
+            </div>
+            <table class="material-table">
+                <thead>
+                    <tr>
+                        <th>部件</th>
+                        <th>材料</th>
+                        <th>工艺</th>
+                        <th>备注</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>底座</td>
+                        <td>FR-4 玻纤板</td>
+                        <td>PCB蚀刻</td>
+                        <td>与4连板同材质，可直接焊接</td>
+                    </tr>
+                    <tr>
+                        <td>中心柱</td>
+                        <td>铝合金 6061</td>
+                        <td>CNC车削</td>
+                        <td>表面阳极氧化处理</td>
+                    </tr>
+                    <tr>
+                        <td>螺旋导槽</td>
+                        <td>—</td>
+                        <td>CNC铣削</td>
+                        <td>槽壁光滑，Ra≤1.6μm</td>
+                    </tr>
+                    <tr>
+                        <td>出线孔卡扣</td>
+                        <td>硅胶</td>
+                        <td>注塑成型</td>
+                        <td>弹性固定，允许弯曲</td>
+                    </tr>
+                    <tr>
+                        <td>焊接焊盘</td>
+                        <td>镀锡铜</td>
+                        <td>表面处理</td>
+                        <td>4点焊接，确保牢固</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="warning-box" style="margin-top: 16px;">
+                <span class="icon">💡</span>
+                <span class="text"><strong>装配顺序：</strong>1) 将模块底座焊接到4连板指定位置 → 2) 连接头底部焊接到4连板焊盘 → 3) 连接头沿导槽绕中心柱1.5圈 → 4) 顶部软管穿过出线孔卡扣固定。</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('moduleCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentView = 'perspective';
+        let rotation = 0;
+        let animFrame;
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width - 48;
+            canvas.height = 460;
+        }
+
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            rotation = 0;
+            draw();
+        }
+
+        function drawPerspective() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2 + 30;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Background grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < w; i += 30) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+            }
+            for (let i = 0; i < h; i += 30) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+            }
+
+            const baseR = 60;
+            const postR = 18;
+            const postH = 120;
+            const coilR = 24;
+
+            // Draw base plate (ellipse for perspective)
+            ctx.save();
+            ctx.translate(cx, cy + 40);
+
+            // Base shadow
+            ctx.beginPath();
+            ctx.ellipse(0, 10, baseR + 5, baseR * 0.35 + 3, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fill();
+
+            // Base plate
+            ctx.beginPath();
+            ctx.ellipse(0, 0, baseR, baseR * 0.35, 0, 0, Math.PI * 2);
+            const baseGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, baseR);
+            baseGrad.addColorStop(0, '#475569');
+            baseGrad.addColorStop(1, '#334155');
+            ctx.fillStyle = baseGrad;
+            ctx.fill();
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Base top surface
+            ctx.beginPath();
+            ctx.ellipse(0, -8, baseR, baseR * 0.35, 0, 0, Math.PI * 2);
+            const baseTopGrad = ctx.createRadialGradient(0, -8, 0, 0, -8, baseR);
+            baseTopGrad.addColorStop(0, '#64748b');
+            baseTopGrad.addColorStop(1, '#475569');
+            ctx.fillStyle = baseTopGrad;
+            ctx.fill();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Base side
+            ctx.beginPath();
+            ctx.moveTo(-baseR, 0);
+            ctx.lineTo(-baseR, -8);
+            ctx.ellipse(0, -8, baseR, baseR * 0.35, 0, Math.PI, 0, true);
+            ctx.lineTo(baseR, 0);
+            ctx.ellipse(0, 0, baseR, baseR * 0.35, 0, 0, Math.PI, true);
+            ctx.fillStyle = '#334155';
+            ctx.fill();
+
+            // Weld pads on base
+            const padPositions = [[-15, -5], [15, -5], [-15, 5], [15, 5]];
+            padPositions.forEach(([px, py]) => {
+                ctx.beginPath();
+                ctx.ellipse(px, py - 4, 5, 2, 0, 0, Math.PI * 2);
+                ctx.fillStyle = '#fbbf24';
+                ctx.fill();
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            ctx.restore();
+
+            // Draw center post
+            ctx.save();
+            ctx.translate(cx, cy + 40);
+
+            // Post body
+            const postTop = -postH - 8;
+            const postBot = -8;
+
+            // Post side
+            ctx.beginPath();
+            ctx.moveTo(-postR, postBot);
+            ctx.lineTo(-postR, postTop);
+            ctx.lineTo(postR, postTop);
+            ctx.lineTo(postR, postBot);
+            const postGrad = ctx.createLinearGradient(-postR, 0, postR, 0);
+            postGrad.addColorStop(0, '#64748b');
+            postGrad.addColorStop(0.3, '#94a3b8');
+            postGrad.addColorStop(0.7, '#94a3b8');
+            postGrad.addColorStop(1, '#475569');
+            ctx.fillStyle = postGrad;
+            ctx.fill();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Post top
+            ctx.beginPath();
+            ctx.ellipse(0, postTop, postR, postR * 0.4, 0, 0, Math.PI * 2);
+            const postTopGrad = ctx.createRadialGradient(0, postTop, 0, 0, postTop, postR);
+            postTopGrad.addColorStop(0, '#cbd5e1');
+            postTopGrad.addColorStop(1, '#94a3b8');
+            ctx.fillStyle = postTopGrad;
+            ctx.fill();
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Spiral guide grooves on post
+            for (let i = 0; i < 4; i++) {
+                const angle = (i * Math.PI / 2) + rotation;
+                const x = Math.cos(angle) * postR * 0.7;
+                ctx.beginPath();
+                ctx.moveTo(x, postBot);
+                for (let t = 0; t <= 1; t += 0.05) {
+                    const y = postBot + (postTop - postBot) * t;
+                    const a = angle + t * Math.PI * 3;
+                    const gx = Math.cos(a) * postR * 0.75;
+                    ctx.lineTo(gx, y);
+                }
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Exit holes on top
+            for (let i = 0; i < 4; i++) {
+                const angle = (i * Math.PI / 2) + Math.PI / 4;
+                const hx = Math.cos(angle) * postR * 0.5;
+                const hy = postTop;
+                ctx.beginPath();
+                ctx.ellipse(hx, hy, 3, 1.5, 0, 0, Math.PI * 2);
+                ctx.fillStyle = '#1e293b';
+                ctx.fill();
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // Draw coiled connectors
+            const colors = ['#3b82f6', '#22c55e', '#f97316', '#a855f7'];
+            const connectorNames = ['连接头 A', '连接头 B', '连接头 C', '连接头 D'];
+
+            for (let c = 0; c < 4; c++) {
+                const baseAngle = (c * Math.PI / 2) + rotation;
+                const layerHeight = c * 12;
+
+                ctx.save();
+                ctx.translate(cx, cy + 40);
+
+                // Draw coil path
+                ctx.beginPath();
+                const coilStartY = -8 - layerHeight;
+                const totalAngle = Math.PI * 3; // 1.5 turns
+                const steps = 60;
+
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const angle = baseAngle + t * totalAngle;
+                    const r = coilR + Math.sin(t * Math.PI) * 3;
+                    const x = Math.cos(angle) * r;
+                    const y = coilStartY - t * 15;
+                    const perspectiveY = y * 0.35;
+
+                    if (i === 0) {
+                        ctx.moveTo(x, perspectiveY);
+                    } else {
+                        ctx.lineTo(x, perspectiveY);
+                    }
+                }
+
+                ctx.strokeStyle = colors[c];
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.globalAlpha = 0.8;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // Draw connector end (top)
+                const endAngle = baseAngle + totalAngle;
+                const endX = Math.cos(endAngle) * coilR;
+                const endY = (coilStartY - 15) * 0.35;
+
+                // Flexible hose at top
+                ctx.beginPath();
+                ctx.moveTo(endX, endY);
+                ctx.quadraticCurveTo(endX + 15, endY - 30, endX + 10, endY - 50);
+                ctx.strokeStyle = colors[c];
+                ctx.lineWidth = 3;
+                ctx.globalAlpha = 0.6;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // Connector label
+                ctx.fillStyle = colors[c];
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                const labelX = Math.cos(baseAngle) * (coilR + 20);
+                const labelY = (coilStartY - 7) * 0.35;
+                ctx.fillText(connectorNames[c], labelX, labelY);
+
+                ctx.restore();
+            }
+
+            // Dimension annotations
+            ctx.strokeStyle = '#fbbf24';
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = '11px sans-serif';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+
+            // Height dimension
+            const dimX = cx + baseR + 30;
+            ctx.beginPath();
+            ctx.moveTo(dimX, cy + 40);
+            ctx.lineTo(dimX, cy + 40 - postH - 8);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillText('35mm', dimX + 5, cy + 40 - postH / 2);
+
+            // Base diameter
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(cx - baseR, cy + 55);
+            ctx.lineTo(cx + baseR, cy + 55);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'center';
+            ctx.fillText('Ø40mm', cx, cy + 68);
+
+            // Total height
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#22c55e';
+            ctx.fillStyle = '#22c55e';
+            const totalDimX = cx - baseR - 30;
+            ctx.beginPath();
+            ctx.moveTo(totalDimX, cy + 40);
+            ctx.lineTo(totalDimX, cy + 40 - postH - 20);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'right';
+            ctx.fillText('≤45mm', totalDimX - 5, cy + 40 - postH / 2 - 10);
+
+            // Title
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('透视视图 - 4根连接头螺旋绕中心柱1.5圈', cx, h - 15);
+        }
+
+        function drawTop() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < w; i += 30) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+            }
+            for (let i = 0; i < h; i += 30) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+            }
+
+            const baseR = 80;
+            const postR = 24;
+            const coilR = 36;
+
+            // Base circle
+            ctx.beginPath();
+            ctx.arc(cx, cy, baseR, 0, Math.PI * 2);
+            const baseGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseR);
+            baseGrad.addColorStop(0, '#475569');
+            baseGrad.addColorStop(1, '#334155');
+            ctx.fillStyle = baseGrad;
+            ctx.fill();
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Center post
+            ctx.beginPath();
+            ctx.arc(cx, cy, postR, 0, Math.PI * 2);
+            const postGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, postR);
+            postGrad.addColorStop(0, '#94a3b8');
+            postGrad.addColorStop(1, '#64748b');
+            ctx.fillStyle = postGrad;
+            ctx.fill();
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Spiral guide grooves
+            for (let i = 0; i < 4; i++) {
+                const angle = i * Math.PI / 2 + rotation;
+                ctx.beginPath();
+                ctx.moveTo(cx + Math.cos(angle) * postR * 0.3, cy + Math.sin(angle) * postR * 0.3);
+                ctx.lineTo(cx + Math.cos(angle) * postR * 0.9, cy + Math.sin(angle) * postR * 0.9);
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            // Exit holes
+            for (let i = 0; i < 4; i++) {
+                const angle = i * Math.PI / 2 + Math.PI / 4 + rotation;
+                const hx = cx + Math.cos(angle) * postR * 0.5;
+                const hy = cy + Math.sin(angle) * postR * 0.5;
+                ctx.beginPath();
+                ctx.arc(hx, hy, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#1e293b';
+                ctx.fill();
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // Coiled connectors (top view - spiral)
+            const colors = ['#3b82f6', '#22c55e', '#f97316', '#a855f7'];
+            const names = ['A', 'B', 'C', 'D'];
+
+            for (let c = 0; c < 4; c++) {
+                const baseAngle = c * Math.PI / 2 + rotation;
+                ctx.beginPath();
+
+                for (let i = 0; i <= 60; i++) {
+                    const t = i / 60;
+                    const angle = baseAngle + t * Math.PI * 3;
+                    const r = coilR + Math.sin(t * Math.PI) * 5;
+                    const x = cx + Math.cos(angle) * r;
+                    const y = cy + Math.sin(angle) * r;
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+
+                ctx.strokeStyle = colors[c];
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.7;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // Label
+                const labelAngle = baseAngle + Math.PI * 1.5;
+                const lx = cx + Math.cos(labelAngle) * (coilR + 18);
+                const ly = cy + Math.sin(labelAngle) * (coilR + 18);
+                ctx.fillStyle = colors[c];
+                ctx.font = 'bold 13px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(names[c], lx, ly);
+            }
+
+            // Weld pads
+            const pads = [[-25, -25], [25, -25], [-25, 25], [25, 25]];
+            pads.forEach(([px, py]) => {
+                ctx.beginPath();
+                ctx.arc(cx + px, cy + py, 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#fbbf24';
+                ctx.fill();
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+
+            // Dimensions
+            ctx.strokeStyle = '#fbbf24';
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = '11px sans-serif';
+            ctx.setLineDash([4, 4]);
+
+            // Base diameter
+            ctx.beginPath();
+            ctx.moveTo(cx - baseR, cy + baseR + 20);
+            ctx.lineTo(cx + baseR, cy + baseR + 20);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'center';
+            ctx.fillText('Ø40mm', cx, cy + baseR + 35);
+
+            // Post diameter
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.fillStyle = '#94a3b8';
+            ctx.beginPath();
+            ctx.moveTo(cx - postR, cy - postR - 15);
+            ctx.lineTo(cx + postR, cy - postR - 15);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillText('Ø12mm', cx, cy - postR - 22);
+
+            // Coil radius
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#3b82f6';
+            ctx.fillStyle = '#3b82f6';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + coilR, cy);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillText('R16mm', cx + coilR / 2, cy - 8);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('俯视图 - 4根连接头绕中心柱螺旋排列', cx, h - 15);
+        }
+
+        function drawSide() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2 + 40;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < w; i += 30) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
+            }
+            for (let i = 0; i < h; i += 30) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
+            }
+
+            const baseW = 120;
+            const baseH = 12;
+            const postW = 36;
+            const postH = 120;
+
+            // Base
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(cx - baseW / 2, cy - baseH / 2, baseW, baseH);
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(cx - baseW / 2, cy - baseH / 2, baseW, baseH);
+
+            // Weld pads
+            [-30, -10, 10, 30].forEach(px => {
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillRect(cx + px - 4, cy + baseH / 2, 8, 6);
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(cx + px - 4, cy + baseH / 2, 8, 6);
+            });
+
+            // Center post
+            const postGrad = ctx.createLinearGradient(cx - postW / 2, 0, cx + postW / 2, 0);
+            postGrad.addColorStop(0, '#64748b');
+            postGrad.addColorStop(0.3, '#94a3b8');
+            postGrad.addColorStop(0.7, '#94a3b8');
+            postGrad.addColorStop(1, '#475569');
+            ctx.fillStyle = postGrad;
+            ctx.fillRect(cx - postW / 2, cy - baseH / 2 - postH, postW, postH);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(cx - postW / 2, cy - baseH / 2 - postH, postW, postH);
+
+            // Post top cap
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(cx - postW / 2 - 4, cy - baseH / 2 - postH - 6, postW + 8, 6);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(cx - postW / 2 - 4, cy - baseH / 2 - postH - 6, postW + 8, 6);
+
+            // Coiled connectors side view
+            const colors = ['#3b82f6', '#22c55e', '#f97316', '#a855f7'];
+            const names = ['A', 'B', 'C', 'D'];
+
+            for (let c = 0; c < 4; c++) {
+                const layerY = cy - baseH / 2 - 10 - c * 12;
+                const coilW = 50;
+
+                // Draw coil as wavy line
+                ctx.beginPath();
+                for (let i = 0; i <= 40; i++) {
+                    const t = i / 40;
+                    const x = cx - coilW / 2 + t * coilW;
+                    const y = layerY + Math.sin(t * Math.PI * 3) * 8;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = colors[c];
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.8;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // Label
+                ctx.fillStyle = colors[c];
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(names[c], cx - coilW / 2 - 8, layerY + 4);
+
+                // Height annotation
+                if (c === 0) {
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(cx + coilW / 2 + 10, layerY + 8);
+                    ctx.lineTo(cx + coilW / 2 + 10, layerY - 12);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillText('10mm', cx + coilW / 2 + 14, layerY);
+                }
+            }
+
+            // Flexible hoses at top
+            for (let c = 0; c < 4; c++) {
+                const startX = cx + 20 + c * 5;
+                const startY = cy - baseH / 2 - postH - 6;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.quadraticCurveTo(startX + 20, startY - 30, startX + 15, startY - 60);
+                ctx.strokeStyle = colors[c];
+                ctx.lineWidth = 3;
+                ctx.globalAlpha = 0.5;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+
+            // Dimensions
+            ctx.strokeStyle = '#22c55e';
+            ctx.fillStyle = '#22c55e';
+            ctx.font = '11px sans-serif';
+            ctx.setLineDash([4, 4]);
+
+            // Total height
+            const dimX = cx + baseW / 2 + 30;
+            ctx.beginPath();
+            ctx.moveTo(dimX, cy + baseH / 2);
+            ctx.lineTo(dimX, cy - baseH / 2 - postH - 6);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'left';
+            ctx.fillText('≤45mm', dimX + 5, cy - postH / 2);
+
+            // Post height
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.fillStyle = '#94a3b8';
+            const dimX2 = cx - baseW / 2 - 30;
+            ctx.beginPath();
+            ctx.moveTo(dimX2, cy - baseH / 2);
+            ctx.lineTo(dimX2, cy - baseH / 2 - postH);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'right';
+            ctx.fillText('35mm', dimX2 - 5, cy - postH / 2);
+
+            // Base width
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#fbbf24';
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.moveTo(cx - baseW / 2, cy + baseH / 2 + 20);
+            ctx.lineTo(cx + baseW / 2, cy + baseH / 2 + 20);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.textAlign = 'center';
+            ctx.fillText('40mm', cx, cy + baseH / 2 + 33);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('侧视图 - 连接头分层绕圈，每层高度10mm', cx, h - 15);
+        }
+
+        function draw() {
+            resizeCanvas();
+            if (currentView === 'perspective') drawPerspective();
+            else if (currentView === 'top') drawTop();
+            else if (currentView === 'side') drawSide();
+        }
+
+        // Animation
+        function animate() {
+            rotation += 0.005;
+            draw();
+            animFrame = requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', draw);
+        draw();
+        animate();
+    </script>
+</body>
+</html>
