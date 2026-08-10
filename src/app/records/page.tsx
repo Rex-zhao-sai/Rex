@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { formatMonth } from "@/lib/storage";
@@ -267,6 +267,7 @@ export default function RecordsPage() {
   }, []);
 
   return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
     <>
       {isMobile && (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -606,5 +607,6 @@ export default function RecordsPage() {
     </div>
       )}
     </>
+    </Suspense>
   );
 }
