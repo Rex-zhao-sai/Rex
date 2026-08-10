@@ -36,6 +36,14 @@ function getStoredRole(): Role {
 }
 
 export default function RecordsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
+      <RecordsPageContent />
+    </Suspense>
+  );
+}
+
+function RecordsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
@@ -267,7 +275,6 @@ export default function RecordsPage() {
   }, []);
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
     <>
       {isMobile && (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -607,6 +614,5 @@ export default function RecordsPage() {
     </div>
       )}
     </>
-    </Suspense>
   );
 }
