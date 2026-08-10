@@ -134,21 +134,34 @@ export default function Home() {
       }
       
       try {
-        // 获取每个设备的最新记录（用于超期判断）
-        const latestRecords = await getLatestRecordPerEquipment();
+        // 优化：分别查询本月记录和最新记录，避免复杂 JOIN
+        const [currentMonthRecords, latestRecords] = await Promise.all([
+          getRecordsByMonth(currentMonth),
+          getLatestRecordPerEquipment(),
+        ]);
 
-        if (isMounted && latestRecords && latestRecords.length > 0) {
+        if (isMounted) {
           const recordsMap: Record<string, any> = {};
-          latestRecords.forEach((r) => {
-            recordsMap[r.equipment_id] = r;
-          });
+          
+          // 先填充最新记录（用于超期判断）
+          if (latestRecords && latestRecords.length > 0) {
+            latestRecords.forEach((r) => {
+              recordsMap[r.equipment_id] = r;
+            });
+          }
+          
+          // 用本月记录覆盖（确保本月状态正确）
+          if (currentMonthRecords && currentMonthRecords.length > 0) {
+            currentMonthRecords.forEach((r) => {
+              recordsMap[r.equipment_id] = r;
+            });
+          }
+          
           setRecords(recordsMap);
           // 写入 IndexedDB（缓存当前月份记录）
-          await setCachedRecords(latestRecords);
+          await setCachedRecords(Object.values(recordsMap));
           console.log('[Page] Updated from Turso');
           isInitialFetchDone = true;
-        } else if (isMounted && !cachedRecords) {
-          setRecords({});
         }
       } catch (e: any) {
         console.error("获取记录失败:", e);
