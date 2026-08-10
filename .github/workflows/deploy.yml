@@ -65,6 +65,9 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
+          # Store absolute path to out directory
+          OUT_DIR=$(pwd)/out
+          
           # Clone or create gh-pages branch
           if git ls-remote --exit-code --heads origin gh-pages; then
             echo "gh-pages branch exists, cloning..."
@@ -80,8 +83,8 @@ jobs:
           # Remove old files (keep .git)
           find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
           
-          # Copy new files
-          cp -r ../out/. ./
+          # Copy new files using absolute path
+          cp -r "$OUT_DIR"/. ./
           
           # Commit and push
           git add -A
