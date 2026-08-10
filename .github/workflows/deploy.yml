@@ -50,9 +50,19 @@ jobs:
           # Temporarily disable API routes for static export
           mv src/app/api src/app/_api_disabled 2>/dev/null || true
           # Build with GitHub Pages config
-          GITHUB_PAGES=1 pnpm build
+          GITHUB_PAGES=1 pnpm build 2>&1 | tee build.log
+          # Check build result
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "Build failed! Last 50 lines of build log:"
+            tail -n 50 build.log
+            exit 1
+          fi
           # Restore API routes
           mv src/app/_api_disabled src/app/api 2>/dev/null || true
+          # Verify output
+          echo "Build output:"
+          ls -la out/ || echo "out directory not found"
+          find out -type f | wc -l
         env:
           NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
           NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
