@@ -231,8 +231,8 @@ function RecordsPageContent() {
       setRecords((prev) => prev.filter((r: any) => r.id !== id));
       // 清除 IndexedDB 缓存，确保首页显示最新数据
       if (typeof window !== 'undefined') {
-        const { clearAllCache } = await import('@/lib/cache');
-        await clearAllCache();
+        const { clearAll } = await import('@/lib/cache');
+        await clearAll();
       }
     } catch (e: any) {
       alert("删除失败：" + e.message);
