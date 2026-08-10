@@ -165,6 +165,7 @@ export async function getCachedLatestRecords(): Promise<CachedRecord[] | null> {
     const age = Date.now() - new Date(lastSync).getTime();
     if (age > 24 * 60 * 60 * 1000) {
       console.log('[Cache] Latest records cache expired, need refresh');
+      return null; // 过期则返回 null，强制从数据库获取最新数据
     }
 
     const records = await getCachedLatestRecordsFromDB();
