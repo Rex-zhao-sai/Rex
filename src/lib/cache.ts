@@ -18,7 +18,7 @@ import {
   getCachedPhotoPairs,
   clearPhotoCache,
   cacheLatestRecords,
-  getCachedLatestRecords,
+  getCachedLatestRecords as getCachedLatestRecordsFromDB,
   getLatestRecordsLastSync,
   type CachedEquipment,
   type CachedRecord,
@@ -167,7 +167,7 @@ export async function getCachedLatestRecords(): Promise<CachedRecord[] | null> {
       console.log('[Cache] Latest records cache expired, need refresh');
     }
 
-    const records = await getCachedLatestRecords();
+    const records = await getCachedLatestRecordsFromDB();
     console.log(`[Cache] Loaded ${records.length} latest records from IndexedDB`);
     return records;
   } catch (e) {
