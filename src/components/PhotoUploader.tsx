@@ -45,6 +45,9 @@ export function PhotoUploader({
       } else if (pair.before?.s3Url && pair.before.s3Url.trim()) {
         // 使用预签名 URL（构建时生成）
         beforeUrl = pair.before.s3Url;
+      } else if (pair.before?.src && pair.before.src.trim()) {
+        // 使用旧版 URL（Supabase 存储，向后兼容）
+        beforeUrl = pair.before.src;
       } else if (beforeKey) {
         try {
           beforeUrl = await getS3PhotoUrl(beforeKey);
@@ -58,6 +61,9 @@ export function PhotoUploader({
       } else if (pair.after?.s3Url && pair.after.s3Url.trim()) {
         // 使用预签名 URL（构建时生成）
         afterUrl = pair.after.s3Url;
+      } else if (pair.after?.src && pair.after.src.trim()) {
+        // 使用旧版 URL（Supabase 存储，向后兼容）
+        afterUrl = pair.after.src;
       } else if (afterKey) {
         try {
           afterUrl = await getS3PhotoUrl(afterKey);
@@ -73,7 +79,7 @@ export function PhotoUploader({
     };
     
     loadPhotoUrls();
-  }, [pair.beforeKey, pair.afterKey, pair.before?.s3Key, pair.after?.s3Key, pair.before?.dataUrl, pair.after?.dataUrl]);
+  }, [pair.beforeKey, pair.afterKey, pair.before?.s3Key, pair.after?.s3Key, pair.before?.dataUrl, pair.after?.dataUrl, pair.before?.src, pair.after?.src]);
 
   const handleFile = useCallback(
     async (type: "before" | "after", file: File) => {
