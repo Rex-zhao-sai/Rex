@@ -157,6 +157,9 @@ export default function Home() {
         if (isMounted) {
           const recordsMap: Record<string, any> = {};
           
+          console.log('[Page] Turso latestRecords count:', latestRecords?.length || 0);
+          console.log('[Page] Turso currentMonthRecords count:', currentMonthRecords?.length || 0);
+          
           // 先填充最新记录（用于超期判断）
           if (latestRecords && latestRecords.length > 0) {
             latestRecords.forEach((r) => {
@@ -171,6 +174,7 @@ export default function Home() {
             });
           }
           
+          console.log('[Page] recordsMap keys count:', Object.keys(recordsMap).length);
           setRecords(recordsMap);
           // 写入 IndexedDB（缓存当前月份记录和最新记录）
           await Promise.all([

@@ -227,14 +227,18 @@ function RecordsPageContent() {
   const handleDelete = async (id: string) => {
     if (!confirm("确定要删除这条记录吗？此操作不可恢复。")) return;
     try {
-      await tursoApi.deleteRecord(id);
+      console.log('[Delete] Deleting record:', id);
+      const result = await tursoApi.deleteRecord(id);
+      console.log('[Delete] Delete result:', result);
       setRecords((prev) => prev.filter((r: any) => r.id !== id));
       // 清除 IndexedDB 缓存，确保首页显示最新数据
       if (typeof window !== 'undefined') {
         const { clearAll } = await import('@/lib/cache');
         await clearAll();
+        console.log('[Delete] Cache cleared');
       }
     } catch (e: any) {
+      console.error('[Delete] Delete failed:', e);
       alert("删除失败：" + e.message);
     }
   };
