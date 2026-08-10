@@ -349,13 +349,14 @@ export function EquipmentDetailClient({
       setShowSavedToast(true);
       setTimeout(() => setShowSavedToast(false), 2000);
       
-      // 清除照片缓存（数据已更新）
-      if (existingRecordId) {
+      // 保存成功后，直接将照片数据写入 IndexedDB（避免下次查看时从 Turso 拉取）
+      if (existingRecordId && photoPairs.length > 0) {
         try {
-          const { clearPhotoCache } = await import('../../../lib/indexeddb');
-          await clearPhotoCache(existingRecordId);
+          const { cachePhotoPairs } = await import('../../../lib/indexeddb');
+          await cachePhotoPairs(existingRecordId, photoPairs);
+          console.log('[EquipmentDetail] 照片数据已缓存到 IndexedDB');
         } catch (e) {
-          console.warn('[EquipmentDetail] 清除照片缓存失败:', e);
+          console.warn('[EquipmentDetail] 缓存照片数据失败:', e);
         }
       }
       
