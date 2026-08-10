@@ -139,7 +139,8 @@ async function main() {
     console.log("🎉 Done!");
   } catch (error) {
     console.error("❌ Error:", error);
-    process.exit(1);
+    console.warn("⚠️  Upload URL generation failed, but build will continue");
+    process.exit(0);
   }
 }
 
