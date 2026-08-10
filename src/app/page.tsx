@@ -469,14 +469,17 @@ export default function Home() {
     try {
       const success = await deleteEquipment(deletingEquipment.id);
       if (success) {
+        console.log("[Delete] Equipment deleted successfully:", deletingEquipment.id);
+        // 清除所有缓存，强制从数据库重新加载
+        await clearAll();
+        console.log("[Delete] All cache cleared");
         // 更新设备列表
         setEquipmentList(prev => prev.filter(eq => eq.id !== deletingEquipment.id));
-        // 更新 IndexedDB 缓存
-        const updatedList = equipmentList.filter(eq => eq.id !== deletingEquipment.id);
-        await setCachedEquipment(updatedList);
         // 关闭弹窗
         setShowDeleteConfirmModal(false);
         setDeletingEquipment(null);
+        // 强制刷新页面以重新加载数据
+        window.location.reload();
       }
     } catch (e) {
       console.error("删除设备失败:", e);
