@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import { getAllEquipment, getRecordsByMonth, getLatestRecordPerEquipment, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
-import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords } from "@/lib/cache";
+import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords, getCachedLatestRecords, setCachedLatestRecords } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
@@ -112,7 +112,10 @@ export default function Home() {
       }
       
       // 首次加载：先从 IndexedDB 加载缓存
-      const cachedRecords = await getCachedRecords(currentMonth);
+      const [cachedRecords, cachedLatestRecords] = await Promise.all([
+        getCachedRecords(currentMonth),
+        getCachedLatestRecords(),
+      ]);
       
       // 如果有缓存，立即显示（离线优先）
       if (cachedRecords && cachedRecords.length > 0) {
@@ -126,6 +129,17 @@ export default function Home() {
           setRecords(recordsMap);
           setLoading(false);
           console.log('[Page] Loaded from IndexedDB cache');
+        }
+      } else if (cachedLatestRecords && cachedLatestRecords.length > 0) {
+        // 如果没有本月缓存，但有最新记录缓存，也先显示
+        const recordsMap: Record<string, any> = {};
+        cachedLatestRecords.forEach(r => {
+          recordsMap[r.equipment_id] = r;
+        });
+        if (isMounted) {
+          setRecords(recordsMap);
+          setLoading(false);
+          console.log('[Page] Loaded latest records from IndexedDB cache');
         }
       }
       
@@ -158,15 +172,18 @@ export default function Home() {
           }
           
           setRecords(recordsMap);
-          // 写入 IndexedDB（缓存当前月份记录）
-          await setCachedRecords(Object.values(recordsMap));
+          // 写入 IndexedDB（缓存当前月份记录和最新记录）
+          await Promise.all([
+            setCachedRecords(Object.values(recordsMap)),
+            setCachedLatestRecords(latestRecords || []),
+          ]);
           console.log('[Page] Updated from Turso');
           isInitialFetchDone = true;
         }
       } catch (e: any) {
         console.error("获取记录失败:", e);
         // 如果有缓存，不显示错误（离线可用）
-        if (isMounted && !cachedRecords) {
+        if (isMounted && !cachedRecords && !cachedLatestRecords) {
           const errorMsg = e?.message || e?.code || JSON.stringify(e) || "未知错误";
           setConnectionError(`连接失败：${errorMsg}。请检查网络后刷新页面`);
         }

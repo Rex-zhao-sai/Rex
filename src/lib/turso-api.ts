@@ -161,14 +161,14 @@ export async function getAvailableMonths(): Promise<string[]> {
 export async function getLatestRecordPerEquipment(): Promise<MaintenanceRecord[]> {
   if (!isTursoAvailable()) return [];
   const result = await turso!.execute({
-    sql: `SELECT r.id, r.equipment_id, r.month, r.technician, r.notes, r.photo_count, r.created_at, r.updated_at
-          FROM maintenance_records r
-          INNER JOIN (
-            SELECT equipment_id, MAX(created_at) as max_created_at
+    sql: `SELECT id, equipment_id, month, technician, notes, photo_count, created_at, updated_at
+          FROM (
+            SELECT id, equipment_id, month, technician, notes, photo_count, created_at, updated_at,
+                   ROW_NUMBER() OVER (PARTITION BY equipment_id ORDER BY created_at DESC) as rn
             FROM maintenance_records
-            GROUP BY equipment_id
-          ) latest ON r.equipment_id = latest.equipment_id AND r.created_at = latest.max_created_at
-          ORDER BY r.created_at DESC`,
+          )
+          WHERE rn = 1
+          ORDER BY created_at DESC`,
   });
   return result.rows.map(row => ({
     ...row,

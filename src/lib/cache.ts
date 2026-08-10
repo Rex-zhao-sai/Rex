@@ -17,6 +17,9 @@ import {
   cachePhotoPairs,
   getCachedPhotoPairs,
   clearPhotoCache,
+  cacheLatestRecords,
+  getCachedLatestRecords,
+  getLatestRecordsLastSync,
   type CachedEquipment,
   type CachedRecord,
 } from './indexeddb';
@@ -146,6 +149,45 @@ export async function setCachedRecords(records: CachedRecord[]): Promise<void> {
  */
 export async function getLastSyncTimeFor(type: 'equipment' | `records_${string}`): Promise<string | null> {
   return getLastSyncTime(type);
+}
+
+/**
+ * 获取缓存的最新记录（用于首页超期判断）
+ */
+export async function getCachedLatestRecords(): Promise<CachedRecord[] | null> {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const lastSync = await getLatestRecordsLastSync();
+    if (!lastSync) return null;
+
+    // 检查是否过期（24 小时）
+    const age = Date.now() - new Date(lastSync).getTime();
+    if (age > 24 * 60 * 60 * 1000) {
+      console.log('[Cache] Latest records cache expired, need refresh');
+    }
+
+    const records = await getCachedLatestRecords();
+    console.log(`[Cache] Loaded ${records.length} latest records from IndexedDB`);
+    return records;
+  } catch (e) {
+    console.error('[Cache] Failed to load latest records from IndexedDB:', e);
+    return null;
+  }
+}
+
+/**
+ * 缓存最新记录
+ */
+export async function setCachedLatestRecords(records: CachedRecord[]): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  try {
+    await cacheLatestRecords(records);
+    console.log(`[Cache] Cached ${records.length} latest records to IndexedDB`);
+  } catch (e) {
+    console.error('[Cache] Failed to cache latest records:', e);
+  }
 }
 
 /**

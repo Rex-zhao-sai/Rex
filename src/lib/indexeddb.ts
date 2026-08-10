@@ -152,6 +152,41 @@ export async function deleteCachedRecord(id: string): Promise<void> {
   await db.delete('records', id);
 }
 
+// ============ 最新记录缓存（用于首页超期判断） ============
+
+export async function cacheLatestRecords(records: CachedRecord[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('records', 'readwrite');
+  const store = tx.objectStore('records');
+
+  for (const record of records) {
+    await store.put(record);
+  }
+
+  await tx.done;
+
+  // 更新同步时间戳
+  await setMetadata('latest_records_last_sync', new Date().toISOString());
+}
+
+export async function getCachedLatestRecords(): Promise<CachedRecord[]> {
+  const db = await getDB();
+  const all = await db.getAll('records');
+  // 返回每个设备的最新记录
+  const latestMap = new Map<string, CachedRecord>();
+  for (const record of all) {
+    const existing = latestMap.get(record.equipment_id);
+    if (!existing || new Date(record.updated_at || '') > new Date(existing.updated_at || '')) {
+      latestMap.set(record.equipment_id, record);
+    }
+  }
+  return Array.from(latestMap.values());
+}
+
+export async function getLatestRecordsLastSync(): Promise<string | null> {
+  return getMetadata('latest_records_last_sync');
+}
+
 // ============ 元数据操作 ============
 
 export async function setMetadata(key: string, value: string): Promise<void> {
