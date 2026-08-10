@@ -224,12 +224,16 @@ export function PhotoUploader({
           </span>
         </div>
 
-        {photo && photoSrc && typeof photoSrc === 'string' && photoSrc.trim().length > 0 ? (
+        {photo && photoSrc && typeof photoSrc === 'string' && photoSrc.trim().length > 0 && photoSrc !== 'null' && photoSrc !== 'undefined' ? (
           <div className="relative group">
             <ImagePreview
               src={photoSrc}
               alt={`${label} photo`}
               className="w-full aspect-square object-cover rounded-lg border border-gray-200 cursor-pointer"
+              onError={(e) => {
+                console.error(`[PhotoUploader] Image load failed for ${label}:`, photoSrc);
+                e.currentTarget.style.display = 'none';
+              }}
             />
             {!isReadOnly && (
               <button
