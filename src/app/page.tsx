@@ -175,6 +175,8 @@ export default function Home() {
           }
           
           console.log('[Page] recordsMap keys count:', Object.keys(recordsMap).length);
+          console.log('[Page] 316 in recordsMap:', Object.values(recordsMap).some((r: any) => r.equipment_id === '316'));
+          console.log('[Page] VW Neo in recordsMap:', Object.values(recordsMap).some((r: any) => r.equipment_id === 'vw-neo'));
           setRecords(recordsMap);
           // 写入 IndexedDB（缓存当前月份记录和最新记录）
           await Promise.all([
