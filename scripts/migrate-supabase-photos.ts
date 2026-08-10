@@ -79,12 +79,13 @@ async function downloadFile(url: string): Promise<Blob> {
 
 // 上传到 S3
 async function uploadToS3(s3: S3Storage, blob: Blob, key: string): Promise<string> {
-  const result = await s3.uploadFile({
-    file: blob,
-    key,
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  const actualKey = await s3.uploadFile({
+    fileContent: buffer,
+    fileName: key,
     contentType: "image/jpeg",
   });
-  return result.url;
+  return actualKey;
 }
 
 // 生成 S3 key
