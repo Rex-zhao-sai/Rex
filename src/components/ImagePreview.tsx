@@ -7,9 +7,10 @@ interface ImagePreviewProps {
   src: string;
   alt?: string;
   className?: string;
+  onError?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
 }
 
-export function ImagePreview({ src, alt = "", className = "" }: ImagePreviewProps) {
+export function ImagePreview({ src, alt = "", className = "", onError }: ImagePreviewProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -19,7 +20,7 @@ export function ImagePreview({ src, alt = "", className = "" }: ImagePreviewProp
         className={`relative cursor-pointer group ${className}`}
         onClick={() => setIsOpen(true)}
       >
-        <img src={src} alt={alt} className="w-full h-full object-cover rounded-lg" />
+        <img src={src} alt={alt} className="w-full h-full object-cover rounded-lg" onError={onError} />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
           <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
