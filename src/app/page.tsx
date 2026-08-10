@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { LAST_MAINTENANCE_FROM_EXCEL } from "@/lib/excel-maintenance-data";
 import { getAllEquipment, getRecordsByMonth, getLatestRecordPerEquipment, addEquipment, updateEquipment, deleteEquipment } from "@/lib/turso-api";
-import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords, getCachedLatestRecords, setCachedLatestRecords } from "@/lib/cache";
+import { getCachedEquipment, setCachedEquipment, getCachedRecords, setCachedRecords, getCachedLatestRecords, setCachedLatestRecords, clearAll } from "@/lib/cache";
 import Link from "next/link";
 import { Search, CheckCircle2, Clock, ChevronRight, Monitor, QrCode, Shield, User, Plus, X, Loader2, AlertCircle, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { QRCodeModal } from "@/components/QRCodeModal";
