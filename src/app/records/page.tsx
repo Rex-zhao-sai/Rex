@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EQUIPMENT_LIST } from "@/lib/equipment-data";
 import { formatMonth } from "@/lib/storage";
 import { exportRecordsToZip } from "@/lib/export-records";
@@ -37,6 +37,7 @@ function getStoredRole(): Role {
 
 export default function RecordsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<Role>(() => {
@@ -62,7 +63,17 @@ export default function RecordsPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }, []);
 
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  // 从 URL 读取月份参数，如果没有则使用当前月份
+  const getInitialMonth = () => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const monthParam = params.get("month");
+      if (monthParam) return monthParam;
+    }
+    return currentMonth;
+  };
+
+  const [selectedMonth, setSelectedMonth] = useState(getInitialMonth);
   const [availableMonths, setAvailableMonths] = useState<string[]>([currentMonth]);
 
   // Fetch available months from Turso
@@ -344,7 +355,14 @@ export default function RecordsPage() {
           </div>
           <select
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            onChange={(e) => {
+              const newMonth = e.target.value;
+              setSelectedMonth(newMonth);
+              // 更新 URL 以保留月份状态
+              const url = new URL(window.location.href);
+              url.searchParams.set("month", newMonth);
+              router.push(url.pathname + url.search);
+            }}
             className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             {availableMonths.map((m) => (
