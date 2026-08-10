@@ -45,48 +45,35 @@ jobs:
           COZE_BUCKET_REGION: ${{ secrets.COZE_BUCKET_REGION }}
           NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
           NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
-      - run: pnpm run build:github
+      - name: Build for GitHub Pages
+        run: |
+          # Temporarily disable API routes for static export
+          mv src/app/api src/app/_api_disabled 2>/dev/null || true
+          # Build with GitHub Pages config
+          GITHUB_PAGES=1 pnpm build
+          # Restore API routes
+          mv src/app/_api_disabled src/app/api 2>/dev/null || true
         env:
           NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
           NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
           COZE_BUCKET_ENDPOINT_URL: ${{ secrets.COZE_BUCKET_ENDPOINT_URL }}
           COZE_BUCKET_NAME: ${{ secrets.COZE_BUCKET_NAME }}
           COZE_BUCKET_REGION: ${{ secrets.COZE_BUCKET_REGION }}
-      - name: Verify out directory
-        run: |
-          echo "Checking out directory..."
-          ls -la out/ || echo "out directory not found"
-          find out -type f | head -20
-          echo "Total files: $(find out -type f | wc -l)"
-          echo "Total size: $(du -sh out/)"
-      - name: Deploy to gh-pages branch
-        run: |
-          # Setup git
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # Store absolute path to out directory
-          OUT_DIR=$(pwd)/out
-          
-          # Clone or create gh-pages branch
-          if git ls-remote --exit-code --heads origin gh-pages; then
-            echo "gh-pages branch exists, cloning..."
-            git clone --branch gh-pages --single-branch https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-temp
-            cd gh-pages-temp
-          else
-            echo "gh-pages branch does not exist, creating..."
-            git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-temp
-            cd gh-pages-temp
-            git checkout --orphan gh-pages
-          fi
-          
-          # Remove old files (keep .git)
-          find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
-          
-          # Copy new files using absolute path
-          cp -r "$OUT_DIR"/. ./
-          
-          # Commit and push
-          git add -A
-          git diff --cached --quiet || git commit -m "Deploy from main@${{ github.sha }}"
-          git push origin gh-pages
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
