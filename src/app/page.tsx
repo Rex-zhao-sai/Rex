@@ -111,13 +111,23 @@ export default function Home() {
         return;
       }
       
-      // 首次加载：先从 IndexedDB 加载缓存
-      const [cachedRecords, cachedLatestRecords] = await Promise.all([
-        getCachedRecords(currentMonth),
-        getCachedLatestRecords(),
-      ]);
+      // 首次加载：并行从缓存和 Turso 获取数据
+      // 缓存用于快速显示，Turso 用于更新最新数据
       
-      // 如果有缓存，立即显示（离线优先）
+      let cachedRecords: any[] | null = null;
+      let cachedLatestRecords: any[] | null = null;
+      
+      // 1. 从缓存快速显示（不等待）
+      try {
+        [cachedRecords, cachedLatestRecords] = await Promise.all([
+          getCachedRecords(currentMonth),
+          getCachedLatestRecords(),
+        ]);
+      } catch (e) {
+        console.warn('[Page] Failed to load from cache:', e);
+      }
+      
+      // 如果有缓存，立即显示
       if (cachedRecords && cachedRecords.length > 0) {
         const recordsMap: Record<string, any> = {};
         cachedRecords.forEach(r => {
@@ -131,7 +141,6 @@ export default function Home() {
           console.log('[Page] Loaded from IndexedDB cache');
         }
       } else if (cachedLatestRecords && cachedLatestRecords.length > 0) {
-        // 如果没有本月缓存，但有最新记录缓存，也先显示
         const recordsMap: Record<string, any> = {};
         cachedLatestRecords.forEach(r => {
           recordsMap[r.equipment_id] = r;
@@ -147,6 +156,7 @@ export default function Home() {
         setConnectionError("");
       }
       
+      // 2. 从 Turso 获取最新数据（后台更新）
       try {
         // 优化：分别查询本月记录和最新记录，避免复杂 JOIN
         const [currentMonthRecords, latestRecords] = await Promise.all([
