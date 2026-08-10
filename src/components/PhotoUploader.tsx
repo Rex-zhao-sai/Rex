@@ -29,6 +29,7 @@ export function PhotoUploader({
   const afterRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState<"before" | "after" | null>(null);
   const [photoUrls, setPhotoUrls] = useState<{ before: string | null; after: string | null }>({ before: null, after: null });
+  const [loadErrors, setLoadErrors] = useState<{ before: boolean; after: boolean }>({ before: false, after: false });
 
   // 加载照片 URL（异步获取预签名 URL）
   useEffect(() => {
@@ -217,6 +218,7 @@ export function PhotoUploader({
     const label = type === "before" ? "Before" : "After";
     const labelColor = type === "before" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700";
     const photoSrc = photoUrls[type];
+    const hasLoadError = loadErrors[type];
 
     // 操作端可以补充上传 after（即使 readOnly=true）
     const canUpload = type === "after" && canUploadAfter && !photo;
@@ -230,7 +232,7 @@ export function PhotoUploader({
           </span>
         </div>
 
-        {photo && photoSrc && typeof photoSrc === 'string' && photoSrc.trim().length > 0 && photoSrc !== 'null' && photoSrc !== 'undefined' ? (
+        {photo && photoSrc && typeof photoSrc === 'string' && photoSrc.trim().length > 0 && photoSrc !== 'null' && photoSrc !== 'undefined' && !hasLoadError ? (
           <div className="relative group">
             <ImagePreview
               src={photoSrc}
@@ -238,7 +240,7 @@ export function PhotoUploader({
               className="w-full aspect-square object-cover rounded-lg border border-gray-200 cursor-pointer"
               onError={(e) => {
                 console.error(`[PhotoUploader] Image load failed for ${label}:`, photoSrc);
-                e.currentTarget.style.display = 'none';
+                setLoadErrors(prev => ({ ...prev, [type]: true }));
               }}
             />
             {!isReadOnly && (
@@ -254,6 +256,24 @@ export function PhotoUploader({
               <Clock className="w-3 h-3" />
               <span>{formatTime(photo.timestamp)}</span>
             </div>
+          </div>
+        ) : hasLoadError ? (
+          <div className="w-full aspect-square border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center gap-2 bg-gray-50">
+            <div className="text-xs text-gray-500 text-center px-2">
+              照片无法加载
+              <br />
+              <span className="text-[10px] text-gray-400">（存储已迁移或不可访问）</span>
+            </div>
+            {!isReadOnly && (
+              <button
+                onClick={() => ref.current?.click()}
+                disabled={isProcessing}
+                className="text-xs text-blue-600 hover:text-blue-700"
+                type="button"
+              >
+                重新上传
+              </button>
+            )}
           </div>
         ) : (
           <button
