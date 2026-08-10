@@ -42,7 +42,7 @@ export function PhotoUploader({
       // 优先使用 dataUrl（本地预览）
       if (pair.before?.dataUrl) {
         beforeUrl = pair.before.dataUrl;
-      } else if (pair.before?.s3Url) {
+      } else if (pair.before?.s3Url && pair.before.s3Url.trim()) {
         // 使用预签名 URL（构建时生成）
         beforeUrl = pair.before.s3Url;
       } else if (beforeKey) {
@@ -55,7 +55,7 @@ export function PhotoUploader({
       
       if (pair.after?.dataUrl) {
         afterUrl = pair.after.dataUrl;
-      } else if (pair.after?.s3Url) {
+      } else if (pair.after?.s3Url && pair.after.s3Url.trim()) {
         // 使用预签名 URL（构建时生成）
         afterUrl = pair.after.s3Url;
       } else if (afterKey) {
@@ -66,7 +66,10 @@ export function PhotoUploader({
         }
       }
       
-      setPhotoUrls({ before: beforeUrl, after: afterUrl });
+      setPhotoUrls({ 
+        before: beforeUrl || null, 
+        after: afterUrl || null 
+      });
     };
     
     loadPhotoUrls();
@@ -221,7 +224,7 @@ export function PhotoUploader({
           </span>
         </div>
 
-        {photo && photoSrc ? (
+        {photo && photoSrc && typeof photoSrc === 'string' && photoSrc.trim().length > 0 ? (
           <div className="relative group">
             <ImagePreview
               src={photoSrc}
