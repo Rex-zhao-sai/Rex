@@ -61,16 +61,29 @@ jobs:
           echo "Total size: $(du -sh out/)"
       - name: Deploy to gh-pages branch
         run: |
-          # Clone gh-pages branch or create if not exists
-          git clone --branch gh-pages --single-branch https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages 2>/dev/null || (git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages && cd gh-pages && git checkout --orphan gh-pages)
-          cd gh-pages
-          # Remove old files
-          rm -rf *
-          # Copy new files
-          cp -r ../out/* ./
-          # Commit and push
+          # Setup git
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Clone or create gh-pages branch
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            echo "gh-pages branch exists, cloning..."
+            git clone --branch gh-pages --single-branch https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-temp
+            cd gh-pages-temp
+          else
+            echo "gh-pages branch does not exist, creating..."
+            git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages-temp
+            cd gh-pages-temp
+            git checkout --orphan gh-pages
+          fi
+          
+          # Remove old files (keep .git)
+          find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
+          
+          # Copy new files
+          cp -r ../out/. ./
+          
+          # Commit and push
           git add -A
           git diff --cached --quiet || git commit -m "Deploy from main@${{ github.sha }}"
           git push origin gh-pages
