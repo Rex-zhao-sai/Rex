@@ -250,21 +250,8 @@ export default function Home() {
             category: e.category || '',
           }));
           
-          // 合并 EQUIPMENT_LIST 和数据库数据，确保不遗漏设备
-          const dbIds = new Set(dbEquipment.map(e => e.id));
+          // 直接使用数据库数据作为唯一数据源
           const mergedEquipment = [...dbEquipment];
-          
-          // 添加 EQUIPMENT_LIST 中有但数据库中没有的设备
-          for (const eq of EQUIPMENT_LIST) {
-            if (!dbIds.has(eq.id)) {
-              mergedEquipment.push({
-                id: eq.id,
-                name: eq.name,
-                category: '',
-              });
-            }
-          }
-          
           mergedEquipment.sort((a, b) => a.name.localeCompare(b.name));
           setEquipmentList(mergedEquipment);
           // 写入 IndexedDB
