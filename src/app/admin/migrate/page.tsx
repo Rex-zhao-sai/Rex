@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import turso, { isTursoAvailable } from "@/lib/turso";
+import { uploadToS3Direct } from "@/lib/s3-direct-upload";
 
 interface PhotoData {
   id: string;
@@ -37,10 +38,36 @@ interface MigrationReport {
 }
 
 // 去除 photo_pairs 中的 dataUrl，仅保留 s3Key
-function stripDataUrl(photoPairs: PhotoPair[], skipNoS3Key = false): { cleaned: number; uploaded: number; skipped: number } {
+/**
+ * 将 base64 转换为 Blob
+ */
+function base64ToBlob(dataUrl: string): Blob | null {
+  try {
+    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) return null;
+    const byteCharacters = atob(matches[2]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: matches[1] });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 清理 photo_pairs 中的 dataUrl，对于无 s3Key 的照片先上传到 S3
+ */
+async function stripDataUrl(
+  photoPairs: PhotoPair[],
+  skipNoS3Key = false
+): Promise<{ cleaned: number; uploaded: number; skipped: number; errors: string[] }> {
   let cleaned = 0;
   let uploaded = 0;
   let skipped = 0;
+  const errors: string[] = [];
 
   for (const pair of photoPairs) {
     for (const type of ["before", "after"] as const) {
@@ -56,15 +83,32 @@ function stripDataUrl(photoPairs: PhotoPair[], skipNoS3Key = false): { cleaned: 
           // 跳过无 s3Key 的记录
           skipped++;
         } else {
-          // 没有 s3Key，无法迁移（需要 S3 上传，客户端无法完成）
-          // 保留 dataUrl 作为最后手段
-          uploaded++;
+          // 没有 s3Key，尝试上传到 S3
+          try {
+            const blob = base64ToBlob(photo.dataUrl);
+            if (!blob) {
+              errors.push(`${type} 照片 base64 解码失败`);
+              continue;
+            }
+
+            // 上传到 S3
+            const s3Key = await uploadToS3Direct(blob, `migrate_${pair.id}_${type}.jpg`, pair.id, type);
+            if (s3Key) {
+              photo.s3Key = s3Key;
+              delete photo.dataUrl;
+              uploaded++;
+            } else {
+              errors.push(`${type} 照片上传失败：无可用上传 URL`);
+            }
+          } catch (err: any) {
+            errors.push(`${type} 照片上传出错：${err.message}`);
+          }
         }
       }
     }
   }
 
-  return { cleaned, uploaded, skipped };
+  return { cleaned, uploaded, skipped, errors };
 }
 
 export default function MigratePage() {
@@ -167,7 +211,11 @@ export default function MigratePage() {
 
           if (!Array.isArray(photoPairs)) continue;
 
-          const { cleaned, uploaded, skipped } = stripDataUrl(photoPairs, skipNoS3Key);
+          const result = await stripDataUrl(photoPairs, skipNoS3Key);
+          const { cleaned, uploaded, skipped } = result;
+          if (result.errors.length > 0) {
+            errors.push(...result.errors.map(e => `记录 ${record.id}: ${e}`));
+          }
 
           if (cleaned === 0 && uploaded === 0 && skipped === 0) continue;
 
@@ -210,8 +258,8 @@ export default function MigratePage() {
 
       setMessage(
         isDryRun
-          ? `预览完成：${totalProcessed} 条记录可迁移，可清理 ${totalCleaned} 个 dataUrl`
-          : `迁移完成：处理 ${totalProcessed} 条记录，清理 ${totalCleaned} 个 dataUrl`
+          ? `预览完成：${totalProcessed} 条记录可迁移，可清理 ${totalCleaned} 个 dataUrl，可上传 ${totalUploaded} 个照片到 S3`
+          : `迁移完成：处理 ${totalProcessed} 条记录，清理 ${totalCleaned} 个 dataUrl，上传 ${totalUploaded} 个照片到 S3`
       );
       setReport(report);
       setStatus("done");
@@ -342,9 +390,9 @@ export default function MigratePage() {
                 <div className="text-xs text-green-600">清理 dataUrl</div>
                 <div className="text-xl font-bold text-green-700">{report.cleaned}</div>
               </div>
-              <div className="bg-yellow-50 rounded-lg p-3">
-                <div className="text-xs text-yellow-600">保留（无 s3Key）</div>
-                <div className="text-xl font-bold text-yellow-700">{report.uploaded}</div>
+              <div className="bg-blue-50 rounded-lg p-3">
+                <div className="text-xs text-blue-600">上传到 S3</div>
+                <div className="text-xl font-bold text-blue-700">{report.uploaded}</div>
               </div>
               {report.skipped > 0 && (
                 <div className="bg-blue-50 rounded-lg p-3">
