@@ -25,6 +25,7 @@ interface MigrationReport {
   processed: number;
   uploaded: number;
   cleaned: number;
+  skipped: number;
   errors: string[];
   details: Array<{
     id: string;
@@ -36,9 +37,10 @@ interface MigrationReport {
 }
 
 // 去除 photo_pairs 中的 dataUrl，仅保留 s3Key
-function stripDataUrl(photoPairs: PhotoPair[]): { cleaned: number; uploaded: number } {
+function stripDataUrl(photoPairs: PhotoPair[], skipNoS3Key = false): { cleaned: number; uploaded: number; skipped: number } {
   let cleaned = 0;
   let uploaded = 0;
+  let skipped = 0;
 
   for (const pair of photoPairs) {
     for (const type of ["before", "after"] as const) {
@@ -50,6 +52,9 @@ function stripDataUrl(photoPairs: PhotoPair[]): { cleaned: number; uploaded: num
           // 有 s3Key，直接删除 dataUrl
           delete photo.dataUrl;
           cleaned++;
+        } else if (skipNoS3Key) {
+          // 跳过无 s3Key 的记录
+          skipped++;
         } else {
           // 没有 s3Key，无法迁移（需要 S3 上传，客户端无法完成）
           // 保留 dataUrl 作为最后手段
@@ -59,7 +64,7 @@ function stripDataUrl(photoPairs: PhotoPair[]): { cleaned: number; uploaded: num
     }
   }
 
-  return { cleaned, uploaded };
+  return { cleaned, uploaded, skipped };
 }
 
 export default function MigratePage() {
@@ -69,6 +74,7 @@ export default function MigratePage() {
   const [dryRun, setDryRun] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<"unknown" | "ok" | "fail">("unknown");
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [skipNoS3Key, setSkipNoS3Key] = useState(false); // 是否跳过无 s3Key 的记录
 
   const testConnection = async () => {
     if (!isTursoAvailable() || !turso) {
@@ -137,9 +143,9 @@ export default function MigratePage() {
         setMessage(`${isDryRun ? "预览" : "迁移"}中... ${i + 1}/${records.length} (${record.equipment_id?.slice(0, 8)}... ${record.month})`);
 
         try {
-          // 逐条获取 photo_pairs（每条单独超时控制）
+          // 逐条获取 photo_pairs（每条单独超时控制，增加到 120 秒）
           const fetchTimeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("获取 photo_pairs 超时（60 秒）")), 60000)
+            setTimeout(() => reject(new Error("获取 photo_pairs 超时（120 秒）")), 120000)
           );
           const fetchPromise = turso.execute({
             sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
@@ -161,9 +167,9 @@ export default function MigratePage() {
 
           if (!Array.isArray(photoPairs)) continue;
 
-          const { cleaned, uploaded } = stripDataUrl(photoPairs);
+          const { cleaned, uploaded, skipped } = stripDataUrl(photoPairs, skipNoS3Key);
 
-          if (cleaned === 0 && uploaded === 0) continue;
+          if (cleaned === 0 && uploaded === 0 && skipped === 0) continue;
 
           if (!isDryRun) {
             // 实际更新数据库（带超时）
@@ -197,6 +203,7 @@ export default function MigratePage() {
         processed: totalProcessed,
         uploaded: totalUploaded,
         cleaned: totalCleaned,
+        skipped: 0,
         errors,
         details,
       };
@@ -228,6 +235,7 @@ export default function MigratePage() {
           <ul className="text-sm text-[#6B7280] space-y-1 list-disc list-inside">
             <li>有 s3Key 的照片：直接删除 dataUrl（S3 已有完整图片）</li>
             <li>没有 s3Key 的照片：保留 dataUrl（无法自动迁移）</li>
+            <li>勾选"跳过无 s3Key 的记录"：不处理这些记录，保持原样</li>
             <li>迁移后 photo_pairs 数据量预计从 MB 级降到 KB 级</li>
           </ul>
         </div>
@@ -243,6 +251,15 @@ export default function MigratePage() {
                   className="w-4 h-4 rounded border-gray-300"
                 />
                 <span className="text-sm text-[#111827]">预览模式（不实际修改数据）</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={skipNoS3Key}
+                  onChange={(e) => setSkipNoS3Key(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm text-[#111827]">跳过无 s3Key 的记录</span>
               </label>
             </div>
             <div className="flex items-center gap-2">
@@ -329,6 +346,12 @@ export default function MigratePage() {
                 <div className="text-xs text-yellow-600">保留（无 s3Key）</div>
                 <div className="text-xl font-bold text-yellow-700">{report.uploaded}</div>
               </div>
+              {report.skipped > 0 && (
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <div className="text-xs text-blue-600">跳过（无 s3Key）</div>
+                  <div className="text-xl font-bold text-blue-700">{report.skipped}</div>
+                </div>
+              )}
             </div>
 
             {report.errors.length > 0 && (
