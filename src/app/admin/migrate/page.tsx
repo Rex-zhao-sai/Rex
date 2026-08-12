@@ -85,9 +85,17 @@ async function stripDataUrl(
         } else {
           // 没有 s3Key，尝试上传到 S3
           try {
+            // 检查是否是有效的 base64 dataUrl
+            if (!photo.dataUrl.startsWith('data:image/')) {
+              errors.push(`${type} 照片格式不是 base64，跳过`);
+              skipped++;
+              continue;
+            }
+
             const blob = base64ToBlob(photo.dataUrl);
             if (!blob) {
-              errors.push(`${type} 照片 base64 解码失败`);
+              errors.push(`${type} 照片 base64 解码失败，跳过`);
+              skipped++;
               continue;
             }
 
@@ -98,10 +106,12 @@ async function stripDataUrl(
               delete photo.dataUrl;
               uploaded++;
             } else {
-              errors.push(`${type} 照片上传失败：无可用上传 URL`);
+              errors.push(`${type} 照片上传失败：无可用上传 URL，跳过`);
+              skipped++;
             }
           } catch (err: any) {
-            errors.push(`${type} 照片上传出错：${err.message}`);
+            errors.push(`${type} 照片上传出错：${err.message}，跳过`);
+            skipped++;
           }
         }
       }
@@ -187,9 +197,9 @@ export default function MigratePage() {
         setMessage(`${isDryRun ? "预览" : "迁移"}中... ${i + 1}/${records.length} (${record.equipment_id?.slice(0, 8)}... ${record.month})`);
 
         try {
-          // 逐条获取 photo_pairs（每条单独超时控制，增加到 120 秒）
+          // 逐条获取 photo_pairs（每条单独超时控制，增加到 180 秒）
           const fetchTimeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("获取 photo_pairs 超时（120 秒）")), 120000)
+            setTimeout(() => reject(new Error("获取 photo_pairs 超时（180 秒）")), 180000)
           );
           const fetchPromise = turso.execute({
             sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
