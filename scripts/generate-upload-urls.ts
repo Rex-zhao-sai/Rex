@@ -7,7 +7,7 @@ import { S3Storage } from "coze-coding-dev-sdk";
 import * as fs from "fs";
 import * as path from "path";
 
-const UPLOAD_URL_COUNT = 1000; // 每次生成 1000 个上传 URL
+const UPLOAD_URL_COUNT = 5000; // 每次生成 5000 个上传 URL（迁移需要大量 URL）
 const URL_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 天有效期
 
 // 从环境变量获取配置
