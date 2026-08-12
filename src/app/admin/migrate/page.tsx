@@ -67,6 +67,29 @@ export default function MigratePage() {
   const [message, setMessage] = useState("");
   const [report, setReport] = useState<MigrationReport | null>(null);
   const [dryRun, setDryRun] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<"unknown" | "ok" | "fail">("unknown");
+
+  const testConnection = async () => {
+    if (!isTursoAvailable() || !turso) {
+      setConnectionStatus("fail");
+      setMessage("Turso 不可用：环境变量未配置");
+      return;
+    }
+
+    setMessage("正在测试连接...");
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("连接超时（10 秒）")), 10000)
+      );
+      const queryPromise = turso.execute({ sql: `SELECT 1 as test` });
+      await Promise.race([queryPromise, timeoutPromise]);
+      setConnectionStatus("ok");
+      setMessage("Turso 连接正常");
+    } catch (err: any) {
+      setConnectionStatus("fail");
+      setMessage(`连接失败：${err.message}`);
+    }
+  };
 
   const runMigration = async (isDryRun: boolean) => {
     if (!isTursoAvailable() || !turso) {
@@ -80,18 +103,26 @@ export default function MigratePage() {
     setReport(null);
 
     try {
-      // 查询所有包含 photo_pairs 的记录
-      const result = await turso.execute({
+      console.log("[Migrate] 开始查询数据库...");
+      
+      // 添加超时控制（60 秒）
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("查询超时（60 秒）- 可能是网络问题或数据量过大")), 60000)
+      );
+
+      const queryPromise = turso.execute({
         sql: `SELECT id, equipment_id, month, photo_pairs FROM maintenance_records WHERE photo_pairs IS NOT NULL AND photo_pairs != '[]'`,
       });
 
-      const records = result.rows as unknown as Array<{
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+      console.log("[Migrate] 查询完成，记录数:", (result as any).rows?.length);
+
+      const records = (result as any).rows as unknown as Array<{
         id: string;
         equipment_id: string;
         month: string;
         photo_pairs: string;
       }>;
-
       let totalProcessed = 0;
       let totalUploaded = 0;
       let totalCleaned = 0;
@@ -115,11 +146,15 @@ export default function MigratePage() {
           if (cleaned === 0 && uploaded === 0) continue;
 
           if (!isDryRun) {
-            // 实际更新数据库
-            await turso.execute({
+            // 实际更新数据库（带超时）
+            const updateTimeout = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`记录 ${record.id} 更新超时`)), 30000)
+            );
+            const updatePromise = turso.execute({
               sql: `UPDATE maintenance_records SET photo_pairs = ? WHERE id = ?`,
               args: [JSON.stringify(photoPairs), record.id],
             });
+            await Promise.race([updatePromise, updateTimeout]);
           }
 
           totalProcessed++;
@@ -178,16 +213,33 @@ export default function MigratePage() {
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-sm border border-[#E5E7EB] mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={dryRun}
-                onChange={(e) => setDryRun(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300"
-              />
-              <span className="text-sm text-[#111827]">预览模式（不实际修改数据）</span>
-            </label>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={dryRun}
+                  onChange={(e) => setDryRun(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm text-[#111827]">预览模式（不实际修改数据）</span>
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${
+                connectionStatus === "ok" ? "bg-green-500" :
+                connectionStatus === "fail" ? "bg-red-500" : "bg-gray-300"
+              }`}></span>
+              <span className="text-xs text-[#6B7280]">
+                {connectionStatus === "ok" ? "已连接" : connectionStatus === "fail" ? "连接失败" : "未测试"}
+              </span>
+              <button
+                onClick={testConnection}
+                className="px-3 py-1 text-xs text-[#2563EB] border border-[#2563EB] rounded hover:bg-[#2563EB] hover:text-white"
+              >
+                测试连接
+              </button>
+            </div>
           </div>
 
           <div className="flex gap-3">
