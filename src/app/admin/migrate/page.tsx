@@ -1,33 +1,157 @@
 "use client";
 
 import { useState } from "react";
+import turso, { isTursoAvailable } from "@/lib/turso";
+
+interface PhotoData {
+  id: string;
+  type: "before" | "after";
+  dataUrl?: string;
+  s3Key?: string;
+  s3Url?: string;
+  timestamp?: string;
+}
+
+interface PhotoPair {
+  id: string;
+  before?: PhotoData;
+  after?: PhotoData;
+  note?: string;
+  duration?: number;
+}
+
+interface MigrationReport {
+  total: number;
+  processed: number;
+  uploaded: number;
+  cleaned: number;
+  errors: string[];
+  details: Array<{
+    id: string;
+    equipment_id: string;
+    month: string;
+    uploaded: number;
+    cleaned: number;
+  }>;
+}
+
+// 去除 photo_pairs 中的 dataUrl，仅保留 s3Key
+function stripDataUrl(photoPairs: PhotoPair[]): { cleaned: number; uploaded: number } {
+  let cleaned = 0;
+  let uploaded = 0;
+
+  for (const pair of photoPairs) {
+    for (const type of ["before", "after"] as const) {
+      const photo = pair[type] as PhotoData | undefined;
+      if (!photo) continue;
+
+      if (photo.dataUrl) {
+        if (photo.s3Key) {
+          // 有 s3Key，直接删除 dataUrl
+          delete photo.dataUrl;
+          cleaned++;
+        } else {
+          // 没有 s3Key，无法迁移（需要 S3 上传，客户端无法完成）
+          // 保留 dataUrl 作为最后手段
+          uploaded++;
+        }
+      }
+    }
+  }
+
+  return { cleaned, uploaded };
+}
 
 export default function MigratePage() {
   const [status, setStatus] = useState<"idle" | "dry-run" | "running" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [report, setReport] = useState<any>(null);
+  const [report, setReport] = useState<MigrationReport | null>(null);
   const [dryRun, setDryRun] = useState(true);
 
   const runMigration = async (isDryRun: boolean) => {
+    if (!isTursoAvailable() || !turso) {
+      setMessage("Turso 不可用：环境变量未配置");
+      setStatus("error");
+      return;
+    }
+
     setStatus(isDryRun ? "dry-run" : "running");
     setMessage(isDryRun ? "正在预览迁移效果..." : "正在迁移，请稍候...");
     setReport(null);
 
     try {
-      const res = await fetch("/api/migrate-photos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dryRun: isDryRun, batchSize: 20 }),
+      // 查询所有包含 photo_pairs 的记录
+      const result = await turso.execute({
+        sql: `SELECT id, equipment_id, month, photo_pairs FROM maintenance_records WHERE photo_pairs IS NOT NULL AND photo_pairs != '[]'`,
       });
 
-      const data = await res.json();
+      const records = result.rows as unknown as Array<{
+        id: string;
+        equipment_id: string;
+        month: string;
+        photo_pairs: string;
+      }>;
 
-      if (!res.ok) {
-        throw new Error(data.error || "迁移失败");
+      let totalProcessed = 0;
+      let totalUploaded = 0;
+      let totalCleaned = 0;
+      const errors: string[] = [];
+      const details: MigrationReport["details"] = [];
+
+      for (const record of records) {
+        try {
+          let photoPairs: PhotoPair[];
+          try {
+            photoPairs = JSON.parse(record.photo_pairs);
+          } catch {
+            errors.push(`记录 ${record.id} photo_pairs 解析失败`);
+            continue;
+          }
+
+          if (!Array.isArray(photoPairs)) continue;
+
+          const { cleaned, uploaded } = stripDataUrl(photoPairs);
+
+          if (cleaned === 0 && uploaded === 0) continue;
+
+          if (!isDryRun) {
+            // 实际更新数据库
+            await turso.execute({
+              sql: `UPDATE maintenance_records SET photo_pairs = ? WHERE id = ?`,
+              args: [JSON.stringify(photoPairs), record.id],
+            });
+          }
+
+          totalProcessed++;
+          totalCleaned += cleaned;
+          totalUploaded += uploaded;
+          details.push({
+            id: record.id,
+            equipment_id: record.equipment_id,
+            month: record.month,
+            uploaded,
+            cleaned,
+          });
+        } catch (err: any) {
+          errors.push(`记录 ${record.id}: ${err.message}`);
+        }
       }
 
-      setMessage(data.message);
-      setReport(data.report);
+      const report: MigrationReport = {
+        total: records.length,
+        processed: totalProcessed,
+        uploaded: totalUploaded,
+        cleaned: totalCleaned,
+        errors,
+        details,
+      };
+
+      setMessage(
+        isDryRun
+          ? `预览完成：${totalProcessed} 条记录可迁移，可清理 ${totalCleaned} 个 dataUrl`
+          : `迁移完成：处理 ${totalProcessed} 条记录，清理 ${totalCleaned} 个 dataUrl`
+      );
+      setReport(report);
       setStatus("done");
     } catch (err: any) {
       setMessage(err.message);
@@ -48,7 +172,7 @@ export default function MigratePage() {
           </p>
           <ul className="text-sm text-[#6B7280] space-y-1 list-disc list-inside">
             <li>有 s3Key 的照片：直接删除 dataUrl（S3 已有完整图片）</li>
-            <li>没有 s3Key 的照片：先上传到 S3，获得 s3Key，再删除 dataUrl</li>
+            <li>没有 s3Key 的照片：保留 dataUrl（无法自动迁移）</li>
             <li>迁移后 photo_pairs 数据量预计从 MB 级降到 KB 级</li>
           </ul>
         </div>
@@ -110,13 +234,13 @@ export default function MigratePage() {
                 <div className="text-xs text-[#6B7280]">已处理</div>
                 <div className="text-xl font-bold text-[#111827]">{report.processed}</div>
               </div>
-              <div className="bg-blue-50 rounded-lg p-3">
-                <div className="text-xs text-blue-600">新上传 S3</div>
-                <div className="text-xl font-bold text-blue-700">{report.uploaded}</div>
-              </div>
               <div className="bg-green-50 rounded-lg p-3">
-                <div className="text-xs text-green-600">仅清理 dataUrl</div>
+                <div className="text-xs text-green-600">清理 dataUrl</div>
                 <div className="text-xl font-bold text-green-700">{report.cleaned}</div>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-3">
+                <div className="text-xs text-yellow-600">保留（无 s3Key）</div>
+                <div className="text-xl font-bold text-yellow-700">{report.uploaded}</div>
               </div>
             </div>
 
@@ -124,7 +248,7 @@ export default function MigratePage() {
               <div className="mb-4">
                 <h4 className="text-sm font-semibold text-red-700 mb-2">错误 ({report.errors.length})</h4>
                 <ul className="text-xs text-red-600 space-y-1 max-h-40 overflow-y-auto">
-                  {report.errors.map((err: string, i: number) => (
+                  {report.errors.map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
                 </ul>
@@ -133,7 +257,7 @@ export default function MigratePage() {
 
             <details className="text-sm">
               <summary className="cursor-pointer text-[#6B7280] hover:text-[#111827]">
-                查看详细记录 ({report.details?.length || 0})
+                查看详细记录 ({report.details.length})
               </summary>
               <div className="mt-2 max-h-60 overflow-y-auto">
                 <table className="w-full text-xs">
@@ -141,17 +265,17 @@ export default function MigratePage() {
                     <tr className="border-b">
                       <th className="text-left py-1">设备</th>
                       <th className="text-left py-1">月份</th>
-                      <th className="text-right py-1">上传</th>
                       <th className="text-right py-1">清理</th>
+                      <th className="text-right py-1">保留</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {report.details?.map((d: any) => (
+                    {report.details.map((d) => (
                       <tr key={d.id} className="border-b border-gray-100">
                         <td className="py-1 text-[#6B7280]">{d.equipment_id?.slice(0, 8)}...</td>
                         <td className="py-1">{d.month}</td>
-                        <td className="py-1 text-right text-blue-600">{d.uploaded}</td>
                         <td className="py-1 text-right text-green-600">{d.cleaned}</td>
+                        <td className="py-1 text-right text-yellow-600">{d.uploaded}</td>
                       </tr>
                     ))}
                   </tbody>
