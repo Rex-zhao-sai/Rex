@@ -68,6 +68,7 @@ export default function MigratePage() {
   const [report, setReport] = useState<MigrationReport | null>(null);
   const [dryRun, setDryRun] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<"unknown" | "ok" | "fail">("unknown");
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const testConnection = async () => {
     if (!isTursoAvailable() || !turso) {
@@ -99,41 +100,60 @@ export default function MigratePage() {
     }
 
     setStatus(isDryRun ? "dry-run" : "running");
-    setMessage(isDryRun ? "正在预览迁移效果..." : "正在迁移，请稍候...");
+    setMessage(isDryRun ? "正在获取记录列表..." : "正在迁移...");
     setReport(null);
+    setProgress({ current: 0, total: 0 });
 
     try {
-      console.log("[Migrate] 开始查询数据库...");
+      console.log("[Migrate] 开始查询记录列表...");
       
-      // 添加超时控制（60 秒）
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("查询超时（60 秒）- 可能是网络问题或数据量过大")), 60000)
+      // 第一步：只获取记录 ID 列表（不获取 photo_pairs，快速）
+      const listTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("获取记录列表超时（30 秒）")), 30000)
       );
-
-      const queryPromise = turso.execute({
-        sql: `SELECT id, equipment_id, month, photo_pairs FROM maintenance_records WHERE photo_pairs IS NOT NULL AND photo_pairs != '[]'`,
+      const listPromise = turso.execute({
+        sql: `SELECT id, equipment_id, month FROM maintenance_records WHERE photo_pairs IS NOT NULL AND photo_pairs != '[]'`,
       });
-
-      const result = await Promise.race([queryPromise, timeoutPromise]);
-      console.log("[Migrate] 查询完成，记录数:", (result as any).rows?.length);
-
-      const records = (result as any).rows as unknown as Array<{
+      const listResult = await Promise.race([listPromise, listTimeout]);
+      const records = (listResult as any).rows as unknown as Array<{
         id: string;
         equipment_id: string;
         month: string;
-        photo_pairs: string;
       }>;
+      
+      console.log("[Migrate] 记录列表获取完成，共", records.length, "条");
+      setProgress({ current: 0, total: records.length });
+
       let totalProcessed = 0;
       let totalUploaded = 0;
       let totalCleaned = 0;
       const errors: string[] = [];
       const details: MigrationReport["details"] = [];
 
-      for (const record of records) {
+      // 第二步：逐条获取 photo_pairs 并处理
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        setProgress({ current: i + 1, total: records.length });
+        setMessage(`${isDryRun ? "预览" : "迁移"}中... ${i + 1}/${records.length} (${record.equipment_id?.slice(0, 8)}... ${record.month})`);
+
         try {
+          // 逐条获取 photo_pairs（每条单独超时控制）
+          const fetchTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("获取 photo_pairs 超时（60 秒）")), 60000)
+          );
+          const fetchPromise = turso.execute({
+            sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
+            args: [record.id],
+          });
+          const fetchResult = await Promise.race([fetchPromise, fetchTimeout]);
+          const rows = (fetchResult as any).rows;
+          
+          if (!rows || rows.length === 0) continue;
+          const photoPairsStr = rows[0].photo_pairs as string;
+
           let photoPairs: PhotoPair[];
           try {
-            photoPairs = JSON.parse(record.photo_pairs);
+            photoPairs = JSON.parse(photoPairsStr);
           } catch {
             errors.push(`记录 ${record.id} photo_pairs 解析失败`);
             continue;
@@ -259,6 +279,21 @@ export default function MigratePage() {
             </button>
           </div>
         </div>
+
+        {progress.total > 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#E5E7EB] mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[#6B7280]">进度</span>
+              <span className="text-sm font-medium text-[#111827]">{progress.current} / {progress.total}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-[#2563EB] h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
 
         {message && (
           <div
