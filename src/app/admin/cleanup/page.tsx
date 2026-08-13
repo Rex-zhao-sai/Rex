@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { createClient, Client } from '@libsql/client';
 
 export default function CleanupPage() {
   const [dbUrl, setDbUrl] = useState('');
@@ -22,31 +23,112 @@ export default function CleanupPage() {
     setLoading(true);
     setResults({ cleaned: 0, skipped: 0, errors: 0, logs: ['正在连接数据库...'] });
 
+    let turso: Client | null = null;
+
     try {
-      const response = await fetch('/api/cleanup-dataurl', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ dbUrl, authToken }),
+      // 创建 Turso 客户端
+      turso = createClient({
+        url: dbUrl,
+        authToken: authToken,
       });
 
-      const data = await response.json();
+      // 测试连接
+      await turso.execute('SELECT 1');
+      setResults(prev => ({
+        ...prev,
+        logs: [...prev.logs, '✓ 数据库连接成功'],
+      }));
 
-      if (!response.ok) {
-        setResults(prev => ({
-          ...prev,
-          logs: [...prev.logs, `错误：${data.error}`],
-        }));
-        return;
+      // 获取所有记录
+      setResults(prev => ({
+        ...prev,
+        logs: [...prev.logs, '正在获取记录列表...'],
+      }));
+
+      const recordsResult = await turso.execute(`
+        SELECT id, equipment_id, month, photo_pairs
+        FROM maintenance_records
+        WHERE photo_pairs IS NOT NULL AND photo_pairs != '[]'
+        ORDER BY LENGTH(photo_pairs) DESC
+      `);
+
+      const records = recordsResult.rows;
+      setResults(prev => ({
+        ...prev,
+        logs: [...prev.logs, `找到 ${records.length} 条记录`],
+      }));
+
+      let cleaned = 0;
+      let skipped = 0;
+      let errors = 0;
+      const logs = [...results.logs];
+
+      // 逐条处理
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        const recordId = record.id as string;
+        const photoPairsStr = record.photo_pairs as string;
+
+        try {
+          // 解析 photo_pairs
+          let photoPairs: any[];
+          try {
+            photoPairs = JSON.parse(photoPairsStr);
+          } catch {
+            logs.push(`记录 ${recordId}: photo_pairs 解析失败，跳过`);
+            errors++;
+            continue;
+          }
+
+          let modified = false;
+
+          // 处理每张照片
+          for (const pair of photoPairs) {
+            for (const type of ['before', 'after']) {
+              const photo = pair[type];
+              if (!photo) continue;
+
+              // 有 s3Key 的照片：删除 dataUrl
+              if (photo.s3Key && photo.dataUrl) {
+                delete photo.dataUrl;
+                modified = true;
+              }
+              // 无 s3Key 的照片：保留 dataUrl（跳过）
+              else if (photo.dataUrl && !photo.s3Key) {
+                // 保留，不处理
+              }
+            }
+          }
+
+          if (modified) {
+            // 更新数据库
+            await turso.execute({
+              sql: 'UPDATE maintenance_records SET photo_pairs = ? WHERE id = ?',
+              args: [JSON.stringify(photoPairs), recordId],
+            });
+            cleaned++;
+            logs.push(`✓ 记录 ${recordId}: 已清理`);
+          } else {
+            skipped++;
+            logs.push(`- 记录 ${recordId}: 无需清理`);
+          }
+
+          // 每处理 10 条记录更新一次 UI
+          if ((i + 1) % 10 === 0) {
+            setResults({
+              cleaned,
+              skipped,
+              errors,
+              logs: [...logs],
+            });
+          }
+        } catch (error) {
+          errors++;
+          logs.push(`✗ 记录 ${recordId}: ${error}`);
+        }
       }
 
-      setResults({
-        cleaned: data.cleaned,
-        skipped: data.skipped,
-        errors: data.errors,
-        logs: data.logs,
-      });
+      setResults({ cleaned, skipped, errors, logs });
     } catch (error) {
       setResults(prev => ({
         ...prev,
