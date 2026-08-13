@@ -75,10 +75,8 @@ export default function Home() {
 
   // Set basePath on client side
   useEffect(() => {
-    // 动态获取 basePath（GitHub Pages 会自动添加仓库名作为子路径）
-    const pathParts = window.location.pathname.split('/');
-    if (pathParts.length > 1 && pathParts[1]) {
-      setBasePath(`/${pathParts[1]}`);
+    if (window.location.pathname.startsWith("/Rex")) {
+      setBasePath("/Rex");
     }
   }, []);
 
@@ -117,10 +115,14 @@ export default function Home() {
       // 缓存用于快速显示，Turso 用于更新最新数据
       
       let cachedRecords: any[] | null = null;
+      let cachedLatestRecords: any[] | null = null;
       
       // 1. 从缓存快速显示（不等待）
       try {
-        cachedRecords = await getCachedRecords(currentMonth);
+        [cachedRecords, cachedLatestRecords] = await Promise.all([
+          getCachedRecords(currentMonth),
+          getCachedLatestRecords(),
+        ]);
       } catch (e) {
         console.warn('[Page] Failed to load from cache:', e);
       }
@@ -138,6 +140,16 @@ export default function Home() {
           setLoading(false);
           console.log('[Page] Loaded from IndexedDB cache');
         }
+      } else if (cachedLatestRecords && cachedLatestRecords.length > 0) {
+        const recordsMap: Record<string, any> = {};
+        cachedLatestRecords.forEach(r => {
+          recordsMap[r.equipment_id] = r;
+        });
+        if (isMounted) {
+          setRecords(recordsMap);
+          setLoading(false);
+          console.log('[Page] Loaded latest records from IndexedDB cache');
+        }
       }
       
       if (isMounted) {
@@ -146,15 +158,26 @@ export default function Home() {
       
       // 2. 从 Turso 获取最新数据（后台更新）
       try {
-        // 优化：只查询本月记录，不查询所有最新记录（减少数据量）
-        const currentMonthRecords = await getRecordsByMonth(currentMonth);
+        // 优化：分别查询本月记录和最新记录，避免复杂 JOIN
+        const [currentMonthRecords, latestRecords] = await Promise.all([
+          getRecordsByMonth(currentMonth),
+          getLatestRecordPerEquipment(),
+        ]);
 
         if (isMounted) {
           const recordsMap: Record<string, any> = {};
           
+          console.log('[Page] Turso latestRecords count:', latestRecords?.length || 0);
           console.log('[Page] Turso currentMonthRecords count:', currentMonthRecords?.length || 0);
           
-          // 用本月记录填充（确保本月状态正确）
+          // 先填充最新记录（用于超期判断）
+          if (latestRecords && latestRecords.length > 0) {
+            latestRecords.forEach((r) => {
+              recordsMap[r.equipment_id] = r;
+            });
+          }
+          
+          // 用本月记录覆盖（确保本月状态正确）
           if (currentMonthRecords && currentMonthRecords.length > 0) {
             currentMonthRecords.forEach((r) => {
               recordsMap[r.equipment_id] = r;
@@ -162,16 +185,21 @@ export default function Home() {
           }
           
           console.log('[Page] recordsMap keys count:', Object.keys(recordsMap).length);
+          console.log('[Page] 316 in recordsMap:', Object.values(recordsMap).some((r: any) => r.equipment_id === '316'));
+          console.log('[Page] VW Neo in recordsMap:', Object.values(recordsMap).some((r: any) => r.equipment_id === 'vw-neo'));
           setRecords(recordsMap);
-          // 写入 IndexedDB（只缓存当前月份记录）
-          await setCachedRecords(Object.values(recordsMap));
+          // 写入 IndexedDB（缓存当前月份记录和最新记录）
+          await Promise.all([
+            setCachedRecords(Object.values(recordsMap)),
+            setCachedLatestRecords(latestRecords || []),
+          ]);
           console.log('[Page] Updated from Turso');
           isInitialFetchDone = true;
         }
       } catch (e: any) {
         console.error("获取记录失败:", e);
         // 如果有缓存，不显示错误（离线可用）
-        if (isMounted && !cachedRecords) {
+        if (isMounted && !cachedRecords && !cachedLatestRecords) {
           const errorMsg = e?.message || e?.code || JSON.stringify(e) || "未知错误";
           setConnectionError(`连接失败：${errorMsg}。请检查网络后刷新页面`);
         }

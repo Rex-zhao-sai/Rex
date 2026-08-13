@@ -327,25 +327,12 @@ export function EquipmentDetailClient({
       (p) => p.before !== null || p.after !== null
     ).length;
 
-    // 保存前去除 dataUrl（base64 图片数据），只保留 s3Key 引用
-    // dataUrl 仅用于上传后的即时本地预览，不应持久化到数据库
-    const stripDataUrl = (photo: any) => {
-      if (!photo) return photo;
-      const { dataUrl, ...rest } = photo;
-      return rest;
-    };
-    const photoPairsForSave = photoPairs.map((pair) => ({
-      ...pair,
-      before: stripDataUrl(pair.before),
-      after: stripDataUrl(pair.after),
-    }));
-
     const recordData: any = {
       equipment_id: equipmentId,
       month: currentMonth,
       technician,
       notes,
-      photo_pairs: photoPairsForSave,
+      photo_pairs: photoPairs,
       photo_count: photoCount,
       role,
       duration,
@@ -363,11 +350,11 @@ export function EquipmentDetailClient({
       setTimeout(() => setShowSavedToast(false), 2000);
       
       // 保存成功后，直接将照片数据写入 IndexedDB（避免下次查看时从 Turso 拉取）
-      if (existingRecordId && photoPairsForSave.length > 0) {
+      if (existingRecordId && photoPairs.length > 0) {
         try {
           const { cachePhotoPairs } = await import('../../../lib/indexeddb');
-          await cachePhotoPairs(existingRecordId, photoPairsForSave);
-          console.log('[EquipmentDetail] 照片数据已缓存到 IndexedDB（已去除 dataUrl）');
+          await cachePhotoPairs(existingRecordId, photoPairs);
+          console.log('[EquipmentDetail] 照片数据已缓存到 IndexedDB');
         } catch (e) {
           console.warn('[EquipmentDetail] 缓存照片数据失败:', e);
         }

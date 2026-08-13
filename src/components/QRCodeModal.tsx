@@ -9,9 +9,8 @@ export function QRCodeModal() {
   const [appUrl, setAppUrl] = useState("");
 
   useEffect(() => {
-    // 动态获取 basePath（GitHub Pages 会自动添加仓库名作为子路径）
-    const pathParts = window.location.pathname.split('/');
-    const basePath = pathParts.length > 1 && pathParts[1] ? `/${pathParts[1]}` : '';
+    // Include basePath for GitHub Pages deployment
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/Rex';
     setAppUrl(window.location.origin + basePath);
   }, []);
 
@@ -69,7 +68,7 @@ export function QRCodeModal() {
             <span>
               电脑端访问：
               <a
-                href={`${appUrl}/records`}
+                href="/Rex/records"
                 className="text-blue-600 hover:underline font-medium"
               >
                 查看保养记录
