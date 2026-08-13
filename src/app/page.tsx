@@ -75,9 +75,8 @@ export default function Home() {
 
   // Set basePath on client side
   useEffect(() => {
-    if (window.location.pathname.startsWith("/Rex")) {
-      setBasePath("/Rex");
-    }
+    // GitHub Pages 会自动处理仓库名作为基础路径，不需要手动设置
+    setBasePath("");
   }, []);
 
   // Fetch records for current month with IndexedDB caching
