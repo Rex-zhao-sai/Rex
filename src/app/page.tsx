@@ -170,14 +170,14 @@ export default function Home() {
           console.log('[Page] Turso latestRecords count:', latestRecords?.length || 0);
           console.log('[Page] Turso currentMonthRecords count:', currentMonthRecords?.length || 0);
           
-          // 先填充最新记录（用于超期判断）
+          // 先用最新记录填充（用于获取上次保养时间，计算超期天数）
           if (latestRecords && latestRecords.length > 0) {
             latestRecords.forEach((r) => {
               recordsMap[r.equipment_id] = r;
             });
           }
           
-          // 用本月记录覆盖（确保本月状态正确）
+          // 用本月记录覆盖（本月有保养记录的设备，确保 month 字段正确）
           if (currentMonthRecords && currentMonthRecords.length > 0) {
             currentMonthRecords.forEach((r) => {
               recordsMap[r.equipment_id] = r;
@@ -188,10 +188,10 @@ export default function Home() {
           console.log('[Page] 316 in recordsMap:', Object.values(recordsMap).some((r: any) => r.equipment_id === '316'));
           console.log('[Page] VW Neo in recordsMap:', Object.values(recordsMap).some((r: any) => r.equipment_id === 'vw-neo'));
           setRecords(recordsMap);
-          // 写入 IndexedDB（缓存当前月份记录和最新记录）
+          // 写入 IndexedDB（分别缓存当月记录和最新记录）
           await Promise.all([
-            setCachedRecords(Object.values(recordsMap)),
-            setCachedLatestRecords(latestRecords || []),
+            setCachedRecords(currentMonthRecords || []),  // 只缓存当月记录
+            setCachedLatestRecords(latestRecords || []),   // 缓存最新记录（用于超期天数计算）
           ]);
           console.log('[Page] Updated from Turso');
           isInitialFetchDone = true;
@@ -299,7 +299,7 @@ export default function Home() {
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - lastDate.getTime());
         days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        // 检查是否本月保养
+        // 检查是否本月保养（直接使用 month 字段判断）
         isCurrentMonth = record.month === currentMonth;
       } else {
         const excelDate = LAST_MAINTENANCE_FROM_EXCEL[eq.id];
