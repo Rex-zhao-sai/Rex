@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 export default function DebugPhotoPage() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [photoStructure, setPhotoStructure] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -150,19 +151,83 @@ export default function DebugPhotoPage() {
           ) : debugInfo.turso?.records?.length === 0 ? (
             <p className="text-gray-500">数据库中没有记录</p>
           ) : (
-            <div className="space-y-2">
-              <p className="text-sm">总记录数：{debugInfo.turso?.total || 0}</p>
-              <p className="text-sm">有照片数据的记录：{debugInfo.turso?.with_photos || 0}</p>
-              {debugInfo.turso?.records?.map((record: any, index: number) => (
-                <details key={index} className="bg-gray-50 p-2 rounded">
-                  <summary className="cursor-pointer font-medium text-sm">
-                    {record.equipment_id} - {record.month} (照片数：{record.photo_count})
-                  </summary>
-                  <pre className="mt-2 text-xs overflow-auto max-h-40">
-                    {JSON.stringify(record, null, 2)}
-                  </pre>
-                </details>
-              ))}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm">总记录数：{debugInfo.turso?.total || 0}</p>
+                <p className="text-sm">有照片数据的记录：{debugInfo.turso?.with_photos || 0}</p>
+              </div>
+              
+              {/* 查看 photo_pairs 结构按钮 */}
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/debug/photo-structure?equipmentId=gen-5-epe&month=2026-08');
+                    const data = await response.json();
+                    setPhotoStructure(data);
+                  } catch (e: any) {
+                    setPhotoStructure({ error: e.message });
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                查看 gen-5-epe 的 photo_pairs 结构
+              </button>
+
+              {photoStructure && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+                  <h3 className="font-semibold text-yellow-900">Photo Pairs 结构分析</h3>
+                  {photoStructure.error ? (
+                    <p className="text-red-500">错误：{photoStructure.error}</p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><strong>类型:</strong> {photoStructure.photo_pairs_type}</div>
+                        <div><strong>是数组:</strong> {photoStructure.photo_pairs_is_array ? '是' : '否'}</div>
+                        <div><strong>长度:</strong> {photoStructure.photo_pairs_length}</div>
+                      </div>
+                      
+                      {photoStructure.structure && (
+                        <div className="space-y-2">
+                          <p className="font-medium text-sm">第一个 photo pair 的字段:</p>
+                          <div className="bg-white p-3 rounded text-xs space-y-1">
+                            <p><strong>所有字段:</strong> {photoStructure.structure.first_item_keys.join(', ')}</p>
+                            <p><strong>有 before 字段:</strong> {photoStructure.structure.has_before_field ? '✓' : '✗'}</p>
+                            <p><strong>有 after 字段:</strong> {photoStructure.structure.has_after_field ? '✓' : '✗'}</p>
+                            <p><strong>before 类型:</strong> {photoStructure.structure.before_type}</p>
+                            <p><strong>after 类型:</strong> {photoStructure.structure.after_type}</p>
+                            {photoStructure.structure.before_keys && (
+                              <p><strong>before 的字段:</strong> {photoStructure.structure.before_keys.join(', ')}</p>
+                            )}
+                            {photoStructure.structure.after_keys && (
+                              <p><strong>after 的字段:</strong> {photoStructure.structure.after_keys.join(', ')}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <details>
+                        <summary className="cursor-pointer text-sm font-medium text-blue-600">查看完整数据</summary>
+                        <pre className="mt-2 bg-white p-3 rounded text-xs overflow-auto max-h-96">
+                          {JSON.stringify(photoStructure, null, 2)}
+                        </pre>
+                      </details>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {debugInfo.turso?.records?.map((record: any, index: number) => (
+                  <details key={index} className="bg-gray-50 p-2 rounded">
+                    <summary className="cursor-pointer font-medium text-sm">
+                      {record.equipment_id} - {record.month} (照片数：{record.photo_count}, 大小：{(record.photo_length / 1024).toFixed(0)}KB)
+                    </summary>
+                    <pre className="mt-2 text-xs overflow-auto max-h-40">
+                      {JSON.stringify(record, null, 2)}
+                    </pre>
+                  </details>
+                ))}
+              </div>
             </div>
           )}
         </div>
