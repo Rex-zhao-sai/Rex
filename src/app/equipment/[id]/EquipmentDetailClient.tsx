@@ -353,12 +353,26 @@ export function EquipmentDetailClient({
       (p) => p.before !== null || p.after !== null
     ).length;
 
+    // 清理 photoPairs：如果照片已上传到 S3（有 s3Key），清除 dataUrl 以减少存储大小
+    const cleanedPhotoPairs = photoPairs.map(pair => ({
+      ...pair,
+      before: pair.before ? {
+        ...pair.before,
+        // 如果有 s3Key，清除 dataUrl（从 S3 获取即可）；否则保留 dataUrl（base64 回退）
+        dataUrl: pair.before.s3Key ? '' : pair.before.dataUrl,
+      } : null,
+      after: pair.after ? {
+        ...pair.after,
+        dataUrl: pair.after.s3Key ? '' : pair.after.dataUrl,
+      } : null,
+    }));
+
     const recordData: any = {
       equipment_id: equipmentId,
       month: currentMonth,
       technician,
       notes,
-      photo_pairs: photoPairs,
+      photo_pairs: cleanedPhotoPairs,
       photo_count: photoCount,
       role,
       duration,
