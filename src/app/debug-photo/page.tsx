@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 export default function DebugPhotoPage() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [photoStructure, setPhotoStructure] = useState<any>(null);
+  const [equipmentFilter, setEquipmentFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -158,24 +159,43 @@ export default function DebugPhotoPage() {
               </div>
               
               {/* 查看 photo_pairs 结构按钮 */}
-              <button
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/debug/photo-structure?equipmentId=gen-5-epe&month=2026-08');
-                    const data = await response.json();
-                    setPhotoStructure(data);
-                  } catch (e: any) {
-                    setPhotoStructure({ error: e.message });
-                  }
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-              >
-                查看 gen-5-epe 的 photo_pairs 结构
-              </button>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">选择设备查看 photo_pairs 结构:</p>
+                <input
+                  type="text"
+                  placeholder="搜索设备..."
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  value={equipmentFilter}
+                  onChange={(e) => setEquipmentFilter(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                  {debugInfo.turso?.records
+                    ?.filter((r: any) => !equipmentFilter || r.equipment_id.toLowerCase().includes(equipmentFilter.toLowerCase()))
+                    .map((record: any, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`/api/debug/photo-structure?equipmentId=${record.equipment_id}&month=${record.month}`);
+                          const data = await response.json();
+                          setPhotoStructure({ ...data, selected_equipment: record.equipment_id, selected_month: record.month });
+                        } catch (e: any) {
+                          setPhotoStructure({ error: e.message });
+                        }
+                      }}
+                      className="px-3 py-1 bg-gray-100 hover:bg-blue-100 text-gray-700 hover:text-blue-700 rounded text-xs border border-gray-200"
+                    >
+                      {record.equipment_id} ({record.month})
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {photoStructure && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
-                  <h3 className="font-semibold text-yellow-900">Photo Pairs 结构分析</h3>
+                  <h3 className="font-semibold text-yellow-900">
+                    Photo Pairs 结构分析 - {photoStructure.selected_equipment} ({photoStructure.selected_month})
+                  </h3>
                   {photoStructure.error ? (
                     <p className="text-red-500">错误：{photoStructure.error}</p>
                   ) : (
