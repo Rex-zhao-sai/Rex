@@ -67,6 +67,7 @@ export function PhotoUploader({
         }
       } else {
         console.log('[PhotoUploader] before 没有任何可用的 URL 来源');
+        console.log('[PhotoUploader] before 对象完整内容:', JSON.stringify(pair.before));
       }
       
       if (pair.after?.dataUrl) {
@@ -89,6 +90,7 @@ export function PhotoUploader({
         }
       } else {
         console.log('[PhotoUploader] after 没有任何可用的 URL 来源');
+        console.log('[PhotoUploader] after 对象完整内容:', JSON.stringify(pair.after));
       }
       
       console.log('[PhotoUploader] 最终 photoUrls:', { before: beforeUrl, after: afterUrl });
