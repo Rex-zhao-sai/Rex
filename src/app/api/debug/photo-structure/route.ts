@@ -18,7 +18,7 @@ export async function GET() {
 
     const records = result.rows.map(row => ({
       id: row.id,
-      equipment_id: row.equipment_id,
+      equipment_id: row.equipment_id || '',
       month: row.month,
       photo_count: row.photo_count,
       photo_length: Number(row.photo_length),
