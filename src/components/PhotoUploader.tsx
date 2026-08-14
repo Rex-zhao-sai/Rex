@@ -33,9 +33,15 @@ export function PhotoUploader({
 
   // 加载照片 URL（异步获取预签名 URL）
   useEffect(() => {
+    console.log('[PhotoUploader] pair 对象:', pair);
+    console.log('[PhotoUploader] pair.before:', pair.before);
+    console.log('[PhotoUploader] pair.after:', pair.after);
+    
     const loadPhotoUrls = async () => {
       const beforeKey = pair.beforeKey || pair.before?.s3Key;
       const afterKey = pair.afterKey || pair.after?.s3Key;
+      
+      console.log('[PhotoUploader] beforeKey:', beforeKey, 'afterKey:', afterKey);
       
       let beforeUrl: string | null = null;
       let afterUrl: string | null = null;
@@ -43,35 +49,49 @@ export function PhotoUploader({
       // 优先使用 dataUrl（本地预览）
       if (pair.before?.dataUrl) {
         beforeUrl = pair.before.dataUrl;
+        console.log('[PhotoUploader] 使用 before.dataUrl:', beforeUrl.substring(0, 50));
       } else if (pair.before?.s3Url && pair.before.s3Url.trim()) {
         // 使用预签名 URL（构建时生成）
         beforeUrl = pair.before.s3Url;
+        console.log('[PhotoUploader] 使用 before.s3Url:', beforeUrl);
       } else if (pair.before?.src && pair.before.src.trim()) {
         // 使用旧版 URL（Supabase 存储，向后兼容）
         beforeUrl = pair.before.src;
+        console.log('[PhotoUploader] 使用 before.src:', beforeUrl);
       } else if (beforeKey) {
         try {
           beforeUrl = await getS3PhotoUrl(beforeKey);
+          console.log('[PhotoUploader] 从 s3Key 获取 beforeUrl:', beforeUrl);
         } catch (err) {
           console.error('Failed to load before photo URL:', err);
         }
+      } else {
+        console.log('[PhotoUploader] before 没有任何可用的 URL 来源');
       }
       
       if (pair.after?.dataUrl) {
         afterUrl = pair.after.dataUrl;
+        console.log('[PhotoUploader] 使用 after.dataUrl:', afterUrl.substring(0, 50));
       } else if (pair.after?.s3Url && pair.after.s3Url.trim()) {
         // 使用预签名 URL（构建时生成）
         afterUrl = pair.after.s3Url;
+        console.log('[PhotoUploader] 使用 after.s3Url:', afterUrl);
       } else if (pair.after?.src && pair.after.src.trim()) {
         // 使用旧版 URL（Supabase 存储，向后兼容）
         afterUrl = pair.after.src;
+        console.log('[PhotoUploader] 使用 after.src:', afterUrl);
       } else if (afterKey) {
         try {
           afterUrl = await getS3PhotoUrl(afterKey);
+          console.log('[PhotoUploader] 从 s3Key 获取 afterUrl:', afterUrl);
         } catch (err) {
           console.error('Failed to load after photo URL:', err);
         }
+      } else {
+        console.log('[PhotoUploader] after 没有任何可用的 URL 来源');
       }
+      
+      console.log('[PhotoUploader] 最终 photoUrls:', { before: beforeUrl, after: afterUrl });
       
       setPhotoUrls({ 
         before: beforeUrl || null, 
