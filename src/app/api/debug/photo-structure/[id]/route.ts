@@ -12,7 +12,7 @@ export async function GET(
     const record = await getRecordByEquipmentAndMonth(id, currentMonth);
     
     if (!record) {
-      return NextResponse.json({ error: '记录不存在' }, { status: 404 });
+      return NextResponse.json({ error: '记录不存在', equipmentId: id, month: currentMonth }, { status: 404 });
     }
     
     // 解析 photo_pairs
