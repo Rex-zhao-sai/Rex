@@ -229,7 +229,7 @@ export async function getRecordByEquipmentAndMonth(
     if (typeof window !== 'undefined') {
       try {
         const { getCachedPhotoPairs } = await import('./indexeddb');
-        const cached = await getCachedPhotoPairs(recordId as string, 60); // 60 分钟缓存
+        const cached = await getCachedPhotoPairs(recordId as string, 1440); // 24 小时缓存
         if (cached) {
           photoPairs = cached;
           fromCache = true;

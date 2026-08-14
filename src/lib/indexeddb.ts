@@ -248,7 +248,7 @@ export async function cachePhotoPairs(recordId: string, photoPairs: any[]): Prom
   console.log(`[IndexedDB] Cached photo_pairs for ${recordId}: ${(size / 1024).toFixed(0)}KB`);
 }
 
-export async function getCachedPhotoPairs(recordId: string, maxAgeMinutes: number = 60): Promise<any[] | null> {
+export async function getCachedPhotoPairs(recordId: string, maxAgeMinutes: number = 1440): Promise<any[] | null> {
   const db = await getDB();
   const result = await db.get('metadata', `photo_cache_${recordId}`);
   if (!result) return null;
