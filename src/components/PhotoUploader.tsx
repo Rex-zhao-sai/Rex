@@ -25,6 +25,9 @@ export function PhotoUploader({
   readOnly = false,
   canUploadAfter = false,
 }: PhotoUploaderProps) {
+  console.log('[PhotoUploader] 组件渲染，pair:', pair);
+  console.log('[PhotoUploader] pair.before:', pair.before);
+  console.log('[PhotoUploader] pair.after:', pair.after);
   const beforeRef = useRef<HTMLInputElement>(null);
   const afterRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState<"before" | "after" | null>(null);
