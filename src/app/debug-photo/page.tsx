@@ -1,264 +1,166 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
 
 export default function DebugPhotoPage() {
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [photoStructure, setPhotoStructure] = useState<any>(null);
-  const [equipmentFilter, setEquipmentFilter] = useState("");
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadDebugInfo() {
+    async function fetchData() {
       try {
-        const info: any = {
-          timestamp: new Date().toISOString(),
-          localStorage: {},
-          indexedDB: {},
-          turso: null,
-        };
-
-        // 1. 检查 localStorage
-        const localStorageKeys = Object.keys(localStorage);
-        const photoKeys = localStorageKeys.filter(k => k.includes('photo') || k.includes('maintenance') || k.includes('record'));
-        for (const key of photoKeys) {
-          try {
-            const value = localStorage.getItem(key);
-            info.localStorage[key] = {
-              type: typeof value,
-              length: value?.length || 0,
-              preview: value?.substring(0, 200),
-            };
-          } catch (e) {
-            info.localStorage[key] = { error: 'Failed to read' };
-          }
-        }
-
-        // 2. 检查 IndexedDB
-        try {
-          const { getDB } = await import('@/lib/indexeddb');
-          const db = await getDB();
-          const allMetadata = await db.getAll('metadata');
-          const photoCaches = allMetadata.filter(m => m.key.startsWith('photo_cache_'));
-          
-          info.indexedDB = {
-            total_metadata: allMetadata.length,
-            photo_caches: photoCaches.length,
-            caches: photoCaches.map(cache => {
-              try {
-                const parsed = JSON.parse(cache.value);
-                return {
-                  key: cache.key,
-                  record_id: parsed.record_id,
-                  cached_at: parsed.cached_at,
-                  size: parsed.size,
-                  photo_pairs_length: Array.isArray(parsed.photo_pairs) ? parsed.photo_pairs.length : 0,
-                };
-              } catch (e) {
-                return { key: cache.key, error: 'Failed to parse' };
-              }
-            }),
-          };
-        } catch (e: any) {
-          info.indexedDB = { error: e.message };
-        }
-
-        // 3. 检查 Turso 数据库（通过 API）
-        try {
-          // 获取所有设备列表，然后检查每个设备的记录
-          const response = await fetch('/api/debug/all-records');
-          if (response.ok) {
-            info.turso = await response.json();
-          } else {
-            info.turso = { error: `API returned ${response.status}` };
-          }
-        } catch (e: any) {
-          info.turso = { error: e.message };
-        }
-
-        setDebugInfo(info);
+        const res = await fetch('/api/debug/photo-structure');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        setData(json);
       } catch (e: any) {
         setError(e.message);
       } finally {
         setLoading(false);
       }
     }
-
-    loadDebugInfo();
+    fetchData();
   }, []);
 
   if (loading) {
-    return <div className="p-8">加载中...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-500">加载中...</div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="p-8 text-red-500">错误：{error}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-500">错误：{error}</div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">照片数据调试面板</h1>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">Photo Pairs 结构调试</h1>
 
-      <div className="space-y-6">
-        {/* localStorage */}
-        <div className="border rounded-lg p-4 bg-white shadow-sm">
-          <h2 className="text-lg font-semibold mb-3">localStorage 数据</h2>
-          {Object.keys(debugInfo.localStorage).length === 0 ? (
-            <p className="text-gray-500">没有找到相关数据</p>
-          ) : (
-            <div className="space-y-2">
-              {Object.entries(debugInfo.localStorage).map(([key, value]: [string, any]) => (
-                <div key={key} className="text-sm">
-                  <p className="font-medium">{key}</p>
-                  <p className="text-gray-600">类型：{value.type}, 长度：{value.length}</p>
-                  <pre className="bg-gray-50 p-2 rounded text-xs overflow-auto max-h-20 mt-1">
-                    {value.preview}
-                  </pre>
-                </div>
-              ))}
+        {/* 概览 */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">数据库概览</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-gray-500 text-sm">总记录数</div>
+              <div className="text-2xl font-bold">{data.total_records}</div>
             </div>
-          )}
+            <div>
+              <div className="text-gray-500 text-sm">GEN5 相关记录</div>
+              <div className="text-2xl font-bold">{data.gen5_records}</div>
+            </div>
+          </div>
         </div>
 
-        {/* IndexedDB */}
-        <div className="border rounded-lg p-4 bg-white shadow-sm">
-          <h2 className="text-lg font-semibold mb-3">IndexedDB 缓存</h2>
-          {debugInfo.indexedDB.error ? (
-            <p className="text-red-500">错误：{debugInfo.indexedDB.error}</p>
-          ) : debugInfo.indexedDB.photo_caches === 0 ? (
-            <p className="text-gray-500">没有找到照片缓存</p>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm">总元数据：{debugInfo.indexedDB.total_metadata}</p>
-              <p className="text-sm">照片缓存：{debugInfo.indexedDB.photo_caches}</p>
-              {debugInfo.indexedDB.caches?.map((cache: any, index: number) => (
-                <div key={index} className="text-sm bg-gray-50 p-2 rounded">
-                  <p><strong>Record ID:</strong> {cache.record_id}</p>
-                  <p><strong>缓存时间:</strong> {cache.cached_at}</p>
-                  <p><strong>大小:</strong> {(cache.size / 1024).toFixed(2)} KB</p>
-                  <p><strong>照片组数:</strong> {cache.photo_pairs_length}</p>
-                </div>
-              ))}
+        {/* Photo Pairs 结构分析 */}
+        {data.photo_structure && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Photo Pairs 结构分析</h2>
+            
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">设备 ID</div>
+              <div className="font-mono">{data.photo_structure.equipment_id}</div>
             </div>
-          )}
-        </div>
+            
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">月份</div>
+              <div>{data.photo_structure.month}</div>
+            </div>
+            
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">photo_pairs 数组长度</div>
+              <div className="text-2xl font-bold">{data.photo_structure.array_length}</div>
+            </div>
 
-        {/* Turso */}
-        <div className="border rounded-lg p-4 bg-white shadow-sm">
-          <h2 className="text-lg font-semibold mb-3">Turso 数据库</h2>
-          {debugInfo.turso?.error ? (
-            <p className="text-red-500">错误：{debugInfo.turso.error}</p>
-          ) : debugInfo.turso?.records?.length === 0 ? (
-            <p className="text-gray-500">数据库中没有记录</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm">总记录数：{debugInfo.turso?.total || 0}</p>
-                <p className="text-sm">有照片数据的记录：{debugInfo.turso?.with_photos || 0}</p>
-              </div>
-              
-              {/* 查看 photo_pairs 结构按钮 */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium">选择设备查看 photo_pairs 结构:</p>
-                <input
-                  type="text"
-                  placeholder="搜索设备..."
-                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  value={equipmentFilter}
-                  onChange={(e) => setEquipmentFilter(e.target.value)}
-                />
-                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
-                  {debugInfo.turso?.records
-                    ?.filter((r: any) => !equipmentFilter || r.equipment_id.toLowerCase().includes(equipmentFilter.toLowerCase()))
-                    .map((record: any, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(`/api/debug/photo-structure?equipmentId=${record.equipment_id}&month=${record.month}`);
-                          const data = await response.json();
-                          setPhotoStructure({ ...data, selected_equipment: record.equipment_id, selected_month: record.month });
-                        } catch (e: any) {
-                          setPhotoStructure({ error: e.message });
-                        }
-                      }}
-                      className="px-3 py-1 bg-gray-100 hover:bg-blue-100 text-gray-700 hover:text-blue-700 rounded text-xs border border-gray-200"
-                    >
-                      {record.equipment_id} ({record.month})
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {photoStructure && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
-                  <h3 className="font-semibold text-yellow-900">
-                    Photo Pairs 结构分析 - {photoStructure.selected_equipment} ({photoStructure.selected_month})
-                  </h3>
-                  {photoStructure.error ? (
-                    <p className="text-red-500">错误：{photoStructure.error}</p>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div><strong>类型:</strong> {photoStructure.photo_pairs_type}</div>
-                        <div><strong>是数组:</strong> {photoStructure.photo_pairs_is_array ? '是' : '否'}</div>
-                        <div><strong>长度:</strong> {photoStructure.photo_pairs_length}</div>
-                      </div>
-                      
-                      {photoStructure.structure && (
-                        <div className="space-y-2">
-                          <p className="font-medium text-sm">第一个 photo pair 的字段:</p>
-                          <div className="bg-white p-3 rounded text-xs space-y-1">
-                            <p><strong>所有字段:</strong> {photoStructure.structure.first_item_keys.join(', ')}</p>
-                            <p><strong>有 before 字段:</strong> {photoStructure.structure.has_before_field ? '✓' : '✗'}</p>
-                            <p><strong>有 after 字段:</strong> {photoStructure.structure.has_after_field ? '✓' : '✗'}</p>
-                            <p><strong>before 类型:</strong> {photoStructure.structure.before_type}</p>
-                            <p><strong>after 类型:</strong> {photoStructure.structure.after_type}</p>
-                            {photoStructure.structure.before_keys && (
-                              <p><strong>before 的字段:</strong> {photoStructure.structure.before_keys.join(', ')}</p>
-                            )}
-                            {photoStructure.structure.after_keys && (
-                              <p><strong>after 的字段:</strong> {photoStructure.structure.after_keys.join(', ')}</p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      <details>
-                        <summary className="cursor-pointer text-sm font-medium text-blue-600">查看完整数据</summary>
-                        <pre className="mt-2 bg-white p-3 rounded text-xs overflow-auto max-h-96">
-                          {JSON.stringify(photoStructure, null, 2)}
-                        </pre>
-                      </details>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {debugInfo.turso?.records?.map((record: any, index: number) => (
-                  <details key={index} className="bg-gray-50 p-2 rounded">
-                    <summary className="cursor-pointer font-medium text-sm">
-                      {record.equipment_id} - {record.month} (照片数：{record.photo_count}, 大小：{(record.photo_length / 1024).toFixed(0)}KB)
-                    </summary>
-                    <pre className="mt-2 text-xs overflow-auto max-h-40">
-                      {JSON.stringify(record, null, 2)}
-                    </pre>
-                  </details>
-                ))}
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">第一个 pair 的所有字段</div>
+              <div className="font-mono bg-gray-100 p-2 rounded mt-1">
+                {JSON.stringify(data.photo_structure.first_item_keys, null, 2)}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* 原始数据 */}
-        <details className="border rounded-lg p-4 bg-white shadow-sm">
-          <summary className="cursor-pointer font-semibold text-lg">查看完整调试数据 (JSON)</summary>
-          <pre className="mt-4 text-xs overflow-auto max-h-96 bg-gray-50 p-3 rounded">
-            {JSON.stringify(debugInfo, null, 2)}
-          </pre>
-        </details>
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">has_before_field</div>
+              <div className={`font-bold ${data.photo_structure.has_before_field ? 'text-green-600' : 'text-red-600'}`}>
+                {data.photo_structure.has_before_field ? '✓ 存在' : '✗ 不存在'}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">has_after_field</div>
+              <div className={`font-bold ${data.photo_structure.has_after_field ? 'text-green-600' : 'text-red-600'}`}>
+                {data.photo_structure.has_after_field ? '✓ 存在' : '✗ 不存在'}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">before 类型</div>
+              <div className="font-mono">{data.photo_structure.before_type}</div>
+            </div>
+
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">after 类型</div>
+              <div className="font-mono">{data.photo_structure.after_type}</div>
+            </div>
+
+            {data.photo_structure.before_keys && (
+              <div className="mb-4">
+                <div className="text-gray-500 text-sm">before 对象的字段</div>
+                <div className="font-mono bg-gray-100 p-2 rounded mt-1">
+                  {JSON.stringify(data.photo_structure.before_keys, null, 2)}
+                </div>
+              </div>
+            )}
+
+            {data.photo_structure.after_keys && (
+              <div className="mb-4">
+                <div className="text-gray-500 text-sm">after 对象的字段</div>
+                <div className="font-mono bg-gray-100 p-2 rounded mt-1">
+                  {JSON.stringify(data.photo_structure.after_keys, null, 2)}
+                </div>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <div className="text-gray-500 text-sm">第一个 pair 完整数据</div>
+              <pre className="font-mono bg-gray-100 p-4 rounded mt-1 text-xs overflow-auto max-h-96">
+                {JSON.stringify(data.photo_structure.first_item, null, 2)}
+              </pre>
+            </div>
+
+            <div>
+              <div className="text-gray-500 text-sm">完整样本（前 2 个 pair）</div>
+              <pre className="font-mono bg-gray-100 p-4 rounded mt-1 text-xs overflow-auto max-h-96">
+                {JSON.stringify(data.photo_structure.sample, null, 2)}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* 记录列表 */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">所有记录（前 20 条）</h2>
+          <div className="space-y-2">
+            {data.records.map((record: any) => (
+              <div key={record.id} className="border-b pb-2">
+                <div className="flex justify-between">
+                  <span className="font-mono text-sm">{record.equipment_id}</span>
+                  <span className="text-gray-500 text-sm">{record.month}</span>
+                </div>
+                <div className="text-xs text-gray-400">
+                  照片数：{record.photo_count} | 数据大小：{(record.photo_length / 1024).toFixed(2)} KB
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

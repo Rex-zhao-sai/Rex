@@ -1,111 +1,111 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import turso, { isTursoAvailable } from '@/lib/turso';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     if (!isTursoAvailable()) {
       return NextResponse.json({ error: 'Turso 不可用' }, { status: 500 });
     }
 
-    // 获取 URL 参数
-    const { searchParams } = new URL(request.url);
-    const equipmentId = searchParams.get('equipmentId');
-    const month = searchParams.get('month');
-
-    if (!equipmentId || !month) {
-      // 如果没有参数，返回第一条有照片数据的记录
-      const result = await turso!.execute({
-        sql: `SELECT id, equipment_id, month, photo_count, LENGTH(photo_pairs) as photo_length
-              FROM maintenance_records
-              WHERE LENGTH(photo_pairs) > 100
-              ORDER BY updated_at DESC
-              LIMIT 1`,
-      });
-
-      if (result.rows.length === 0) {
-        return NextResponse.json({ error: '没有找到有照片数据的记录' }, { status: 404 });
-      }
-
-      const row = result.rows[0];
-      const photoResult = await turso!.execute({
-        sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
-        args: [row.id],
-      });
-
-      const photoPairsStr = photoResult.rows[0]?.photo_pairs;
-      let photoPairs: any = photoPairsStr;
-      if (typeof photoPairsStr === 'string') {
-        try {
-          photoPairs = JSON.parse(photoPairsStr);
-        } catch (e) {
-          photoPairs = { error: 'Failed to parse', raw: photoPairsStr.substring(0, 500) };
-        }
-      }
-
-      return NextResponse.json({
-        record: row,
-        photo_pairs_type: typeof photoPairs,
-        photo_pairs_is_array: Array.isArray(photoPairs),
-        photo_pairs_length: Array.isArray(photoPairs) ? photoPairs.length : 0,
-        structure: Array.isArray(photoPairs) && photoPairs.length > 0 ? {
-          first_item_keys: Object.keys(photoPairs[0]),
-          first_item: photoPairs[0],
-          has_before_field: 'before' in photoPairs[0],
-          has_after_field: 'after' in photoPairs[0],
-          before_type: typeof photoPairs[0].before,
-          after_type: typeof photoPairs[0].after,
-          before_keys: photoPairs[0].before ? Object.keys(photoPairs[0].before) : null,
-          after_keys: photoPairs[0].after ? Object.keys(photoPairs[0].after) : null,
-        } : null,
-        sample_data: Array.isArray(photoPairs) ? photoPairs.slice(0, 2) : photoPairs,
-      });
-    }
-
-    // 查询指定设备的记录
+    // 查询所有有照片数据的记录
     const result = await turso!.execute({
       sql: `SELECT id, equipment_id, month, photo_count, LENGTH(photo_pairs) as photo_length
             FROM maintenance_records
-            WHERE equipment_id = ? AND month = ?
-            LIMIT 1`,
-      args: [equipmentId, month],
+            WHERE LENGTH(photo_pairs) > 100
+            ORDER BY updated_at DESC
+            LIMIT 100`,
     });
 
-    if (result.rows.length === 0) {
-      return NextResponse.json({ error: '记录不存在', equipmentId, month }, { status: 404 });
+    const records = result.rows.map(row => ({
+      id: row.id,
+      equipment_id: row.equipment_id,
+      month: row.month,
+      photo_count: row.photo_count,
+      photo_length: Number(row.photo_length),
+    }));
+
+    // 查找 GEN5 相关的记录
+    const gen5Records = records.filter(r => 
+      r.equipment_id.toLowerCase().includes('gen') || 
+      r.equipment_id.toLowerCase().includes('flash')
+    );
+
+    // 获取第一条 GEN5 记录的 photo_pairs 结构
+    let photoStructure = null;
+    if (gen5Records.length > 0) {
+      const photoResult = await turso!.execute({
+        sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
+        args: [gen5Records[0].id],
+      });
+      
+      const photoPairsStr = photoResult.rows[0]?.photo_pairs;
+      if (photoPairsStr && typeof photoPairsStr === 'string') {
+        try {
+          const photoPairs = JSON.parse(photoPairsStr);
+          if (Array.isArray(photoPairs) && photoPairs.length > 0) {
+            const first = photoPairs[0];
+            photoStructure = {
+              record_id: gen5Records[0].id,
+              equipment_id: gen5Records[0].equipment_id,
+              month: gen5Records[0].month,
+              array_length: photoPairs.length,
+              first_item_keys: Object.keys(first),
+              first_item: first,
+              has_before_field: 'before' in first,
+              has_after_field: 'after' in first,
+              before_type: typeof first.before,
+              after_type: typeof first.after,
+              before_keys: first.before ? Object.keys(first.before) : null,
+              after_keys: first.after ? Object.keys(first.after) : null,
+              sample: photoPairs.slice(0, 2),
+            };
+          }
+        } catch (e) {
+          photoStructure = { error: 'Failed to parse photo_pairs' };
+        }
+      }
     }
 
-    const row = result.rows[0];
-    const photoResult = await turso!.execute({
-      sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
-      args: [row.id],
-    });
-
-    const photoPairsStr = photoResult.rows[0]?.photo_pairs;
-    let photoPairs: any = photoPairsStr;
-    if (typeof photoPairsStr === 'string') {
-      try {
-        photoPairs = JSON.parse(photoPairsStr);
-      } catch (e) {
-        photoPairs = { error: 'Failed to parse', raw: photoPairsStr.substring(0, 500) };
+    // 如果没找到 GEN5，返回第一条有照片的记录
+    if (!photoStructure && records.length > 0) {
+      const photoResult = await turso!.execute({
+        sql: `SELECT photo_pairs FROM maintenance_records WHERE id = ?`,
+        args: [records[0].id],
+      });
+      
+      const photoPairsStr = photoResult.rows[0]?.photo_pairs;
+      if (photoPairsStr && typeof photoPairsStr === 'string') {
+        try {
+          const photoPairs = JSON.parse(photoPairsStr);
+          if (Array.isArray(photoPairs) && photoPairs.length > 0) {
+            const first = photoPairs[0];
+            photoStructure = {
+              record_id: records[0].id,
+              equipment_id: records[0].equipment_id,
+              month: records[0].month,
+              array_length: photoPairs.length,
+              first_item_keys: Object.keys(first),
+              first_item: first,
+              has_before_field: 'before' in first,
+              has_after_field: 'after' in first,
+              before_type: typeof first.before,
+              after_type: typeof first.after,
+              before_keys: first.before ? Object.keys(first.before) : null,
+              after_keys: first.after ? Object.keys(first.after) : null,
+              sample: photoPairs.slice(0, 2),
+            };
+          }
+        } catch (e) {
+          photoStructure = { error: 'Failed to parse photo_pairs' };
+        }
       }
     }
 
     return NextResponse.json({
-      record: row,
-      photo_pairs_type: typeof photoPairs,
-      photo_pairs_is_array: Array.isArray(photoPairs),
-      photo_pairs_length: Array.isArray(photoPairs) ? photoPairs.length : 0,
-      structure: Array.isArray(photoPairs) && photoPairs.length > 0 ? {
-        first_item_keys: Object.keys(photoPairs[0]),
-        first_item: photoPairs[0],
-        has_before_field: 'before' in photoPairs[0],
-        has_after_field: 'after' in photoPairs[0],
-        before_type: typeof photoPairs[0].before,
-        after_type: typeof photoPairs[0].after,
-        before_keys: photoPairs[0].before ? Object.keys(photoPairs[0].before) : null,
-        after_keys: photoPairs[0].after ? Object.keys(photoPairs[0].after) : null,
-      } : null,
-      sample_data: Array.isArray(photoPairs) ? photoPairs.slice(0, 2) : photoPairs,
+      total_records: records.length,
+      gen5_records: gen5Records.length,
+      records: records.slice(0, 20),
+      photo_structure: photoStructure,
     });
   } catch (error: any) {
     return NextResponse.json(
