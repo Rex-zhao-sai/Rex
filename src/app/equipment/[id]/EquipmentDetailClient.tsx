@@ -148,6 +148,18 @@ export function EquipmentDetailClient({
                   console.log('[EquipmentDetail] 使用缓存数据');
                   const photoPairs = cached.data;
                   if (Array.isArray(photoPairs) && photoPairs.length > 0) {
+                    // 检查是否有损坏的照片数据（只有 fileName，没有 dataUrl 或 s3Key）
+                    const damagedPairs = photoPairs.filter((pair: PhotoPair) => {
+                      const beforeDamaged = pair.before && !pair.before.dataUrl && !pair.before.s3Key && !pair.before.s3Url && !pair.before.src;
+                      const afterDamaged = pair.after && !pair.after.dataUrl && !pair.after.s3Key && !pair.after.s3Url && !pair.after.src;
+                      return beforeDamaged || afterDamaged;
+                    });
+                    
+                    if (damagedPairs.length > 0) {
+                      console.warn(`[EquipmentDetail] 发现 ${damagedPairs.length} 组损坏的照片数据（只有 fileName，没有实际图片）`);
+                      setConnectionError(`️ 发现 ${damagedPairs.length} 组照片数据损坏，需要重新上传。这些照片只有文件名，没有实际图片数据。`);
+                    }
+                    
                     setPhotoPairs(photoPairs);
                     setExistingPairIds(new Set(photoPairs.map((p: PhotoPair) => p.id)));
                   }
@@ -314,6 +326,20 @@ export function EquipmentDetailClient({
           if (!pair.note || pair.note.trim() === "") {
             alert(`第 ${i + 1} 组照片的备注为必填项`);
             return;
+          }
+          
+          // 验证：照片必须包含 dataUrl 或 s3Key
+          if (pair.before) {
+            if (!pair.before.dataUrl && !pair.before.s3Key && !pair.before.s3Url) {
+              alert(`第 ${i + 1} 组 before 照片数据不完整，请重新上传`);
+              return;
+            }
+          }
+          if (pair.after) {
+            if (!pair.after.dataUrl && !pair.after.s3Key && !pair.after.s3Url) {
+              alert(`第 ${i + 1} 组 after 照片数据不完整，请重新上传`);
+              return;
+            }
           }
         }
       }
