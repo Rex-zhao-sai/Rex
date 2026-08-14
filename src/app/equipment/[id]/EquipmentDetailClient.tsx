@@ -170,7 +170,7 @@ export function EquipmentDetailClient({
                 setLoading(true);
                 
                 const timeoutPromise = new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error("照片加载超时 (90 秒)")), 90000)
+                  setTimeout(() => reject(new Error("照片加载超时 (5 分钟)")), 300000)
                 );
                 
                 const fullData = await Promise.race([
