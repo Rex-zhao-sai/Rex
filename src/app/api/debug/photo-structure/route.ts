@@ -26,8 +26,10 @@ export async function GET() {
 
     // 查找 GEN5 相关的记录
     const gen5Records = records.filter(r => 
-      r.equipment_id.toLowerCase().includes('gen') || 
-      r.equipment_id.toLowerCase().includes('flash')
+      r.equipment_id && (
+        r.equipment_id.toLowerCase().includes('gen') || 
+        r.equipment_id.toLowerCase().includes('flash')
+      )
     );
 
     // 获取第一条 GEN5 记录的 photo_pairs 结构
