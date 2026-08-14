@@ -97,7 +97,10 @@ async function loadUploadUrls(): Promise<UploadUrl[]> {
   }
 
   try {
-    const response = await fetch("/upload-urls.json");
+    // 使用 basePath 确保在 GitHub Pages 项目站点中正确获取文件
+    // GitHub Pages 项目站点路径为 /Rex，Coze 环境为空
+    const basePath = typeof window !== 'undefined' && window.location.pathname.startsWith('/Rex/') ? '/Rex' : '';
+    const response = await fetch(`${basePath}/upload-urls.json`);
     if (!response.ok) {
       console.error("[Upload] Failed to load upload URLs");
       return [];
