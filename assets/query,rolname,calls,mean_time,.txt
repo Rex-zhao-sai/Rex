@@ -1,0 +1,762 @@
+query,rolname,calls,mean_time,min_time,max_time,total_time,rows_read,cache_hit_rate,prop_total_time,index_advisor_result
+BEGIN,supabase_storage_admin,207,0.00291961835748792,0.000367,0.391621,0.604361,0,0,0.061270779513891066,null
+"SELECT
+          set_config('role', $1, true),
+          set_config('request.jwt.claim.role', $2, true),
+          set_config('request.jwt', $3, true),
+          set_config('request.jwt.claim.sub', $4, true),
+          set_config('request.jwt.claims', $5, true),
+          set_config('request.headers', $6, true),
+          set_config('request.method', $7, true),
+          set_config('request.path', $8, true),
+          set_config('storage.operation', $9, true),
+          set_config('storage.allow_delete_query', 'true', true),
+          set_config('statement_timeout', $10, true),
+          set_config('search_path', $11, true)",service_role,201,0.0493507910447761,0.017026,4.161166,9.919509,201,100.0000000000000000,1.0056506770374958,null
+COMMIT,service_role,199,0.000766366834170854,0.000351,0.001651,0.152507,0,0,0.01546132654377927,null
+SELECT * FROM pgbouncer.get_auth($1),pgbouncer,86,0.410270337209303,0.048644,19.043181,35.283249,86,99.8381877022653722,3.5770543930080154,null
+SELECT EXISTS (SELECT schema_migrations.* FROM schema_migrations AS schema_migrations WHERE version = $1),supabase_auth_admin,70,0.0202599714285714,0.00809,0.044573,1.418198,70,100.0000000000000000,0.14377846513100825,null
+SHOW transaction_read_only,supabase_admin,64,0.088209140625,0.006223,0.83686,5.645385,0,0,0.5723353088733851,null
+"SELECT ""id"", ""version"", ""metadata""
+            FROM storage.objects
+            WHERE name = $1
+              AND bucket_id = $2
+            LIMIT $3",service_role,52,0.02319225,0.017201,0.043873,1.205997,52,100.0000000000000000,0.12226529554589738,null
+"SELECT ""id"", ""public""
+            FROM storage.buckets
+            WHERE id = $1
+            LIMIT $2",service_role,48,0.0665281458333333,0.014369,2.356268,3.193351,48,100.0000000000000000,0.3237454187670341,null
+"SELECT ""id"", ""name"", ""version"", ""bucket_id"", ""metadata"", ""user_metadata"", ""updated_at"", ""created_at""
+            FROM storage.objects
+            WHERE name = $1
+              AND bucket_id = $2
+            LIMIT $3",service_role,48,0.2414959375,0.021896,3.743317,11.591805,48,92.3611111111111111,1.17518987546023,null
+"SELECT ""id"", ""public""
+            FROM storage.buckets
+            WHERE id = $1 AND public = $2
+            LIMIT $3",service_role,48,0.015775875,0.009066,0.028591,0.757242,48,100.0000000000000000,0.07677002258692717,null
+SET statement_timeout='58s',supabase_admin,39,0.00882,0.006359,0.043337,0.34398,0,0,0.034873068806869155,null
+SET idle_session_timeout='58s',supabase_admin,39,0.001543,0.001145,0.00312,0.060177,0,0,0.006100810109863844,null
+SET idle_session_timeout='58s',postgres,34,0.00147467647058823,0.001022,0.00219,0.050139,0,0,0.005083146685585245,null
+SET statement_timeout='58s',postgres,34,0.0127380588235294,0.009889,0.028029,0.433094,0,0,0.04390754364161343,null
+set pg_stat_statements.track = none,supabase_admin,32,0.00129928125,0.000954,0.002147,0.041577,0,0,0.004215121756448627,null
+select exists(select $1 from auth.users),supabase_admin,7,0.028738,0.02152,0.040833,0.201166,7,0,0.020394429209845456,null
+SET client_encoding = 'UTF8',authenticator,6,0.0106573333333333,0.007785,0.013764,0.063944,0,0,0.00648271269197756,null
+"SELECT
+          set_config($10, $1, $11),
+          set_config($12, $2, $13),
+          set_config($14, $3, $15),
+          set_config($16, $4, $17),
+          set_config($18, $5, $19),
+          set_config($20, $6, $21),
+          set_config($22, $7, $23),
+          set_config($24, $8, $25),
+          set_config($26, $9, $27),
+          set_config($28, $29, $30)",service_role,6,0.0198261666666667,0.014825,0.033061,0.118957,6,0,0.012059990831033006,null
+"SELECT
+          set_config('role', $1, true),
+          set_config('request.jwt.claim.role', $2, true),
+          set_config('request.jwt', $3, true),
+          set_config('request.jwt.claim.sub', $4, true),
+          set_config('request.jwt.claims', $5, true),
+          set_config('request.headers', $6, true),
+          set_config('request.method', $7, true),
+          set_config('request.path', $8, true),
+          set_config('storage.operation', $9, true),
+          set_config('storage.allow_delete_query', 'true', true)",anon,6,0.0146838333333333,0.013214,0.016238,0.088103,6,0,0.008931978548437679,null
+SET client_min_messages TO WARNING,authenticator,6,0.00259266666666667,0.001863,0.003311,0.015556,0,0,0.001577084302458447,null
+SET client_encoding = 'UTF8',authenticator,6,0.0106573333333333,0.007785,0.013764,0.063944,0,0,0.00648271269197756,null
+SET client_min_messages TO WARNING,authenticator,6,0.00259266666666667,0.001863,0.003311,0.015556,0,0,0.001577084302458447,null
+COMMIT,anon,6,0.000961666666666667,0.000609,0.001803,0.00577,0,0,0.0005849689139357957,null
+"select pid, query, query_start from pg_stat_activity where state = $1 and datname = $2",postgres,5,0.217293,0.193977,0.272231,1.086465,8,100.0000000000000000,0.11014701058565933,null
+SET idle_session_timeout='58s',supabase_read_only_user,5,0.001309,0.001137,0.001468,0.006545,0,0,0.000663539261994763,null
+SET statement_timeout='58s',supabase_read_only_user,5,0.0112038,0.010475,0.011817,0.056019,0,0,0.0056792675198907,null
+"SELECT
+  version(),
+  current_setting($1) :: int8 AS version_number,
+  (
+    SELECT
+      COUNT(*) AS active_connections
+    FROM
+      pg_stat_activity
+  ) AS active_connections,
+  current_setting($2) :: int8 AS max_connections",supabase_admin,5,1.3081318,0.159945,2.076388,6.540659,5,0,0.6630991666645386,null
+"-- Adapted from information_schema.schemata
+
+select
+  n.oid as id,
+  n.nspname as name,
+  u.rolname as owner,
+   obj_description(n.oid, $1) AS comment
+from
+  pg_namespace n,
+  pg_roles u
+where
+  n.nspowner = u.oid
+  and (
+    pg_has_role(n.nspowner, $2)
+    or has_schema_privilege(n.oid, $3)
+  )
+  and not pg_catalog.starts_with(n.nspname, $4)
+  and not pg_catalog.starts_with(n.nspname, $5)
+ and not (n.nspname in ($6,$7,$8))
+
+-- source: dashboard
+-- user: session:d3d644f0-f618-4176-bb64-5a867160f39b
+-- date: 2026-08-17T03:23:43.177Z",postgres,4,3.94595675,1.148846,6.855554,15.783827,36,100.0000000000000000,1.600181653022615,null
+"SELECT ""id""
+            FROM storage.objects
+            WHERE name = $1
+              AND bucket_id = $2
+            LIMIT $3",anon,4,0.01894725,0.017557,0.020117,0.075789,4,100.0000000000000000,0.00768357175360139,null
+"select
+      s.oid as ""id"",
+      w.fdwname as ""name"",
+      s.srvname as ""server_name"",
+      s.srvoptions as ""server_options"",
+      c.proname as ""handler"",
+      (
+        select jsonb_agg(
+          jsonb_build_object(
+            $1, c.oid::bigint,
+            $2, relnamespace::regnamespace::text,
+            $3, c.relname,
+            $4, (
+              select jsonb_agg(
+                jsonb_build_object(
+                  $5, a.attname,
+                  $6, pg_catalog.format_type(a.atttypid, a.atttypmod)
+                )
+              )
+              from pg_catalog.pg_attribute a
+              where a.attrelid = c.oid and a.attnum > $7 and not a.attisdropped
+            ),
+            $8, t.ftoptions
+          )
+        )
+        from pg_catalog.pg_class c
+        join pg_catalog.pg_foreign_table t on c.oid = t.ftrelid
+        where c.oid = any (select t.ftrelid from pg_catalog.pg_foreign_table t where t.ftserver = s.oid)
+      ) as ""tables""
+    from pg_catalog.pg_foreign_server s
+    join pg_catalog.pg_foreign_data_wrapper w on s.srvfdw = w.oid
+    join pg_catalog.pg_proc c on w.fdwhandler = c.oid",postgres,4,0.02214775,0.01684,0.02954,0.088591,0,0,0.008981452522441261,null
+SET application_name='Supabase Storage API',supabase_storage_admin,4,0.00944475,0.007713,0.011798,0.037779,0,0,0.003830076360412552,null
+"-- reports-query-performance-metrics
+        set search_path to public, extensions",supabase_read_only_user,4,0.00634425,0.006104,0.006517,0.025377,0,0,0.002572748029280535,null
+SAVEPOINT $1,anon,4,0.000697,0.000657,0.000752,0.002788,0,0,0.0002826504908237432,null
+"SELECT
+  e.name,
+  n.nspname AS schema,
+  e.default_version,
+  x.extversion AS installed_version,
+  e.comment,
+  ev.schema AS default_version_schema
+FROM
+  pg_available_extensions e
+  LEFT JOIN pg_extension x ON e.name = x.extname
+  LEFT JOIN pg_namespace n ON x.extnamespace = n.oid
+  LEFT JOIN pg_available_extension_versions ev
+    ON ev.name = e.name AND ev.version = e.default_version",postgres,4,194.253383,72.045828,369.712521,777.013532,312,100.0000000000000000,78.77448213647429,null
+"with
+role_setting as (
+  select r.rolname, unnest(r.rolconfig) as setting
+  from pg_auth_members m
+  join pg_roles r on r.oid = m.roleid
+  where member = current_user::regrole::oid
+),
+kv_settings AS (
+  SELECT
+    rolname,
+    substr(setting, $1, strpos(setting, $2) - $3) as key,
+    lower(substr(setting, strpos(setting, $4) + $5)) as value
+  FROM role_setting
+),
+iso_setting AS (
+  SELECT rolname, value
+  FROM kv_settings
+  WHERE key = $6
+)
+select
+  kv.rolname,
+  i.value as iso_lvl,
+  coalesce(array_agg(row(kv.key, kv.value)) filter (where key <> $7), $8) as role_settings
+from kv_settings kv
+join pg_settings ps on ps.name = kv.key and (ps.context = $9 or has_parameter_privilege(current_user::regrole::oid, ps.name, $10))
+left join iso_setting i on i.rolname = kv.rolname
+group by kv.rolname, i.value",authenticator,3,3.097806,1.954322,4.936395,9.293418,6,99.7614788312462731,0.9421768863451258,null
+set local schema '',authenticator,3,0.301571333333333,0.006395,0.891025,0.904714,0,0,0.09172089532105883,null
+"WITH
+pks_uniques_cols AS (
+  SELECT
+    conrelid,
+    array_agg(key order by key) as cols
+  FROM pg_constraint,
+  LATERAL unnest(conkey) AS _(key)
+  WHERE
+    contype IN ($1, $2)
+    AND connamespace <> $3::regnamespace
+  GROUP BY oid, conrelid
+)
+SELECT
+  ns1.nspname AS table_schema,
+  tab.relname AS table_name,
+  ns2.nspname AS foreign_table_schema,
+  other.relname AS foreign_table_name,
+  traint.conrelid = traint.confrelid AS is_self,
+  traint.conname  AS constraint_name,
+  column_info.cols_and_fcols,
+  (column_info.cols IN (SELECT cols FROM pks_uniques_cols WHERE conrelid = traint.conrelid)) AS one_to_one
+FROM pg_constraint traint
+JOIN LATERAL (
+  SELECT
+    array_agg(row(cols.attname, refs.attname) order by ord) AS cols_and_fcols,
+    array_agg(cols.attnum order by cols.attnum) AS cols
+  FROM unnest(traint.conkey, traint.confkey) WITH ORDINALITY AS _(col, ref, ord)
+  JOIN pg_attribute cols ON cols.attrelid = traint.conrelid AND cols.attnum = col
+  JOIN pg_attribute refs ON refs.attrelid = traint.confrelid AND refs.attnum = ref
+) AS column_info ON $4
+JOIN pg_namespace ns1 ON ns1.oid = traint.connamespace
+JOIN pg_class tab ON tab.oid = traint.conrelid
+JOIN pg_class other ON other.oid = traint.confrelid
+JOIN pg_namespace ns2 ON ns2.oid = other.relnamespace
+WHERE traint.contype = $5
+AND traint.conparentid = $6
+ORDER BY traint.conrelid, traint.conname",authenticator,3,0.876409,0.778935,0.985218,2.629227,72,100.0000000000000000,0.2665539103432704,null
+"with recursive
+pks_fks as (
+  -- pk + fk referencing col
+  select
+    contype::text as contype,
+    conname,
+    array_length(conkey, $3) as ncol,
+    conrelid as resorigtbl,
+    col as resorigcol,
+    ord
+  from pg_constraint
+  left join lateral unnest(conkey) with ordinality as _(col, ord) on $4
+  where contype IN ($5, $6)
+  union
+  -- fk referenced col
+  select
+    concat(contype, $7) as contype,
+    conname,
+    array_length(confkey, $8) as ncol,
+    confrelid,
+    col,
+    ord
+  from pg_constraint
+  left join lateral unnest(confkey) with ordinality as _(col, ord) on $9
+  where contype=$10
+),
+views as (
+  select
+    c.oid          as view_id,
+    c.relnamespace as view_schema_id,
+    n.nspname      as view_schema,
+    c.relname      as view_name,
+    r.ev_action    as view_definition
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  join pg_rewrite r on r.ev_class = c.oid
+  where c.relkind in ($11, $12) and c.relnamespace = ANY($1::regnamespace[] || $2::regnamespace[])
+),
+transform_json as (
+  select
+    view_id, view_schema_id, view_schema, view_name,
+    -- the following formatting is without indentation on purpose
+    -- to allow simple diffs, with less whitespace noise
+    replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      regexp_replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+      replace(
+        view_definition::text,
+      -- This conversion to json is heavily optimized for performance.
+      -- The general idea is to use as few regexp_replace() calls as possible.
+      -- Simple replace() is a lot faster, so we jump through some hoops
+      -- to be able to use regexp_replace() only once.
+      -- This has been tested against a huge schema with 250+ different views.
+      -- The unit tests do NOT reflect all possible inputs. Be careful when changing this!
+      -- -----------------------------------------------
+      -- pattern           | replacement         | flags
+      -- -----------------------------------------------
+      -- `<>` in pg_node_tree is the same as `null` in JSON, but due to very poor performance of json_typeof
+      -- we need to make this an empty array here to prevent json_array_elements from throwing an error
+      -- when the targetList is null.
+      -- We'll need to put it first, to make the node protection below work for node lists that start with
+      -- null: `(<> ...`, too. This is the case for coldefexprs, when the first column does not have a default value.
+         $13              , $14
+      -- `,` is not part of the pg_node_tree format, but used in the regex.
+      -- This removes all `,` that might be part of column names.
+      ), $15               , $16
+      -- The same applies for `{` and `}`, although those are used a lot in pg_node_tree.
+      -- We remove the escaped ones, which might be part of column names again.
+      ), $17            , $18
+      ), $19            , $20
+      -- The fields we need are formatted as json manually to protect them from the regex.
+      ), $21   , $22
+      ), $23        , $24
+      ), $25   , $26
+      ), $27   , $28
+      -- Make the regex also match the node type, e.g. `{QUERY ...`, to remove it in one pass.
+      ), $29               , $30
+      -- Protect node lists, which start with `({` or `((` from the greedy regex.
+      -- The extra `{` is removed again later.
+      ), $31              , $32
+      ), $33              , $34
+      -- This regex removes all unused fields to avoid the need to format all of them correctly.
+      -- This leads to a smaller json result as well.
+      -- Removal stops at `,` for used fields (see above) and `}` for the end of the current node.
+      -- Nesting can't be parsed correctly with a regex, so we stop at `{` as well and
+      -- add an empty key for the followig node.
+      ), $35       , $36              , $37
+      -- For performance, the regex also added those empty keys when hitting a `,` or `}`.
+      -- Those are removed next.
+      ), $38           , $39
+      ), $40           , $41
+      -- This reverses the ""node list protection"" from above.
+      ), $42              , $43
+      -- Every key above has been added with a `,` so far. The first key in an object doesn't need it.
+      ), $44              , $45
+      -- pg_node_tree has `()` around lists, but JSON uses `[]`
+      ), $46               , $47
+      ), $48               , $49
+      -- pg_node_tree has ` ` between list items, but JSON uses `,`
+      ), $50             , $51
+    )::json as view_definition
+  from views
+),
+target_entries as(
+  select
+    view_id, view_schema_id, view_schema, view_name,
+    json_array_elements(view_definition->$52->$53) as entry
+  from transform_json
+),
+results as(
+  select
+    view_id, view_schema_id, view_schema, view_name,
+    (entry->>$54)::int as view_column,
+    (entry->>$55)::oid as resorigtbl,
+    (entry->>$56)::int as resorigcol
+  from target_entries
+),
+-- CYCLE detection according to PG docs: https://www.postgresql.org/docs/current/queries-with.html#QUERIES-WITH-CYCLE
+-- Can be replaced with CYCLE clause once PG v13 is EOL.
+recursion(view_id, view_schema_id, view_schema, view_name, view_column, resorigtbl, resorigcol, is_cycle, path) as(
+  select
+    r.*,
+    $57,
+    ARRAY[resorigtbl]
+  from results r
+  where view_schema_id = ANY ($1::regnamespace[])
+  union all
+  select
+    view.view_id,
+    view.view_schema_id,
+    view.view_schema,
+    view.view_name,
+    view.view_column,
+    tab.resorigtbl,
+    tab.resorigcol,
+    tab.resorigtbl = ANY(path),
+    path || tab.resorigtbl
+  from recursion view
+  join results tab on view.resorigtbl=tab.view_id and view.resorigcol=tab.view_column
+  where not is_cycle
+),
+repeated_references as(
+  select
+    view_id,
+    view_schema,
+    view_name,
+    resorigtbl,
+    resorigcol,
+    array_agg(attname) as view_columns
+  from recursion
+  join pg_attribute vcol on vcol.attrelid = view_id and vcol.attnum = view_column
+  group by
+    view_id,
+    view_schema,
+    view_name,
+    resorigtbl,
+    resorigcol
+)
+select
+  sch.nspname as table_schema,
+  tbl.relname as table_name,
+  rep.view_schema,
+  rep.view_name,
+  pks_fks.conname as constraint_name,
+  pks_fks.contype as constraint_type,
+  array_agg(row(col.attname, view_columns) order by pks_fks.ord) as column_dependencies
+from repeated_references rep
+join pks_fks using (resorigtbl, resorigcol)
+join pg_class tbl on tbl.oid = rep.resorigtbl
+join pg_attribute col on col.attrelid = tbl.oid and col.attnum = rep.resorigcol
+join pg_namespace sch on sch.oid = tbl.relnamespace
+group by sch.nspname, tbl.relname, rep.view_schema, rep.view_name, pks_fks.conname, pks_fks.contype, pks_fks.ncol
+-- make sure we only return key for which all columns are referenced in the view - no partial PKs or FKs
+having ncol = array_length(array_agg(row(col.attname, view_columns) order by pks_fks.ord), $58)",authenticator,3,2.64335333333333,1.799246,3.645708,7.93006,0,87.1345029239766082,0.8039581604238643,null
+"with
+all_relations as (
+  select reltype
+  from pg_class
+  where relkind in ($1,$2,$3,$4,$5)
+),
+computed_rels as (
+  select
+    (parse_ident(p.pronamespace::regnamespace::text))[$6] as schema,
+    p.proname::text                  as name,
+    arg_schema.nspname::text         as rel_table_schema,
+    arg_name.typname::text           as rel_table_name,
+    ret_schema.nspname::text         as rel_ftable_schema,
+    ret_name.typname::text           as rel_ftable_name,
+    not p.proretset or p.prorows = $7 as single_row
+  from pg_proc p
+    join pg_type      arg_name   on arg_name.oid = p.proargtypes[$8]
+    join pg_namespace arg_schema on arg_schema.oid = arg_name.typnamespace
+    join pg_type      ret_name   on ret_name.oid = p.prorettype
+    join pg_namespace ret_schema on ret_schema.oid = ret_name.typnamespace
+  where
+    p.pronargs = $9
+    and p.proargtypes[$10] in (select reltype from all_relations)
+    and p.prorettype in (select reltype from all_relations)
+)
+select
+  *,
+  row(rel_table_schema, rel_table_name) = row(rel_ftable_schema, rel_ftable_name) as is_self
+from computed_rels",authenticator,3,1.487591,1.354054,1.70175,4.462773,0,94.8148148148148148,0.45244081021698324,null
+"SELECT current_setting($1)::integer, current_setting($2), version()",authenticator,3,0.0140256666666667,0.012583,0.016827,0.042077,3,0,0.004265812303583445,null
+"SELECT
+  c.castsource::regtype::text,
+  c.casttarget::regtype::text,
+  c.castfunc::regproc::text
+FROM
+  pg_catalog.pg_cast c
+JOIN pg_catalog.pg_type src_t
+  ON c.castsource::oid = src_t.oid
+JOIN pg_catalog.pg_type dst_t
+  ON c.casttarget::oid = dst_t.oid
+WHERE
+  c.castcontext = $1
+  AND c.castmethod = $2
+  AND has_function_privilege(c.castfunc, $3)
+  AND ((src_t.typtype = $4 AND c.casttarget IN ($5::regtype::oid , $6::regtype::oid))
+   OR (dst_t.typtype = $7 AND c.castsource IN ($8::regtype::oid , $9::regtype::oid)))",authenticator,3,0.443411333333333,0.397427,0.510583,1.330234,0,100.0000000000000000,0.13486057855467404,null
+select system_identifier from pg_control_system(),supabase_admin,3,0.239505333333333,0.025659,0.666885,0.718516,3,0,0.07284393833024128,null
+"LISTEN ""pgrst""",authenticator,3,0.001236,0.001101,0.001422,0.003708,0,0,0.0003759210975518077,null
+"WITH
+role_setting AS (
+  SELECT setdatabase as database,
+         unnest(setconfig) as setting
+  FROM pg_catalog.pg_db_role_setting
+  WHERE setrole = CURRENT_USER::regrole::oid
+    AND setdatabase IN ($2, (SELECT oid FROM pg_catalog.pg_database WHERE datname = CURRENT_CATALOG))
+),
+kv_settings AS (
+  SELECT database,
+         substr(setting, $3, strpos(setting, $4) - $5) as k,
+         substr(setting, strpos(setting, $6) + $7) as v
+  FROM role_setting
+  
+)
+SELECT DISTINCT ON (key)
+       replace(k, $8, $9) AS key,
+       v AS value
+FROM kv_settings
+WHERE k = ANY($1) AND v IS NOT NULL
+ORDER BY key, database DESC NULLS LAST",authenticator,3,0.269315666666667,0.074014,0.648479,0.807947,0,100.0000000000000000,0.08191055097186903,null
+select (current_setting($1))::int,supabase_admin,3,0.00916466666666667,0.00495,0.017158,0.027494,3,0,0.002787371805849353,null
+"with
+all_relations as (
+  select reltype
+  from pg_class
+  where relkind in ($2,$3,$4,$5,$6)
+  union
+  select oid
+  from pg_type
+  where typname = $7
+),
+media_types as (
+    SELECT
+      t.oid,
+      lower(t.typname) as typname,
+      t.typnamespace,
+      case t.typname
+        when $8 then $9
+        else t.typname
+      end as resolved_media_type
+    FROM pg_type t
+    JOIN pg_type b ON t.typbasetype = b.oid
+    WHERE
+      t.typbasetype <> $10 and
+      (t.typname ~* $11 or t.typname = $12)
+)
+select
+  proc_schema.nspname           as handler_schema,
+  proc.proname                  as handler_name,
+  arg_schema.nspname::text      as target_schema,
+  arg_name.typname::text        as target_name,
+  media_types.typname           as media_type,
+  media_types.resolved_media_type
+from media_types
+  join pg_proc      proc         on proc.prorettype = media_types.oid
+  join pg_namespace proc_schema  on proc_schema.oid = proc.pronamespace
+  join pg_aggregate agg          on agg.aggfnoid = proc.oid
+  join pg_type      arg_name     on arg_name.oid = proc.proargtypes[$13]
+  join pg_namespace arg_schema   on arg_schema.oid = arg_name.typnamespace
+where
+  proc.pronamespace = ANY($1::regnamespace[]) and
+  proc.pronargs = $14 and
+  arg_name.oid in (select reltype from all_relations)
+union
+select
+    typ_sch.nspname as handler_schema,
+    mtype.typname   as handler_name,
+    pro_sch.nspname as target_schema,
+    proname         as target_name,
+    mtype.typname   as media_type,
+    mtype.resolved_media_type
+from pg_proc proc
+  join pg_namespace pro_sch on pro_sch.oid = proc.pronamespace
+  join media_types mtype on proc.prorettype = mtype.oid
+  join pg_namespace typ_sch     on typ_sch.oid = mtype.typnamespace
+where
+  proc.pronamespace = ANY($1::regnamespace[]) and NOT proretset
+  and prokind = $15",authenticator,3,0.158710333333333,0.140508,0.180263,0.476131,0,100.0000000000000000,0.04827068179569573,null
+BEGIN ISOLATION LEVEL READ COMMITTED READ ONLY,authenticator,3,0.00957466666666667,0.006211,0.015828,0.028724,0,0,0.0029120705518010043,null
+SELECT word FROM pg_get_keywords(),postgres,3,0.618193,0.359511,0.954409,1.854579,1473,0,0.18801924842948597,null
+"with
+all_relations as (
+  select reltype
+  from pg_class
+  where relkind in ($1,$2,$3,$4,$5)
+),
+computed_rels as (
+  select
+    (parse_ident(p.pronamespace::regnamespace::text))[$6] as schema,
+    p.proname::text                  as name,
+    arg_schema.nspname::text         as rel_table_schema,
+    arg_name.typname::text           as rel_table_name,
+    ret_schema.nspname::text         as rel_ftable_schema,
+    ret_name.typname::text           as rel_ftable_name,
+    not p.proretset or p.prorows = $7 as single_row
+  from pg_proc p
+    join pg_type      arg_name   on arg_name.oid = p.proargtypes[$8]
+    join pg_namespace arg_schema on arg_schema.oid = arg_name.typnamespace
+    join pg_type      ret_name   on ret_name.oid = p.prorettype
+    join pg_namespace ret_schema on ret_schema.oid = ret_name.typnamespace
+  where
+    p.pronargs = $9
+    and p.proargtypes[$10] in (select reltype from all_relations)
+    and p.prorettype in (select reltype from all_relations)
+)
+select
+  *,
+  row(rel_table_schema, rel_table_name) = row(rel_ftable_schema, rel_ftable_name) as is_self
+from computed_rels",authenticator,3,1.487591,1.354054,1.70175,4.462773,0,94.8148148148148148,0.45244081021698324,null
+"SELECT current_setting($1)::integer, current_setting($2), version()",authenticator,3,0.0140256666666667,0.012583,0.016827,0.042077,3,0,0.004265812303583445,null
+"WITH
+-- Recursively get the base types of domains
+base_types AS (
+  WITH RECURSIVE
+  recurse AS (
+    SELECT
+      oid,
+      typbasetype,
+      typnamespace AS base_namespace,
+      COALESCE(NULLIF(typbasetype, $2), oid) AS base_type
+    FROM pg_type
+    UNION
+    SELECT
+      t.oid,
+      b.typbasetype,
+      b.typnamespace AS base_namespace,
+      COALESCE(NULLIF(b.typbasetype, $3), b.oid) AS base_type
+    FROM recurse t
+    JOIN pg_type b ON t.typbasetype = b.oid
+  )
+  SELECT
+    oid,
+    base_namespace,
+    base_type
+  FROM recurse
+  WHERE typbasetype = $4
+),
+columns AS (
+    SELECT
+        c.oid AS relid,
+        a.attname::name AS column_name,
+        d.description AS description,
+        -- typbasetype and typdefaultbin handles `CREATE DOMAIN .. DEFAULT val`,  attidentity/attgenerated handles generated columns, pg_get_expr gets the default of a column
+        CASE
+          WHEN (t.typbasetype != $5) AND (ad.adbin IS NULL) THEN pg_get_expr(t.typdefaultbin, $6)
+          WHEN a.attidentity  = $7 THEN format($8, seq.objid::regclass)
+          WHEN a.attgenerated = $9 THEN $10
+          ELSE pg_get_expr(ad.adbin, ad.adrelid)::text
+        END AS column_default,
+        not (a.attnotnull OR t.typtype = $11 AND t.typnotnull) AS is_nullable,
+        CASE
+            WHEN t.typtype = $12 THEN
+            CASE
+                WHEN bt.base_namespace = $13::regnamespace THEN format_type(bt.base_type, $14::integer)
+                ELSE format_type(a.atttypid, a.atttypmod)
+            END
+            ELSE
+            CASE
+                WHEN t.typnamespace = $15::regnamespace THEN format_type(a.atttypid, $16::integer)
+                ELSE format_type(a.atttypid, a.atttypmod)
+            END
+        END::text AS data_type,
+        format_type(a.atttypid, a.atttypmod)::text AS nominal_data_type,
+        information_schema._pg_char_max_length(
+            information_schema._pg_truetypid(a.*, t.*),
+            information_schema._pg_truetypmod(a.*, t.*)
+        )::integer AS character_maximum_length,
+        bt.base_type,
+        a.attnum::integer AS position
+    FROM pg_attribute a
+        LEFT JOIN pg_description AS d
+            ON d.objoid = a.attrelid and d.objsubid = a.attnum and d.classoid = $17::regclass
+        LEFT JOIN pg_attrdef ad
+            ON a.attrelid = ad.adrelid AND a.attnum = ad.adnum
+        JOIN pg_class c
+            ON a.attrelid = c.oid
+        JOIN pg_type t
+            ON a.atttypid = t.oid
+        LEFT JOIN base_types bt
+            ON t.oid = bt.oid
+        LEFT JOIN pg_depend seq
+            ON seq.refobjid = a.attrelid and seq.refobjsubid = a.attnum and seq.deptype = $18
+    WHERE
+        NOT pg_is_other_temp_schema(c.relnamespace)
+        AND a.attnum > $19
+        AND NOT a.attisdropped
+        AND c.relkind in ($20, $21, $22, $23, $24)
+        AND c.relnamespace = ANY($1::regnamespace[])
+),
+columns_agg AS (
+  SELECT
+    relid,
+    array_agg(row(
+      column_name,
+      description,
+      is_nullable::boolean,
+      data_type,
+      nominal_data_type,
+      character_maximum_length,
+      column_default,
+      coalesce(
+        (SELECT array_agg(enumlabel ORDER BY enumsortorder) FROM pg_enum WHERE enumtypid = base_type),
+        $25
+      )
+    ) order by position) as columns
+  FROM columns
+  GROUP BY relid
+),
+tbl_pk_cols AS (
+  SELECT
+    r.oid AS relid,
+    array_agg(a.attname ORDER BY a.attname) AS pk_cols
+  FROM pg_class r
+  JOIN pg_constraint c
+    ON r.oid = c.conrelid
+  JOIN pg_attribute a
+    ON a.attrelid = r.oid AND a.attnum = ANY (c.conkey)
+  WHERE
+    c.contype in ($26)
+    AND r.relkind IN ($27, $28)
+    AND r.relnamespace NOT IN ($29::regnamespace, $30::regnamespace)
+    AND NOT pg_is_other_temp_schema(r.relnamespace)
+    AND NOT a.attisdropped
+  GROUP BY r.oid
+)
+SELECT
+  n.nspname AS table_schema,
+  c.relname AS table_name,
+  d.description AS table_description,
+  c.relkind IN ($31,$32) as is_view,
+  (
+    c.relkind IN ($33,$34)
+    OR (
+      c.relkind in ($35,$36)
+      -- The function `pg_relation_is_updateable` returns a bitmask where 8
+      -- corresponds to `1 << CMD_INSERT` in the PostgreSQL source code, i.e.
+      -- it's possible to insert into the relation.
+      AND (pg_relation_is_updatable(c.oid::regclass, $37) & $38) = $39
+    )
+  ) AS insertable,
+  (
+    c.relkind IN ($40,$41)
+    OR (
+      c.relkind in ($42,$43)
+      -- CMD_UPDATE
+      AND (pg_relation_is_updatable(c.oid::regclass, $44) & $45) = $46
+    )
+  ) AS updatable,
+  (
+    c.relkind IN ($47,$48)
+    OR (
+      c.relkind in ($49,$50)
+      -- CMD_DELETE
+      AND (pg_relation_is_updatable(c.oid::regclass, $51) & $52) = $53
+    )
+  ) AS deletable,
+  coalesce(tpks.pk_cols, $54) as pk_cols,
+  coalesce(cols_agg.columns, $55) as columns
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+LEFT JOIN pg_description d on d.objoid = c.oid and d.objsubid = $56 and d.classoid = $57::regclass
+LEFT JOIN tbl_pk_cols tpks ON c.oid = tpks.relid
+LEFT JOIN columns_agg cols_agg ON c.oid = cols_agg.relid
+WHERE c.relkind IN ($58,$59,$60,$61,$62)
+AND c.relnamespace NOT IN ($63::regnamespace, $64::regnamespace)
+AND not c.relispartition
+ORDER BY table_schema, table_name",authenticator,3,22.9839526666667,7.297404,31.049266,68.951858,120,84.3460350154479918,6.990414815964508,null
+"SELECT ""id"", ""version"", ""metadata""
+            FROM storage.objects
+            WHERE name = $1
+              AND bucket_id = $2
+            LIMIT $3
+            FOR UPDATE",service_role,2,0.013849,0.010399,0.017299,0.027698,0,100.0000000000000000,0.002808053549080359,null
+"SELECT n_live_tup AS live_tuple_estimate
+FROM pg_stat_user_tables
+WHERE schemaname = $1
+AND relname = $2",postgres,2,0.1877985,0.178763,0.196834,0.375597,2,100.0000000000000000,0.03807843486439221,null
+SAVEPOINT $1,service_role,2,0.0010395,0.001033,0.001046,0.002079,0,0,0.0002107712949865718,null
+"SET search_path TO storage,public,extensions",supabase_storage_admin,2,0.4807815,0.012409,0.949154,0.961563,0,0,0.09748430914919333,null
+SELECT * FROM migrations WHERE id <= $1 ORDER BY id,supabase_storage_admin,2,1.970026,0.667426,3.272626,3.940052,123,100.0000000000000000,0.39944678323926514,null
+COMMIT,supabase_admin,2,0.001135,0.000795,0.001475,0.00227,0,0,0.0002301350839920721,null
+"select t.oid, t.typname
+from pg_type t
+	join pg_class cls on t.typrelid=cls.oid
+where t.typtype = $1
+	and cls.relkind=$2",supabase_admin,2,0.7323535,0.350895,1.113812,1.464707,6,100.0000000000000000,0.14849359844439472,null
+SELECT pg_try_advisory_lock($1),supabase_storage_admin,2,0.3806195,0.019729,0.74151,0.761239,2,0,0.07717524282072291,null
+"select t.oid,
+	case when nsp.nspname in ($1, $2) then t.typname
+		else nsp.nspname||$3||t.typname
+	end
+from pg_type t
+left join pg_type base_type on t.typelem=base_type.oid
+left join pg_class base_cls ON base_type.typrelid = base_cls.oid
+left join pg_namespace nsp on t.typnamespace=nsp.oid
+where (
+	  t.typtype in($4, $5, $6, $7)
+	  and (base_type.oid is null or base_type.typtype in($8, $9, $10))
+	)",supabase_admin,2,1.442374,1.151531,1.733217,2.884748,370,100.0000000000000000,0.29245890893214194,null
