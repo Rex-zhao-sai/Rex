@@ -69,11 +69,13 @@ export function PhotoUploader({
         } catch (err) {
           console.warn('[PhotoUploader] S3 URL 获取失败，尝试 Supabase:', err);
           // 尝试 Supabase Storage
-          try {
-            beforeUrl = await getPhotoSignedUrl(beforeKey);
-            console.log('[PhotoUploader] 从 Supabase 获取 beforeUrl:', beforeUrl);
-          } catch (supabaseErr) {
-            console.error('[PhotoUploader] Supabase 也失败:', supabaseErr);
+          if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+            try {
+              beforeUrl = await getPhotoSignedUrl(beforeKey);
+              console.log('[PhotoUploader] 从 Supabase 获取 beforeUrl:', beforeUrl);
+            } catch (supabaseErr) {
+              console.error('[PhotoUploader] Supabase 也失败:', supabaseErr);
+            }
           }
         }
       } else {
@@ -99,11 +101,13 @@ export function PhotoUploader({
         } catch (err) {
           console.warn('[PhotoUploader] S3 URL 获取失败，尝试 Supabase:', err);
           // 尝试 Supabase Storage
-          try {
-            afterUrl = await getPhotoSignedUrl(afterKey);
-            console.log('[PhotoUploader] 从 Supabase 获取 afterUrl:', afterUrl);
-          } catch (supabaseErr) {
-            console.error('[PhotoUploader] Supabase 也失败:', supabaseErr);
+          if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+            try {
+              afterUrl = await getPhotoSignedUrl(afterKey);
+              console.log('[PhotoUploader] 从 Supabase 获取 afterUrl:', afterUrl);
+            } catch (supabaseErr) {
+              console.error('[PhotoUploader] Supabase 也失败:', supabaseErr);
+            }
           }
         }
       } else {
@@ -140,9 +144,13 @@ export function PhotoUploader({
           console.warn("[PhotoUpload] Direct upload failed, trying Supabase:", directError);
           // 回退到 Supabase Storage
           try {
-            const filePath = `${pair.id}_${type}_${Date.now()}.jpg`;
-            s3Key = await uploadPhotoToSupabase(compressedBlob, filePath);
-            console.log("[PhotoUpload] Supabase upload success:", s3Key);
+            if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+              const filePath = `${pair.id}_${type}_${Date.now()}.jpg`;
+              s3Key = await uploadPhotoToSupabase(compressedBlob, filePath);
+              console.log("[PhotoUpload] Supabase upload success:", s3Key);
+            } else {
+              throw new Error("Supabase URL not configured");
+            }
           } catch (supabaseError) {
             console.warn("[PhotoUpload] Supabase upload failed, trying API route:", supabaseError);
             // 回退到 API 路由上传 (Coze)

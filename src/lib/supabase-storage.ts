@@ -10,8 +10,18 @@ export const SUPABASE_BUCKET = 'maintenance-photos';
 // CDN 缓存时间：7 天（照片不会变化）
 export const CDN_CACHE_SECONDS = 7 * 24 * 60 * 60; // 604800 秒
 
-// 创建 Supabase 客户端
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// 懒加载 Supabase 客户端（避免构建时因缺少环境变量报错）
+let _supabase: ReturnType<typeof createClient> | null = null;
+
+export function getSupabaseClient() {
+  if (!_supabase) {
+    if (!supabaseUrl) {
+      throw new Error('Supabase URL not configured');
+    }
+    _supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return _supabase;
+}
 
 // 生成照片存储路径
 export function generatePhotoPath(
@@ -30,7 +40,7 @@ export async function uploadPhotoToSupabase(
   path: string
 ): Promise<string | null> {
   try {
-    const { data, error } = await supabase.storage
+    const { data, error } = await getSupabaseClient().storage
       .from(SUPABASE_BUCKET)
       .upload(path, file, {
         cacheControl: String(CDN_CACHE_SECONDS),
@@ -53,7 +63,7 @@ export async function uploadPhotoToSupabase(
 
 // 获取照片的公共 URL（带 CDN 缓存）
 export function getPhotoPublicUrl(path: string): string {
-  const { data } = supabase.storage
+  const { data } = getSupabaseClient().storage
     .from(SUPABASE_BUCKET)
     .getPublicUrl(path);
 
@@ -66,7 +76,7 @@ export async function getPhotoSignedUrl(
   expiresIn: number = 3600 // 1 小时
 ): Promise<string | null> {
   try {
-    const { data, error } = await supabase.storage
+    const { data, error } = await getSupabaseClient().storage
       .from(SUPABASE_BUCKET)
       .createSignedUrl(path, expiresIn);
 
@@ -87,7 +97,7 @@ export async function deletePhotoFromSupabase(
   path: string
 ): Promise<boolean> {
   try {
-    const { error } = await supabase.storage
+    const { error } = await getSupabaseClient().storage
       .from(SUPABASE_BUCKET)
       .remove([path]);
 
