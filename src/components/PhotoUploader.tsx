@@ -7,7 +7,7 @@ import { Camera, X, Clock, Loader2 } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
 import { uploadToS3, getS3PhotoUrl } from "@/lib/s3";
 import { uploadToS3Direct } from "@/lib/s3-direct-upload";
-import { uploadToSupabase, getSupabasePhotoUrl } from "@/lib/supabase-storage";
+import { uploadPhotoToSupabase, getSupabasePhotoUrl } from "@/lib/supabase-storage";
 
 interface PhotoUploaderProps {
   pair: PhotoPair;
@@ -140,7 +140,7 @@ export function PhotoUploader({
           console.warn("[PhotoUpload] Direct upload failed, trying Supabase:", directError);
           // 回退到 Supabase Storage
           try {
-            s3Key = await uploadToSupabase(compressedBlob, file.name, pair.id, type);
+            s3Key = await uploadPhotoToSupabase(compressedBlob, filePath);
             console.log("[PhotoUpload] Supabase upload success:", s3Key);
           } catch (supabaseError) {
             console.warn("[PhotoUpload] Supabase upload failed, trying API route:", supabaseError);
