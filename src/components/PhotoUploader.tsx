@@ -140,6 +140,7 @@ export function PhotoUploader({
           console.warn("[PhotoUpload] Direct upload failed, trying Supabase:", directError);
           // 回退到 Supabase Storage
           try {
+            const filePath = `${pair.id}_${type}_${Date.now()}.jpg`;
             s3Key = await uploadPhotoToSupabase(compressedBlob, filePath);
             console.log("[PhotoUpload] Supabase upload success:", s3Key);
           } catch (supabaseError) {
