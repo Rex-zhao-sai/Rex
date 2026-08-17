@@ -7,7 +7,7 @@ import { Camera, X, Clock, Loader2 } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
 import { uploadToS3, getS3PhotoUrl } from "@/lib/s3";
 import { uploadToS3Direct } from "@/lib/s3-direct-upload";
-import { uploadPhotoToSupabase, getSupabasePhotoUrl } from "@/lib/supabase-storage";
+import { uploadPhotoToSupabase, getPhotoSignedUrl } from "@/lib/supabase-storage";
 
 interface PhotoUploaderProps {
   pair: PhotoPair;
@@ -70,7 +70,7 @@ export function PhotoUploader({
           console.warn('[PhotoUploader] S3 URL 获取失败，尝试 Supabase:', err);
           // 尝试 Supabase Storage
           try {
-            beforeUrl = await getSupabasePhotoUrl(beforeKey);
+            beforeUrl = await getPhotoSignedUrl(beforeKey);
             console.log('[PhotoUploader] 从 Supabase 获取 beforeUrl:', beforeUrl);
           } catch (supabaseErr) {
             console.error('[PhotoUploader] Supabase 也失败:', supabaseErr);
@@ -100,7 +100,7 @@ export function PhotoUploader({
           console.warn('[PhotoUploader] S3 URL 获取失败，尝试 Supabase:', err);
           // 尝试 Supabase Storage
           try {
-            afterUrl = await getSupabasePhotoUrl(afterKey);
+            afterUrl = await getPhotoSignedUrl(afterKey);
             console.log('[PhotoUploader] 从 Supabase 获取 afterUrl:', afterUrl);
           } catch (supabaseErr) {
             console.error('[PhotoUploader] Supabase 也失败:', supabaseErr);
