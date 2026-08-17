@@ -3,6 +3,8 @@
  * 从预生成的 URL 池中获取上传 URL，直接上传到 S3
  */
 
+import { getBasePath } from './utils';
+
 interface UploadUrl {
   key: string;
   url: string;
@@ -97,12 +99,27 @@ async function loadUploadUrls(): Promise<UploadUrl[]> {
   }
 
   try {
-    // 使用 basePath 确保在 GitHub Pages 项目站点中正确获取文件
-    // GitHub Pages 项目站点路径为 /Rex，Coze 环境为空
-    const basePath = typeof window !== 'undefined' && window.location.pathname.startsWith('/Rex/') ? '/Rex' : '';
-    const response = await fetch(`${basePath}/upload-urls.json`);
+    const basePath = getBasePath();
+    const url = `${basePath}/upload-urls.json`;
+    console.log("[Upload] Fetching upload URLs from:", url);
+    const response = await fetch(url);
     if (!response.ok) {
-      console.error("[Upload] Failed to load upload URLs");
+      console.error(`[Upload] Failed to load upload URLs: ${response.status} ${response.statusText} from ${url}`);
+      // 如果带 basePath 失败，尝试不带 basePath（兜底）
+      if (basePath) {
+        console.log("[Upload] Trying fallback without basePath...");
+        const fallbackResponse = await fetch('/upload-urls.json');
+        if (fallbackResponse.ok) {
+          console.log("[Upload] Fallback succeeded without basePath");
+          urlCache = await fallbackResponse.json();
+          cacheTimestamp = Date.now();
+          localStorage.setItem(UPLOAD_URLS_CACHE_KEY, JSON.stringify({
+            urls: urlCache,
+            timestamp: cacheTimestamp,
+          }));
+          return urlCache || [];
+        }
+      }
       return [];
     }
 

@@ -6,6 +6,8 @@
  * @param type - before 或 after
  * @returns S3 key（用于持久化存储）
  */
+import { getBasePath } from './utils';
+
 export async function uploadToS3(
   blob: Blob,
   fileName: string,
@@ -19,8 +21,9 @@ export async function uploadToS3(
   formData.append("pairId", pairId);
   formData.append("type", type);
 
+  const basePath = getBasePath();
   // 调用 API 路由上传
-  const response = await fetch("/api/s3?action=upload", {
+  const response = await fetch(`${basePath}/api/s3?action=upload`, {
     method: "POST",
     body: formData,
   });
@@ -40,8 +43,9 @@ export async function uploadToS3(
  * @returns 预签名 URL
  */
 export async function getS3PhotoUrl(s3Key: string): Promise<string> {
+  const basePath = getBasePath();
   // 调用 API 路由获取预签名 URL
-  const response = await fetch(`/api/s3?action=presigned-url&key=${encodeURIComponent(s3Key)}`);
+  const response = await fetch(`${basePath}/api/s3?action=presigned-url&key=${encodeURIComponent(s3Key)}`);
 
   if (!response.ok) {
     const error = await response.json();
