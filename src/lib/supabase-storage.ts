@@ -7,8 +7,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env
 // 存储桶名称
 export const SUPABASE_BUCKET = 'maintenance-photos';
 
-// CDN 缓存时间：7 天（照片不会变化）
-export const CDN_CACHE_SECONDS = 7 * 24 * 60 * 60; // 604800 秒
+// CDN 缓存时间：30 天（照片不会变化）
+export const CDN_CACHE_SECONDS = 30 * 24 * 60 * 60; // 2592000 秒
 
 // 懒加载 Supabase 客户端（避免构建时因缺少环境变量报错）
 let _supabase: ReturnType<typeof createClient> | null = null;
