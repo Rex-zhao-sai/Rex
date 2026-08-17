@@ -156,8 +156,8 @@ export function PhotoUploader({
     [pair.id, onUpload]
   );
 
-  // 压缩图片为 Blob（最大 1920px，质量 0.95，保证清晰度）
-  const compressImage = (file: File, maxWidth: number = 1920, quality: number = 0.95): Promise<Blob> => {
+  // 压缩图片为 Blob（最大 1920px，质量 0.8，如果压缩后更大则保留原图）
+  const compressImage = (file: File, maxWidth: number = 1920, quality: number = 0.8): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
@@ -187,8 +187,14 @@ export function PhotoUploader({
           canvas.toBlob(
             (blob) => {
               if (blob) {
-                console.log(`[PhotoCompress] ${file.name}: ${img.width}x${img.height} -> ${width}x${height}, 原始 ${(file.size / 1024).toFixed(0)}KB -> 压缩后 ${(blob.size / 1024).toFixed(0)}KB`);
-                resolve(blob);
+                // 如果压缩后更大，保留原图
+                if (blob.size > file.size) {
+                  console.log(`[PhotoCompress] ${file.name}: 压缩后更大 (${(blob.size / 1024).toFixed(0)}KB > ${(file.size / 1024).toFixed(0)}KB)，保留原图`);
+                  resolve(file);
+                } else {
+                  console.log(`[PhotoCompress] ${file.name}: ${img.width}x${img.height} -> ${width}x${height}, 原始 ${(file.size / 1024).toFixed(0)}KB -> 压缩后 ${(blob.size / 1024).toFixed(0)}KB`);
+                  resolve(blob);
+                }
               } else {
                 reject(new Error('图片压缩失败'));
               }
