@@ -23,8 +23,13 @@ interface UploadUrl {
 
 async function generateUploadUrls(): Promise<UploadUrl[]> {
   // 检查必要的环境变量
-  if (!process.env.COZE_WORKLOAD_IDENTITY_API_KEY) {
-    console.log("⚠️  COZE_WORKLOAD_IDENTITY_API_KEY not set, skipping upload URL generation");
+  const hasWorkloadKey = !!process.env.COZE_WORKLOAD_IDENTITY_API_KEY;
+  const hasDirectCredentials = !!process.env.S3_ACCESS_KEY && !!process.env.S3_SECRET_KEY;
+
+  if (!hasWorkloadKey && !hasDirectCredentials) {
+    console.log("⚠️  No S3 credentials configured. Set either:");
+    console.log("   - COZE_WORKLOAD_IDENTITY_API_KEY (Coze Workload Identity)");
+    console.log("   - S3_ACCESS_KEY + S3_SECRET_KEY (Direct S3 credentials)");
     console.log("   Photo upload will use base64 fallback on GitHub Pages");
     return [];
   }
@@ -32,11 +37,12 @@ async function generateUploadUrls(): Promise<UploadUrl[]> {
   console.log("🔄 Generating S3 presigned upload URLs...");
   console.log(`   Endpoint: ${endpointUrl}`);
   console.log(`   Bucket: ${bucketName}`);
+  console.log(`   Auth method: ${hasWorkloadKey ? 'Workload Identity' : 'Direct credentials'}`);
 
   const s3 = new S3Storage({
     endpointUrl,
-    accessKey: "",
-    secretKey: "",
+    accessKey: process.env.S3_ACCESS_KEY || "",
+    secretKey: process.env.S3_SECRET_KEY || "",
     bucketName,
     region,
   });

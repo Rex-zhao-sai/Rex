@@ -44,6 +44,8 @@ jobs:
           COZE_BUCKET_NAME: ${{ secrets.COZE_BUCKET_NAME }}
           COZE_BUCKET_REGION: ${{ secrets.COZE_BUCKET_REGION }}
           COZE_WORKLOAD_IDENTITY_API_KEY: ${{ secrets.COZE_WORKLOAD_IDENTITY_API_KEY }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
           NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
           NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
       - name: Migrate Supabase photos to S3
@@ -53,6 +55,8 @@ jobs:
           COZE_BUCKET_NAME: ${{ secrets.COZE_BUCKET_NAME }}
           COZE_BUCKET_REGION: ${{ secrets.COZE_BUCKET_REGION }}
           COZE_WORKLOAD_IDENTITY_API_KEY: ${{ secrets.COZE_WORKLOAD_IDENTITY_API_KEY }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
           NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
           NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
       - name: Build for GitHub Pages

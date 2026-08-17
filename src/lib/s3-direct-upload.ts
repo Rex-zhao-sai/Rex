@@ -124,6 +124,7 @@ async function loadUploadUrls(): Promise<UploadUrl[]> {
     }
 
     urlCache = await response.json();
+    console.log(`[Upload] Loaded ${urlCache?.length || 0} upload URLs`);
     cacheTimestamp = Date.now();
 
     // 缓存到 localStorage
