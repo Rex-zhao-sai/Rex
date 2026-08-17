@@ -87,6 +87,12 @@ async function main() {
   try {
     const urls = await generateUploadUrls();
 
+    // 如果没有生成任何 URL，不覆盖已有文件（保留已提交的有效文件）
+    if (urls.length === 0) {
+      console.log("⚠️  No URLs generated, keeping existing upload-urls.json");
+      return;
+    }
+
     // 保存到 public 目录
     const outputPath = path.join(process.cwd(), "public", "upload-urls.json");
     fs.writeFileSync(outputPath, JSON.stringify(urls, null, 2));
