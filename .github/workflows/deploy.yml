@@ -38,7 +38,7 @@ jobs:
           NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
           NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
       - name: Generate upload URLs
-        run: npx tsx scripts/generate-upload-urls.ts
+        run: npx tsx scripts/generate-upload-urls.ts || echo "⚠️ Upload URL generation skipped (using committed upload-urls.json)"
         env:
           COZE_BUCKET_ENDPOINT_URL: ${{ secrets.COZE_BUCKET_ENDPOINT_URL }}
           COZE_BUCKET_NAME: ${{ secrets.COZE_BUCKET_NAME }}
@@ -48,6 +48,7 @@ jobs:
           S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
           NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
           NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
+        continue-on-error: true
       - name: Migrate Supabase photos to S3
         run: npx tsx scripts/migrate-supabase-photos.ts || echo "️  Photo migration skipped or failed (non-critical)"
         env:
