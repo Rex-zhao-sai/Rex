@@ -7,6 +7,7 @@ import { Camera, X, Clock, Loader2 } from "lucide-react";
 import { ImagePreview } from "./ImagePreview";
 import { uploadToS3, getS3PhotoUrl } from "@/lib/s3";
 import { uploadToS3Direct } from "@/lib/s3-direct-upload";
+import { uploadToSupabase, getSupabasePhotoUrl } from "@/lib/supabase-storage";
 
 interface PhotoUploaderProps {
   pair: PhotoPair;
@@ -66,7 +67,14 @@ export function PhotoUploader({
           beforeUrl = await getS3PhotoUrl(beforeKey);
           console.log('[PhotoUploader] 从 s3Key 获取 beforeUrl:', beforeUrl);
         } catch (err) {
-          console.error('Failed to load before photo URL:', err);
+          console.warn('[PhotoUploader] S3 URL 获取失败，尝试 Supabase:', err);
+          // 尝试 Supabase Storage
+          try {
+            beforeUrl = await getSupabasePhotoUrl(beforeKey);
+            console.log('[PhotoUploader] 从 Supabase 获取 beforeUrl:', beforeUrl);
+          } catch (supabaseErr) {
+            console.error('[PhotoUploader] Supabase 也失败:', supabaseErr);
+          }
         }
       } else {
         console.log('[PhotoUploader] before 没有任何可用的 URL 来源');
@@ -89,7 +97,14 @@ export function PhotoUploader({
           afterUrl = await getS3PhotoUrl(afterKey);
           console.log('[PhotoUploader] 从 s3Key 获取 afterUrl:', afterUrl);
         } catch (err) {
-          console.error('Failed to load after photo URL:', err);
+          console.warn('[PhotoUploader] S3 URL 获取失败，尝试 Supabase:', err);
+          // 尝试 Supabase Storage
+          try {
+            afterUrl = await getSupabasePhotoUrl(afterKey);
+            console.log('[PhotoUploader] 从 Supabase 获取 afterUrl:', afterUrl);
+          } catch (supabaseErr) {
+            console.error('[PhotoUploader] Supabase 也失败:', supabaseErr);
+          }
         }
       } else {
         console.log('[PhotoUploader] after 没有任何可用的 URL 来源');
@@ -117,19 +132,26 @@ export function PhotoUploader({
         let s3Key: string | null = null;
         let useBase64Fallback = false;
         
-        // 尝试客户端直传 S3
+        // 尝试客户端直传 S3 (Coze)
         try {
           s3Key = await uploadToS3Direct(compressedBlob, file.name, pair.id, type);
           console.log("[PhotoUpload] Direct upload success:", s3Key);
         } catch (directError) {
-          console.warn("[PhotoUpload] Direct upload failed, trying API route:", directError);
-          // 回退到 API 路由上传
+          console.warn("[PhotoUpload] Direct upload failed, trying Supabase:", directError);
+          // 回退到 Supabase Storage
           try {
-            s3Key = await uploadToS3(compressedBlob, file.name, pair.id, type);
-            console.log("[PhotoUpload] API route upload success:", s3Key);
-          } catch (apiError) {
-            console.warn("[PhotoUpload] API route also failed, using base64 fallback:", apiError);
-            useBase64Fallback = true;
+            s3Key = await uploadToSupabase(compressedBlob, file.name, pair.id, type);
+            console.log("[PhotoUpload] Supabase upload success:", s3Key);
+          } catch (supabaseError) {
+            console.warn("[PhotoUpload] Supabase upload failed, trying API route:", supabaseError);
+            // 回退到 API 路由上传 (Coze)
+            try {
+              s3Key = await uploadToS3(compressedBlob, file.name, pair.id, type);
+              console.log("[PhotoUpload] API route upload success:", s3Key);
+            } catch (apiError) {
+              console.warn("[PhotoUpload] API route also failed, using base64 fallback:", apiError);
+              useBase64Fallback = true;
+            }
           }
         }
         
