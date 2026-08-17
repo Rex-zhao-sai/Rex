@@ -84,6 +84,8 @@ jobs:
           COZE_BUCKET_ENDPOINT_URL: ${{ secrets.COZE_BUCKET_ENDPOINT_URL }}
           COZE_BUCKET_NAME: ${{ secrets.COZE_BUCKET_NAME }}
           COZE_BUCKET_REGION: ${{ secrets.COZE_BUCKET_REGION }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
