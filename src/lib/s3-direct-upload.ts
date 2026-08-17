@@ -100,7 +100,8 @@ async function loadUploadUrls(): Promise<UploadUrl[]> {
 
   try {
     const basePath = getBasePath();
-    const url = `${basePath}/upload-urls.json`;
+    // 添加时间戳防止浏览器缓存空响应
+    const url = `${basePath}/upload-urls.json?t=${Date.now()}`;
     console.log("[Upload] Fetching upload URLs from:", url);
     const response = await fetch(url);
     if (!response.ok) {
