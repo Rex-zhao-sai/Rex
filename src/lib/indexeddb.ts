@@ -158,7 +158,18 @@ export async function cacheLatestRecords(records: CachedRecord[]): Promise<void>
   const db = await getDB();
   const tx = db.transaction('records', 'readwrite');
   const store = tx.objectStore('records');
+  const index = store.index('by-equipment');
 
+  // 先删除这些设备的旧记录（避免同一设备保留多条记录）
+  const equipmentIds = [...new Set(records.map(r => r.equipment_id))];
+  for (const eqId of equipmentIds) {
+    const keys = await index.getAllKeys(eqId);
+    for (const key of keys) {
+      await store.delete(key);
+    }
+  }
+
+  // 写入新记录
   for (const record of records) {
     await store.put(record);
   }
