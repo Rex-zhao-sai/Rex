@@ -172,12 +172,28 @@ export async function cacheLatestRecords(records: CachedRecord[]): Promise<void>
 export async function getCachedLatestRecords(): Promise<CachedRecord[]> {
   const db = await getDB();
   const all = await db.getAll('records');
-  // 返回每个设备的最新记录
+  
+  // 获取当前月份
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  // 返回每个设备的最新记录，优先保留当前月份
   const latestMap = new Map<string, CachedRecord>();
   for (const record of all) {
     const existing = latestMap.get(record.equipment_id);
-    if (!existing || new Date(record.updated_at || '') > new Date(existing.updated_at || '')) {
+    if (!existing) {
       latestMap.set(record.equipment_id, record);
+    } else {
+      // 优先保留当前月份的记录
+      if (record.month === currentMonth && existing.month !== currentMonth) {
+        latestMap.set(record.equipment_id, record);
+      } else if (record.month === existing.month) {
+        // 同月份，保留 updated_at 最新的
+        if (new Date(record.updated_at || '') > new Date(existing.updated_at || '')) {
+          latestMap.set(record.equipment_id, record);
+        }
+      }
+      // 如果 existing 是当前月份，record 不是，保留 existing
     }
   }
   return Array.from(latestMap.values());
