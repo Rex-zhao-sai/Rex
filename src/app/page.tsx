@@ -94,7 +94,10 @@ export default function Home() {
       // 轮询时如果已经有数据，只更新不重新加载缓存
       if (isPolling && records && Object.keys(records).length > 0) {
         try {
-          const data = await getRecordsByMonth(currentMonth);
+          const [data, latestRecords] = await Promise.all([
+            getRecordsByMonth(currentMonth),
+            getLatestRecordPerEquipment(),
+          ]);
           if (isMounted && data && data.length > 0) {
             const recordsMap: Record<string, any> = {};
             data.forEach((r) => {
@@ -103,7 +106,9 @@ export default function Home() {
               }
             });
             setRecords(recordsMap);
-            console.log('[Page] Polling update from Turso');
+            // 更新 latestRecords 缓存，确保下次打开页面时数据准确
+            await setCachedLatestRecords(latestRecords || []);
+            console.log('[Page] Polling update from Turso (records + latestRecords cached)');
           }
         } catch (e) {
           console.error("轮询更新失败:", e);
