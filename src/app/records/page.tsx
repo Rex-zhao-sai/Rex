@@ -375,10 +375,8 @@ function RecordsPageContent() {
             onChange={(e) => {
               const newMonth = e.target.value;
               setSelectedMonth(newMonth);
-              // 更新 URL 以保留月份状态
-              const url = new URL(window.location.href);
-              url.searchParams.set("month", newMonth);
-              router.push(url.pathname + url.search);
+              // 使用相对路径，让 Next.js 自动处理 basePath
+              router.push(`/records?month=${newMonth}`);
             }}
             className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
