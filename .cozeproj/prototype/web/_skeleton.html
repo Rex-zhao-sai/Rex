@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>设备月度保养记录系统</title>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @theme {
+      --color-primary: #2563EB;
+      --color-primary-foreground: #FFFFFF;
+      --color-background: #F9FAFB;
+      --color-surface: #FFFFFF;
+      --color-surface-container-lowest: #FFFFFF;
+      --color-surface-container-low: #F9FAFB;
+      --color-surface-container: #F3F4F6;
+      --color-surface-container-high: #E5E7EB;
+      --color-surface-container-highest: #D1D5DB;
+      --color-on-surface: #111827;
+      --color-on-surface-variant: #6B7280;
+      --color-outline: #E5E7EB;
+      --color-outline-variant: #D1D5DB;
+      --color-success: #22C55E;
+      --color-warning: #F97316;
+      --color-danger: #EF4444;
+      --color-info: #3B82F6;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --font-sans: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+
+  <header class="bg-surface sticky top-0 z-40 h-16 flex items-center justify-between px-6 shadow-sm">
+    <div class="flex items-center gap-2">
+      <i data-lucide="wrench" class="text-primary w-5 h-5"></i>
+      <span class="font-bold text-lg">设备月度保养</span>
+    </div>
+    <nav class="flex items-center gap-1">
+      <a href="home.html" class="px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 rounded-md"
+         aria-current="page">首页</a>
+      <a href="records.html" class="px-3 py-1.5 text-sm font-medium text-on-surface-variant
+                         hover:text-on-surface hover:bg-surface-container rounded-md transition-colors">记录</a>
+      <a href="admin.html" class="px-3 py-1.5 text-sm font-medium text-on-surface-variant
+                         hover:text-on-surface hover:bg-surface-container rounded-md transition-colors">管理</a>
+    </nav>
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+        <span class="text-primary text-sm font-medium">初</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- @main-content:start -->
+  <main class="max-w-7xl mx-auto p-6">
+    <!-- 页面内容将由子 Agent 填充 -->
+  </main>
+  <!-- @main-content:end -->
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

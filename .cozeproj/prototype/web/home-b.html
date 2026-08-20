@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>方案 B - 趋势分析风格</title>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @theme {
+      --color-primary: #1E40AF;
+      --color-primary-foreground: #FFFFFF;
+      --color-background: #F9FAFB;
+      --color-surface: #FFFFFF;
+      --color-surface-container-lowest: #FFFFFF;
+      --color-surface-container-low: #F9FAFB;
+      --color-surface-container: #F3F4F6;
+      --color-surface-container-high: #E5E7EB;
+      --color-surface-container-highest: #D1D5DB;
+      --color-on-surface: #111827;
+      --color-on-surface-variant: #6B7280;
+      --color-outline: #E5E7EB;
+      --color-outline-variant: #D1D5DB;
+      --color-success: #059669;
+      --color-warning: #D97706;
+      --color-danger: #DC2626;
+      --color-info: #2563EB;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --font-sans: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+
+  <header class="bg-surface sticky top-0 z-40 h-16 flex items-center justify-between px-6 shadow-sm">
+    <div class="flex items-center gap-2">
+      <i data-lucide="wrench" class="text-primary w-5 h-5"></i>
+      <span class="font-bold text-lg">设备月度保养</span>
+    </div>
+    <nav class="flex items-center gap-1">
+      <a href="home-a.html" class="px-3 py-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md transition-colors">方案 A</a>
+      <a href="home-b.html" class="px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 rounded-md" aria-current="page">方案 B</a>
+      <a href="home-c.html" class="px-3 py-1.5 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md transition-colors">方案 C</a>
+    </nav>
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+        <span class="text-primary text-sm font-medium">初</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- @main-content:start -->
+  <main class="max-w-7xl mx-auto p-6 space-y-6">
+
+    <!-- 顶部进度条 -->
+    <div class="bg-surface rounded-lg shadow-card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <i data-lucide="calendar" class="w-6 h-6 text-primary"></i>
+          <h1 class="text-xl font-bold">2026-08 保养进度</h1>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-1.5 text-sm font-medium bg-surface-container rounded-md hover:bg-surface-container-high transition-colors">
+            <i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>上月
+          </button>
+          <span class="px-4 py-1.5 text-sm font-medium bg-primary/10 text-primary rounded-md">2026-08</span>
+          <button class="px-3 py-1.5 text-sm font-medium bg-surface-container rounded-md hover:bg-surface-container-high transition-colors">
+            下月<i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="flex items-end gap-4 mb-3">
+        <div class="text-4xl font-bold">71<span class="text-2xl text-on-surface-variant">/120</span></div>
+        <div class="text-lg font-medium text-success mb-1">(59%)</div>
+      </div>
+      <div class="w-full bg-surface-container rounded-full h-3">
+        <div class="bg-primary h-3 rounded-full transition-all" style="width: 59%"></div>
+      </div>
+      <div class="flex items-center gap-6 mt-3 text-sm">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-success"></div>
+          <span class="text-on-surface-variant">已完成 <span class="font-medium text-success">71</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-warning"></div>
+          <span class="text-on-surface-variant">即将到期 <span class="font-medium text-warning">29</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-danger"></div>
+          <span class="text-on-surface-variant">超期 <span class="font-medium text-danger">20</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 趋势图表区 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 折线图：近 6 个月完成率趋势 -->
+      <div class="bg-surface rounded-lg shadow-card p-5">
+        <h3 class="text-base font-semibold mb-4 flex items-center gap-2">
+          <i data-lucide="trending-up" class="w-5 h-5 text-primary"></i>
+          近 6 个月完成率趋势
+        </h3>
+        <div class="relative h-48">
+          <svg class="w-full h-full" viewBox="0 0 400 150" preserveAspectRatio="none">
+            <!-- 网格线 -->
+            <line x1="0" y1="30" x2="400" y2="30" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4"></line>
+            <line x1="0" y1="60" x2="400" y2="60" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4"></line>
+            <line x1="0" y1="90" x2="400" y2="90" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4"></line>
+            <line x1="0" y1="120" x2="400" y2="120" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4"></line>
+            
+            <!-- Y 轴标签 -->
+            <text x="5" y="35" font-size="10" fill="#6B7280">100%</text>
+            <text x="5" y="65" font-size="10" fill="#6B7280">75%</text>
+            <text x="5" y="95" font-size="10" fill="#6B7280">50%</text>
+            <text x="5" y="125" font-size="10" fill="#6B7280">25%</text>
+            
+            <!-- 折线 -->
+            <polyline points="40,90 110,75 180,60 250,45 320,30 390,20" 
+                      fill="none" stroke="#1E40AF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            
+            <!-- 数据点 -->
+            <circle cx="40" cy="90" r="4" fill="#1E40AF"></circle>
+            <circle cx="110" cy="75" r="4" fill="#1E40AF"></circle>
+            <circle cx="180" cy="60" r="4" fill="#1E40AF"></circle>
+            <circle cx="250" cy="45" r="4" fill="#1E40AF"></circle>
+            <circle cx="320" cy="30" r="4" fill="#1E40AF"></circle>
+            <circle cx="390" cy="20" r="4" fill="#1E40AF"></circle>
+            
+            <!-- X 轴标签 -->
+            <text x="30" y="145" font-size="10" fill="#6B7280">3 月</text>
+            <text x="100" y="145" font-size="10" fill="#6B7280">4 月</text>
+            <text x="170" y="145" font-size="10" fill="#6B7280">5 月</text>
+            <text x="240" y="145" font-size="10" fill="#6B7280">6 月</text>
+            <text x="310" y="145" font-size="10" fill="#6B7280">7 月</text>
+            <text x="380" y="145" font-size="10" fill="#6B7280">8 月</text>
+          </svg>
+        </div>
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-outline">
+          <div class="text-sm text-on-surface-variant">平均完成率</div>
+          <div class="text-lg font-bold text-primary">68%</div>
+        </div>
+      </div>
+
+      <!-- 日历热力图：保养活跃度 -->
+      <div class="bg-surface rounded-lg shadow-card p-5">
+        <h3 class="text-base font-semibold mb-4 flex items-center gap-2">
+          <i data-lucide="calendar-days" class="w-5 h-5 text-primary"></i>
+          本月保养活跃度
+        </h3>
+        <div class="grid grid-cols-7 gap-1">
+          <!-- 星期标题 -->
+          <div class="text-xs text-center text-on-surface-variant py-1">日</div>
+          <div class="text-xs text-center text-on-surface-variant py-1">一</div>
+          <div class="text-xs text-center text-on-surface-variant py-1">二</div>
+          <div class="text-xs text-center text-on-surface-variant py-1">三</div>
+          <div class="text-xs text-center text-on-surface-variant py-1">四</div>
+          <div class="text-xs text-center text-on-surface-variant py-1">五</div>
+          <div class="text-xs text-center text-on-surface-variant py-1">六</div>
+          
+          <!-- 日期格子 (8 月) -->
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-success/20"></div>
+          
+          <div class="aspect-square rounded bg-success/40"></div>
+          <div class="aspect-square rounded bg-success/60"></div>
+          <div class="aspect-square rounded bg-success/80"></div>
+          <div class="aspect-square rounded bg-success"></div>
+          <div class="aspect-square rounded bg-success/60"></div>
+          <div class="aspect-square rounded bg-success/40"></div>
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-success/20"></div>
+          <div class="aspect-square rounded bg-success/40"></div>
+          <div class="aspect-square rounded bg-success/60"></div>
+          <div class="aspect-square rounded bg-success/80"></div>
+          <div class="aspect-square rounded bg-success"></div>
+          <div class="aspect-square rounded bg-success/60"></div>
+          
+          <div class="aspect-square rounded bg-success/40"></div>
+          <div class="aspect-square rounded bg-success/20"></div>
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-surface-container-low"></div>
+          <div class="aspect-square rounded bg-success/20"></div>
+          <div class="aspect-square rounded bg-success/40"></div>
+          <div class="aspect-square rounded bg-success/60"></div>
+          
+          <div class="aspect-square rounded bg-success/80"></div>
+          <div class="aspect-square rounded bg-success"></div>
+          <div class="aspect-square rounded bg-primary"></div>
+        </div>
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-outline">
+          <div class="text-sm text-on-surface-variant">本月保养天数</div>
+          <div class="text-lg font-bold text-primary">19 天</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 对比统计 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-surface rounded-lg shadow-card p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-on-surface-variant">较上月</span>
+          <i data-lucide="arrow-up-right" class="w-4 h-4 text-success"></i>
+        </div>
+        <div class="text-2xl font-bold text-success">+8%</div>
+        <div class="text-xs text-on-surface-variant mt-1">完成率提升</div>
+      </div>
+      <div class="bg-surface rounded-lg shadow-card p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-on-surface-variant">超期减少</span>
+          <i data-lucide="arrow-down-right" class="w-4 h-4 text-success"></i>
+        </div>
+        <div class="text-2xl font-bold text-success">-3 台</div>
+        <div class="text-xs text-on-surface-variant mt-1">较上月改善</div>
+      </div>
+      <div class="bg-surface rounded-lg shadow-card p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-on-surface-variant">平均超期天数</span>
+          <i data-lucide="clock" class="w-4 h-4 text-warning"></i>
+        </div>
+        <div class="text-2xl font-bold text-warning">42 天</div>
+        <div class="text-xs text-on-surface-variant mt-1">需重点关注</div>
+      </div>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="relative">
+      <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-on-surface-variant"></i>
+      <input type="text" placeholder="搜索设备名称..." 
+             class="w-full bg-surface-container border-none rounded-md pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/30" />
+    </div>
+
+    <!-- 设备列表 (按紧急程度排序) -->
+    <div class="space-y-4">
+      <!-- 超期未保养 -->
+      <div>
+        <h3 class="text-base font-semibold mb-3 flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-5 h-5 text-danger"></i>
+          超期未保养
+          <span class="px-2 py-0.5 text-xs font-medium bg-danger/10 text-danger rounded-full">20</span>
+        </h3>
+        <div class="space-y-2">
+          <div class="bg-surface rounded-lg shadow-card p-4 border-l-4 border-l-danger hover:shadow-md transition-shadow cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div>
+                <h4 class="font-medium">ADM_DU_G2 EPE</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-2 py-0.5 text-xs bg-surface-container rounded">EPE</span>
+                  <span class="text-xs text-on-surface-variant">超期 61 天</span>
+                </div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-on-surface-variant"></i>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4 border-l-4 border-l-danger hover:shadow-md transition-shadow cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div>
+                <h4 class="font-medium">ADM_DU_G2 PROG</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-2 py-0.5 text-xs bg-surface-container rounded">FCT</span>
+                  <span class="text-xs text-on-surface-variant">超期 61 天</span>
+                </div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-on-surface-variant"></i>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4 border-l-4 border-l-danger hover:shadow-md transition-shadow cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div>
+                <h4 class="font-medium">Aero B EPE</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-2 py-0.5 text-xs bg-surface-container rounded">EPE</span>
+                  <span class="text-xs text-on-surface-variant">超期 61 天</span>
+                </div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-on-surface-variant"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 即将到期 -->
+      <div>
+        <h3 class="text-base font-semibold mb-3 flex items-center gap-2">
+          <i data-lucide="clock" class="w-5 h-5 text-warning"></i>
+          即将到期
+          <span class="px-2 py-0.5 text-xs font-medium bg-warning/10 text-warning rounded-full">29</span>
+        </h3>
+        <div class="space-y-2">
+          <div class="bg-surface rounded-lg shadow-card p-4 border-l-4 border-l-warning hover:shadow-md transition-shadow cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div>
+                <h4 class="font-medium">HSU-CU PROG</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-2 py-0.5 text-xs bg-surface-container rounded">FCT</span>
+                  <span class="text-xs text-on-surface-variant">剩余 29 天</span>
+                </div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-on-surface-variant"></i>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4 border-l-4 border-l-warning hover:shadow-md transition-shadow cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div>
+                <h4 class="font-medium">Wet-EOP</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-2 py-0.5 text-xs bg-surface-container rounded">Workcell</span>
+                  <span class="text-xs text-on-surface-variant">剩余 29 天</span>
+                </div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-on-surface-variant"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 本月已完成 -->
+      <div>
+        <h3 class="text-base font-semibold mb-3 flex items-center gap-2">
+          <i data-lucide="check-circle" class="w-5 h-5 text-success"></i>
+          本月已完成
+          <span class="px-2 py-0.5 text-xs font-medium bg-success/10 text-success rounded-full">71</span>
+        </h3>
+        <div class="space-y-2">
+          <div class="bg-surface rounded-lg shadow-card p-4 border-l-4 border-l-success hover:shadow-md transition-shadow cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div>
+                <h4 class="font-medium">ICT-720 Adapter</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-2 py-0.5 text-xs bg-surface-container rounded">Adapter</span>
+                  <span class="text-xs text-on-surface-variant">8 月 19 日完成</span>
+                </div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-on-surface-variant"></i>
+          </div>
+          <div class="bg-surface rounded-lg shadow-card p-4 border-l-4 border-l-success hover:shadow-md transition-shadow cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div>
+                <h4 class="font-medium">Gen.6 Plasma Workcell</h4>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-2 py-0.5 text-xs bg-surface-container rounded">Workcell</span>
+                  <span class="text-xs text-on-surface-variant">8 月 18 日完成</span>
+                </div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-on-surface-variant"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+  <!-- @main-content:end -->
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

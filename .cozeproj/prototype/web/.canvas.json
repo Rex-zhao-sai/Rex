@@ -1,0 +1,28 @@
+{
+  "elements": [
+    {
+      "type": "html",
+      "options": {
+        "path": ".cozeproj/prototype/web/home-a.html"
+      },
+      "title": "方案 A-数据仪表盘",
+      "size": "web"
+    },
+    {
+      "type": "html",
+      "options": {
+        "path": ".cozeproj/prototype/web/home-b.html"
+      },
+      "title": "方案 B-趋势分析",
+      "size": "web"
+    },
+    {
+      "type": "html",
+      "options": {
+        "path": ".cozeproj/prototype/web/home-c.html"
+      },
+      "title": "方案 C-简洁卡片",
+      "size": "web"
+    }
+  ]
+}
