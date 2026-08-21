@@ -159,8 +159,8 @@ export function PhotoUploader({
     [pair.id, onUpload]
   );
 
-  // 压缩图片为 Blob（最大 1920px，质量 0.8，如果压缩后更大则保留原图）
-  const compressImage = (file: File, maxWidth: number = 1920, quality: number = 0.8): Promise<Blob> => {
+  // 压缩图片为 Blob（最大 1280px，质量 0.7，如果压缩后更大则保留原图）
+  const compressImage = (file: File, maxWidth: number = 1280, quality: number = 0.7): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
